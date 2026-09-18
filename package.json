@@ -1,0 +1,17 @@
+{
+  "name": "sched",
+  "private": true,
+  "packageManager": "pnpm@10.15.1",
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "dev": "turbo dev",
+    "build": "turbo build",
+    "lint": "turbo lint",
+    "typecheck": "turbo typecheck",
+    "test": "turbo test",
+    "db:up": "docker compose up -d postgres",
+    "db:migrate": "pnpm --filter @sched/api prisma:migrate"
+  }
+}

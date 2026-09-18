@@ -1,0 +1,30 @@
+import { Test } from "@nestjs/testing";
+import { INestApplication } from "@nestjs/common";
+import cookieParser from "cookie-parser";
+import { AppModule } from "../src/app.module";
+import { HttpErrorFilter } from "../src/shared/filters/http-error.filter";
+import { RequestIdInterceptor } from "../src/shared/interceptors/request-id.interceptor";
+import { PrismaService } from "../src/shared/prisma/prisma.service";
+
+export async function createTestApp(): Promise<INestApplication> {
+  const moduleRef = await Test.createTestingModule({
+    imports: [AppModule],
+  }).compile();
+  const app = moduleRef.createNestApplication();
+  app.use(cookieParser());
+  app.useGlobalFilters(new HttpErrorFilter());
+  app.useGlobalInterceptors(new RequestIdInterceptor());
+  await app.init();
+  return app;
+}
+
+export async function resetDatabase(app: INestApplication): Promise<void> {
+  const prisma = app.get(PrismaService);
+  await prisma.eventType.deleteMany();
+  await prisma.session.deleteMany();
+  await prisma.user.deleteMany();
+}
+
+export function uniqueLabel(prefix: string): string {
+  return `${prefix}-${Math.random().toString(36).slice(2, 10)}`;
+}

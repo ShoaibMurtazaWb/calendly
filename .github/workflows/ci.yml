@@ -1,0 +1,49 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  build-test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: sched
+          POSTGRES_PASSWORD: sched
+          POSTGRES_DB: sched
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U sched -d sched"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+
+    env:
+      DATABASE_URL: postgresql://sched:sched@localhost:5432/sched
+      COOKIE_SECURE: "false"
+      NODE_ENV: test
+      ARGON2_MEMORY_COST: "4096"
+      ARGON2_TIME_COST: "1"
+
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm lint
+      - run: pnpm typecheck
+      - run: pnpm --filter @sched/api prisma:migrate:deploy
+      - run: pnpm --filter @sched/api test
+      - run: pnpm build

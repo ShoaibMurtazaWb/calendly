@@ -1,0 +1,12 @@
+{
+  "name": "@sched/eslint-config",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    "./base": "./base.js"
+  },
+  "peerDependencies": {
+    "eslint": "^9"
+  }
+}
