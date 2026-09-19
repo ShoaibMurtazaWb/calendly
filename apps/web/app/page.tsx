@@ -4,10 +4,10 @@ export default function HomePage() {
   return (
     <main className="mx-auto flex min-h-screen max-w-lg flex-col justify-center gap-6 px-6">
       <div>
-        <p className="text-sm font-medium text-neutral-500">Sched v0.1.0</p>
-        <h1 className="mt-1 text-3xl font-semibold">Share a page. Book later.</h1>
-        <p className="mt-3 text-neutral-600">
-          Create event types and a public profile. Availability and bookings ship in a later version.
+        <p className="text-sm font-semibold tracking-tight text-slate-950">Sched</p>
+        <h1 className="mt-1 text-3xl font-semibold text-slate-950">Share a page. Book effortlessly.</h1>
+        <p className="mt-3 text-slate-600 leading-relaxed">
+          Create custom event types and personal booking links with high-precision scheduling infrastructure.
         </p>
       </div>
       <div className="flex gap-3">

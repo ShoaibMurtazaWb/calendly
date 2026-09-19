@@ -32,7 +32,9 @@ export default async function PublicEventTypePage({
         <CardTitle className="mt-1">{eventType.title}</CardTitle>
         <CardDescription className="mt-3 whitespace-pre-wrap">{eventType.description || "No description."}</CardDescription>
         <p className="mt-4 text-sm font-medium">{eventType.durationMinutes} minutes</p>
-        <p className="mt-6 text-sm text-neutral-500">Booking is not available in v0.1.0.</p>
+        <p className="mt-6 text-xs text-slate-500 bg-slate-50 rounded-xl p-3 border border-slate-200/80">
+          Calendar slot picker will open soon. Please contact the host directly to confirm your booking.
+        </p>
       </Card>
     </main>
   );

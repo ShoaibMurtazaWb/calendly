@@ -1,8 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname, useRouter } from "next/navigation";
-import { useEffect, useMemo, useState } from "react";
+import { usePathname } from "next/navigation";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
   Calendar,
   Layers,
@@ -11,18 +11,37 @@ import {
   Plus,
   LogOut,
   ExternalLink,
+  ChevronDown,
+  Globe,
+  User as UserIcon,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { api, type CurrentUser } from "@/lib/api";
 import { ApiError } from "@/lib/api-error";
 
 export function DashboardShell({ children }: { children: React.ReactNode }) {
-  const router = useRouter();
   const pathname = usePathname();
   const [user, setUser] = useState<CurrentUser | null>(null);
   const [currentTime, setCurrentTime] = useState<string>("");
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+  const dropdownRef = useRef<HTMLDivElement>(null);
+
+  // Click-outside listener to close user menu
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+        setIsDropdownOpen(false);
+      }
+    }
+    if (isDropdownOpen) {
+      document.addEventListener("mousedown", handleClickOutside);
+    }
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, [isDropdownOpen]);
 
   async function checkAuth() {
     setIsLoading(true);
@@ -96,7 +115,6 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
         href: "#",
         active: false,
         disabled: true,
-        badge: "v0.2",
         icon: Calendar,
       },
       {
@@ -104,7 +122,6 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
         href: "#",
         active: false,
         disabled: true,
-        badge: "v0.2",
         icon: Clock,
       },
       {
@@ -112,7 +129,6 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
         href: "#",
         active: false,
         disabled: true,
-        badge: "v0.3",
         icon: Puzzle,
       },
     ],
@@ -186,9 +202,6 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
                 </div>
                 <div className="flex items-center gap-1.5">
                   <span className="font-semibold tracking-tight text-slate-950 text-base">Sched</span>
-                  <span className="rounded-full bg-slate-100 border border-slate-200 px-1.5 py-0.5 text-[10px] font-medium text-slate-600">
-                    v0.1
-                  </span>
                 </div>
               </Link>
 
@@ -207,60 +220,115 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
                     }`}
                   >
                     <span className="whitespace-nowrap">{item.label}</span>
-                    {item.badge && (
-                      <span className="text-[10px] bg-slate-100 text-slate-400 font-normal px-1 py-0.2 rounded shrink-0">
-                        {item.badge}
-                      </span>
-                    )}
                   </Link>
                 ))}
               </nav>
             </div>
 
-            {/* Right Host Status & Actions */}
+            {/* Right Actions: Header Create Button & User Profile Dropdown */}
             <div className="flex items-center gap-2.5 sm:gap-3 shrink-0">
-              {/* Host Identity Pill */}
-              <div className="flex items-center gap-2 rounded-full border border-slate-200/90 bg-white px-3.5 py-1.5 shadow-2xs whitespace-nowrap shrink-0">
-                <div className="h-2 w-2 rounded-full bg-emerald-500 ring-4 ring-emerald-50 shrink-0" />
-                <span className="text-sm font-medium text-slate-900 hidden sm:inline-block">
-                  {user.name}
-                </span>
-                <span className="rounded bg-slate-100 px-1.5 py-0.5 text-xs font-mono text-slate-600">
-                  @{user.username}
-                </span>
-                {user.timezone && (
-                  <span className="hidden xl:inline-block border-l border-slate-200 pl-2 text-xs text-slate-500">
-                    {user.timezone} {currentTime && `· ${currentTime}`}
-                  </span>
-                )}
-              </div>
-
-              {/* Create CTA Button */}
+              {/* Header Create CTA Button */}
               <Button asChild size="sm" className="rounded-xl bg-slate-950 text-white hover:bg-slate-800 shadow-xs h-9 px-3.5 whitespace-nowrap shrink-0">
                 <Link href="/dashboard/event-types/new" className="flex items-center gap-1.5">
                   <Plus className="h-4 w-4 stroke-[2.5] shrink-0" />
-                  <span className="hidden sm:inline font-medium">Create Event Type</span>
+                  <span className="font-medium">Create</span>
                 </Link>
               </Button>
 
-              {/* User Avatar Circle */}
-              <div
-                className="flex h-8 w-8 items-center justify-center rounded-full bg-linear-to-tr from-slate-200 to-slate-100 border border-slate-300 text-xs font-semibold text-slate-700 select-none shadow-2xs shrink-0"
-                title={`${user.name} (@${user.username})`}
-              >
-                {user.name.charAt(0).toUpperCase()}
-              </div>
+              {/* User Avatar & Dropdown Menu */}
+              <div className="relative" ref={dropdownRef}>
+                <button
+                  type="button"
+                  onClick={() => setIsDropdownOpen((prev) => !prev)}
+                  className="flex items-center gap-2 rounded-xl p-1.5 hover:bg-slate-100 transition-colors cursor-pointer border border-transparent hover:border-slate-200"
+                  aria-expanded={isDropdownOpen}
+                  aria-label="User menu"
+                >
+                  <div className="relative">
+                    <div className="flex h-8 w-8 items-center justify-center rounded-full bg-linear-to-tr from-slate-900 to-slate-700 text-white text-xs font-bold shadow-2xs select-none">
+                      {user.name.charAt(0).toUpperCase()}
+                    </div>
+                    <span className="absolute bottom-0 right-0 h-2.5 w-2.5 rounded-full bg-emerald-500 ring-2 ring-white" />
+                  </div>
+                  <ChevronDown className={`h-3.5 w-3.5 text-slate-500 transition-transform duration-200 ${isDropdownOpen ? "rotate-180" : ""}`} />
+                </button>
 
-              {/* Logout Icon Button */}
-              <button
-                type="button"
-                onClick={() => void logout()}
-                className="rounded-lg p-2 text-slate-500 hover:text-slate-900 hover:bg-slate-100 transition-colors cursor-pointer shrink-0"
-                title="Log out"
-                aria-label="Log out"
-              >
-                <LogOut className="h-4 w-4" />
-              </button>
+                {/* Dropdown Card */}
+                {isDropdownOpen && (
+                  <div className="absolute right-0 mt-2 w-72 rounded-2xl border border-slate-200/90 bg-white p-3 shadow-xl z-50 animate-in fade-in-0 zoom-in-95">
+                    {/* User Identity Header */}
+                    <div className="flex items-center gap-3 p-2.5 rounded-xl bg-slate-50 border border-slate-100">
+                      <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-slate-950 text-white font-bold text-sm shadow-xs select-none">
+                        {user.name.charAt(0).toUpperCase()}
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <div className="flex items-center gap-1.5">
+                          <p className="truncate text-sm font-semibold text-slate-900">{user.name}</p>
+                        </div>
+                        <p className="truncate text-xs font-mono text-slate-500">@{user.username}</p>
+                        <p className="truncate text-[11px] text-slate-400">{user.email}</p>
+                      </div>
+                    </div>
+
+                    {/* Timezone / Live Clock Row */}
+                    {user.timezone && (
+                      <div className="mt-2 flex items-center justify-between px-2.5 py-2 text-xs text-slate-600 rounded-lg bg-slate-50/50">
+                        <div className="flex items-center gap-1.5 truncate">
+                          <Globe className="h-3.5 w-3.5 text-slate-400 shrink-0" />
+                          <span className="truncate">{user.timezone}</span>
+                        </div>
+                        {currentTime && (
+                          <span className="text-[11px] font-mono font-medium text-slate-700 shrink-0">
+                            {currentTime}
+                          </span>
+                        )}
+                      </div>
+                    )}
+
+                    <div className="my-2 border-t border-slate-100" />
+
+                    {/* Navigation Menu Items */}
+                    <div className="space-y-1">
+                      <Link
+                        href="/dashboard"
+                        onClick={() => setIsDropdownOpen(false)}
+                        className="flex items-center gap-2.5 rounded-xl px-2.5 py-2 text-xs font-medium text-slate-700 hover:bg-slate-100 hover:text-slate-900 transition-colors"
+                      >
+                        <Layers className="h-4 w-4 text-slate-400" />
+                        <span>Event Types Dashboard</span>
+                      </Link>
+
+                      <Link
+                        href={`/public/${user.username}/30min`}
+                        target="_blank"
+                        onClick={() => setIsDropdownOpen(false)}
+                        className="flex items-center justify-between rounded-xl px-2.5 py-2 text-xs font-medium text-slate-700 hover:bg-slate-100 hover:text-slate-900 transition-colors"
+                      >
+                        <div className="flex items-center gap-2.5">
+                          <UserIcon className="h-4 w-4 text-slate-400" />
+                          <span>Public Booking Link</span>
+                        </div>
+                        <ExternalLink className="h-3.5 w-3.5 text-slate-400" />
+                      </Link>
+                    </div>
+
+                    <div className="my-2 border-t border-slate-100" />
+
+                    {/* Logout Action */}
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setIsDropdownOpen(false);
+                        void logout();
+                      }}
+                      className="flex w-full items-center gap-2.5 rounded-xl px-2.5 py-2 text-xs font-medium text-red-600 hover:bg-red-50 transition-colors cursor-pointer"
+                    >
+                      <LogOut className="h-4 w-4" />
+                      <span>Sign out</span>
+                    </button>
+                  </div>
+                )}
+              </div>
             </div>
           </div>
         </header>
@@ -278,7 +346,7 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
             <span>High-precision calendar scheduling infrastructure.</span>
           </div>
           <div className="flex items-center gap-5 font-medium text-slate-600">
-            <span className="text-slate-400">Settings (v0.2)</span>
+            <span className="text-slate-400">Settings</span>
             <Link
               href={`/public/${user.username}/30min`}
               target="_blank"
