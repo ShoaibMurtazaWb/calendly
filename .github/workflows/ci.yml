@@ -30,7 +30,7 @@ jobs:
       COOKIE_SECURE: "false"
       NODE_ENV: test
       ARGON2_MEMORY_COST: "4096"
-      ARGON2_TIME_COST: "1"
+      ARGON2_TIME_COST: "2"
 
     steps:
       - uses: actions/checkout@v4
