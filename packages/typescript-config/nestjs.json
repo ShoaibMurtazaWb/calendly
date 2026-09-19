@@ -8,6 +8,7 @@
     "experimentalDecorators": true,
     "declaration": true,
     "outDir": "./dist",
+    "tsBuildInfoFile": "./dist/.tsbuildinfo",
     "incremental": true
   }
 }

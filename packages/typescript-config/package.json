@@ -2,5 +2,11 @@
   "name": "@sched/typescript-config",
   "version": "0.1.0",
   "private": true,
-  "files": ["base.json", "nestjs.json", "nextjs.json"]
+  "files": ["base.json", "nestjs.json", "nextjs.json"],
+  "exports": {
+    "./*": "./*",
+    "./base.json": "./base.json",
+    "./nestjs.json": "./nestjs.json",
+    "./nextjs.json": "./nextjs.json"
+  }
 }

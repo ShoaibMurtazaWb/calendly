@@ -48,17 +48,41 @@ export async function api<T>(path: string, init: RequestInit = {}): Promise<T> {
   if (init.body && !headers.has("Content-Type")) {
     headers.set("Content-Type", "application/json");
   }
-  const response = await fetch(`/api/v1${path}`, {
-    ...init,
-    headers,
-    credentials: "include",
-  });
+
+  let response: Response;
+  try {
+    response = await fetch(`/api/v1${path}`, {
+      ...init,
+      headers,
+      credentials: "include",
+    });
+  } catch (netErr) {
+    throw new ApiError(503, {
+      error: {
+        code: "NETWORK_ERROR",
+        message:
+          netErr instanceof Error
+            ? netErr.message
+            : "Network error: Unable to reach the scheduling API server.",
+      },
+    });
+  }
+
   const body = await parseBody(response);
   if (!response.ok) {
     if (isApiErrorBody(body)) {
       throw new ApiError(response.status, body);
     }
-    throw new Error(`Request failed (${response.status})`);
+    const message =
+      body && typeof body === "object" && "message" in body
+        ? String((body as { message: unknown }).message)
+        : `Request failed (${response.status})`;
+    throw new ApiError(response.status, {
+      error: {
+        code: response.status === 401 ? "UNAUTHORIZED" : "HTTP_ERROR",
+        message,
+      },
+    });
   }
   return body as T;
 }

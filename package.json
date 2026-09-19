@@ -13,5 +13,8 @@
     "test": "turbo test",
     "db:up": "docker compose up -d postgres",
     "db:migrate": "pnpm --filter @sched/api prisma:migrate"
+  },
+  "devDependencies": {
+    "turbo": "^2.11.2"
   }
 }

@@ -1,6 +1,7 @@
 {
   "extends": "@sched/typescript-config/nextjs.json",
   "compilerOptions": {
+    "jsx": "preserve",
     "baseUrl": ".",
     "paths": {
       "@/*": ["./*"]
