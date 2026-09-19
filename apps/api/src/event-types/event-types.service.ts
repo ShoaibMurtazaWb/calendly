@@ -79,6 +79,18 @@ export class EventTypesService {
     return toOwnerEventType(row);
   }
 
+  async unarchive(userId: string, id: string): Promise<OwnerEventTypeResponse> {
+    const existing = await this.findOwnedOrThrow(userId, id);
+    if (!existing.archivedAt) {
+      return toOwnerEventType(existing);
+    }
+    const row = await this.prisma.eventType.update({
+      where: { id: existing.id },
+      data: { archivedAt: null },
+    });
+    return toOwnerEventType(row);
+  }
+
   async getPublic(username: string, eventSlug: string): Promise<PublicEventTypeResponse> {
     const row = await this.prisma.eventType.findFirst({
       where: {

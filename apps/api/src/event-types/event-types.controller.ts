@@ -66,4 +66,13 @@ export class EventTypesController {
   ) {
     return this.eventTypes.archive(userId, params.id);
   }
+
+  @Post(":id/unarchive")
+  @ApiOperation({ summary: "Unarchive / restore an owned event type (idempotent)" })
+  unarchive(
+    @CurrentUserId() userId: string,
+    @Param(zodPipe(eventTypeIdParamSchema)) params: { id: string },
+  ) {
+    return this.eventTypes.unarchive(userId, params.id);
+  }
 }

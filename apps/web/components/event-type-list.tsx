@@ -8,6 +8,7 @@ import {
   Check,
   Edit2,
   Archive,
+  ArchiveRestore,
   Search,
   Plus,
   ArrowRight,
@@ -64,6 +65,15 @@ export function EventTypeList() {
       await loadData();
     } catch {
       setError("Could not archive the event type.");
+    }
+  }
+
+  async function handleUnarchive(id: string) {
+    try {
+      await api(`/event-types/${id}/unarchive`, { method: "POST" });
+      await loadData();
+    } catch {
+      setError("Could not unarchive the event type.");
     }
   }
 
@@ -238,52 +248,64 @@ export function EventTypeList() {
                 {/* Action Toolbar Footer */}
                 <div className="mt-6 pt-4 border-t border-slate-100 flex items-center justify-between gap-3">
                   <div className="flex items-center gap-2">
-                    <Button
-                      type="button"
-                      variant="outline"
-                      size="sm"
-                      onClick={() => handleCopy(item.slug, item.id)}
-                      className="h-8 rounded-lg text-xs font-medium gap-1.5 border-slate-200 hover:bg-slate-50"
-                    >
-                      {isCopied ? (
-                        <>
-                          <Check className="h-3.5 w-3.5 text-emerald-600" />
-                          <span className="text-emerald-700 font-semibold">Copied!</span>
-                        </>
-                      ) : (
-                        <>
-                          <Copy className="h-3.5 w-3.5 text-slate-500" />
-                          <span>Copy Link</span>
-                        </>
-                      )}
-                    </Button>
-
-                    {tab === "active" && (
+                    {tab === "archived" ? (
                       <Button
-                        asChild
+                        type="button"
                         variant="outline"
                         size="sm"
-                        className="h-8 rounded-lg text-xs font-medium gap-1.5 border-slate-200 hover:bg-slate-50"
+                        onClick={() => void handleUnarchive(item.id)}
+                        className="h-8 rounded-lg text-xs font-medium gap-1.5 border-slate-300 bg-white hover:border-slate-900 hover:bg-slate-900 hover:text-white transition-all cursor-pointer shadow-2xs"
                       >
-                        <Link href={`/dashboard/event-types/${item.id}/edit`}>
-                          <Edit2 className="h-3.5 w-3.5 text-slate-500" />
-                          <span>Edit</span>
-                        </Link>
+                        <ArchiveRestore className="h-3.5 w-3.5" />
+                        <span>Unarchive</span>
                       </Button>
-                    )}
+                    ) : (
+                      <>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => handleCopy(item.slug, item.id)}
+                          className="h-8 rounded-lg text-xs font-medium gap-1.5 border-slate-200 hover:bg-slate-50"
+                        >
+                          {isCopied ? (
+                            <>
+                              <Check className="h-3.5 w-3.5 text-emerald-600" />
+                              <span className="text-emerald-700 font-semibold">Copied!</span>
+                            </>
+                          ) : (
+                            <>
+                              <Copy className="h-3.5 w-3.5 text-slate-500" />
+                              <span>Copy Link</span>
+                            </>
+                          )}
+                        </Button>
 
-                    {user && tab === "active" && (
-                      <Button
-                        asChild
-                        variant="ghost"
-                        size="sm"
-                        className="h-8 rounded-lg text-xs font-medium gap-1 text-slate-500 hover:text-slate-900"
-                      >
-                        <Link href={`/public/${user.username}/${item.slug}`} target="_blank">
-                          <ExternalLink className="h-3.5 w-3.5" />
-                          <span className="hidden sm:inline">Preview</span>
-                        </Link>
-                      </Button>
+                        <Button
+                          asChild
+                          variant="outline"
+                          size="sm"
+                          className="h-8 rounded-lg text-xs font-medium gap-1.5 border-slate-200 hover:bg-slate-50"
+                        >
+                          <Link href={`/dashboard/event-types/${item.id}/edit`}>
+                            <Edit2 className="h-3.5 w-3.5 text-slate-500" />
+                            <span>Edit</span>
+                          </Link>
+                        </Button>
+
+                        {user && (
+                          <Button
+                            asChild
+                            variant="ghost"
+                            size="sm"
+                            className="h-8 rounded-lg text-xs font-medium gap-1 text-slate-500 hover:text-slate-900"
+                          >
+                            <Link href={`/public/${user.username}/${item.slug}`} target="_blank">
+                              <ExternalLink className="h-3.5 w-3.5" />
+                              <span className="hidden sm:inline">Preview</span>
+                            </Link>
+                          </Button>
+                        )}
+                      </>
                     )}
                   </div>
 
@@ -297,6 +319,11 @@ export function EventTypeList() {
                     >
                       <Archive className="h-4 w-4" />
                     </button>
+                  )}
+                  {tab === "archived" && (
+                    <span className="text-[11px] font-medium text-slate-400">
+                      Archived
+                    </span>
                   )}
                 </div>
               </Card>

@@ -86,6 +86,15 @@ describe("event types HTTP", () => {
       .set("Cookie", cookies)
       .send({ title: "Nope" });
     expect(editArchived.status).toBe(409);
+
+    const unarchived = await request(app.getHttpServer())
+      .post(`/api/v1/event-types/${created.body.id}/unarchive`)
+      .set("Cookie", cookies);
+    expect(unarchived.status).toBe(201);
+    expect(unarchived.body.archivedAt).toBeNull();
+
+    const activeAfterRestore = await request(app.getHttpServer()).get("/api/v1/event-types").set("Cookie", cookies);
+    expect(activeAfterRestore.body).toHaveLength(1);
   });
 
   it("returns 404 when another user guesses an id", async () => {

@@ -20,9 +20,31 @@ export async function createTestApp(): Promise<INestApplication> {
 
 export async function resetDatabase(app: INestApplication): Promise<void> {
   const prisma = app.get(PrismaService);
-  await prisma.eventType.deleteMany();
-  await prisma.session.deleteMany();
-  await prisma.user.deleteMany();
+  await prisma.eventType.deleteMany({
+    where: {
+      user: {
+        email: {
+          contains: "example.com",
+        },
+      },
+    },
+  });
+  await prisma.session.deleteMany({
+    where: {
+      user: {
+        email: {
+          contains: "example.com",
+        },
+      },
+    },
+  });
+  await prisma.user.deleteMany({
+    where: {
+      email: {
+        contains: "example.com",
+      },
+    },
+  });
 }
 
 export function uniqueLabel(prefix: string): string {
