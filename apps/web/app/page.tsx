@@ -12,7 +12,6 @@ import {
   ShieldCheck,
   Zap,
   Layers,
-  ChevronRight,
 } from "lucide-react";
 
 const DEMO_EVENTS = [
