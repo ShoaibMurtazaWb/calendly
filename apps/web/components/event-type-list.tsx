@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
   Clock,
   Copy,
@@ -39,6 +39,23 @@ export function EventTypeList() {
   const [tab, setTab] = useState<"active" | "archived">("active");
   const [searchQuery, setSearchQuery] = useState("");
   const [copiedId, setCopiedId] = useState<string | null>(null);
+  const searchInputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    function handleKeyDown(e: KeyboardEvent) {
+      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "k") {
+        e.preventDefault();
+        searchInputRef.current?.focus();
+        searchInputRef.current?.select();
+      }
+      if (e.key === "Escape" && document.activeElement === searchInputRef.current) {
+        searchInputRef.current?.blur();
+      }
+    }
+
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, []);
 
   async function loadData() {
     try {
@@ -160,15 +177,21 @@ export function EventTypeList() {
           <div className="relative min-w-[220px]">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-slate-400" />
             <Input
+              ref={searchInputRef}
               type="text"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               placeholder="Filter event types..."
-              className="h-9 pl-9 pr-8 text-xs rounded-xl bg-white border-slate-200/90 shadow-2xs placeholder:text-slate-400"
+              className="h-9 pl-9 pr-9 text-xs rounded-xl bg-white border-slate-200/90 shadow-2xs placeholder:text-slate-400 focus-visible:ring-1 focus-visible:ring-slate-900"
             />
-            <kbd className="absolute right-2.5 top-1/2 -translate-y-1/2 rounded border border-slate-200 bg-slate-50 px-1 text-[10px] font-mono text-slate-400">
+            <button
+              type="button"
+              onClick={() => searchInputRef.current?.focus()}
+              className="absolute right-2.5 top-1/2 -translate-y-1/2 rounded border border-slate-200 bg-slate-50 px-1 py-0.5 text-[10px] font-mono text-slate-400 hover:text-slate-900 hover:border-slate-300 transition-colors cursor-pointer"
+              title="Focus search (⌘K or Ctrl+K)"
+            >
               ⌘K
-            </kbd>
+            </button>
           </div>
         </div>
       </div>
