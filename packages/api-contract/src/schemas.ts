@@ -95,6 +95,9 @@ export const createEventTypeBodySchema = z.object({
   slug: slugSchema,
   description: z.string().trim().max(DESCRIPTION_MAX_LENGTH).default(""),
   durationMinutes: durationMinutesSchema,
+  beforeBufferMinutes: z.coerce.number().int().min(0).max(120).default(0),
+  afterBufferMinutes: z.coerce.number().int().min(0).max(120).default(0),
+  minimumNoticeMinutes: z.coerce.number().int().min(0).max(10080).default(60),
 });
 
 export const updateEventTypeBodySchema = z
@@ -103,6 +106,9 @@ export const updateEventTypeBodySchema = z
     slug: slugSchema.optional(),
     description: z.string().trim().max(DESCRIPTION_MAX_LENGTH).optional(),
     durationMinutes: durationMinutesSchema.optional(),
+    beforeBufferMinutes: z.coerce.number().int().min(0).max(120).optional(),
+    afterBufferMinutes: z.coerce.number().int().min(0).max(120).optional(),
+    minimumNoticeMinutes: z.coerce.number().int().min(0).max(10080).optional(),
   })
   .refine((value) => Object.keys(value).length > 0, {
     message: "Provide at least one field to update",

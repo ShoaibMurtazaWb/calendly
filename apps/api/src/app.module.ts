@@ -4,6 +4,7 @@ import { ThrottlerModule } from "@nestjs/throttler";
 import { AuthModule } from "./auth/auth.module";
 import { EventTypesModule } from "./event-types/event-types.module";
 import { IdentityModule } from "./identity/identity.module";
+import { SchedulesModule } from "./schedules/schedules.module";
 import { SharedModule } from "./shared/shared.module";
 
 @Module({
@@ -16,6 +17,7 @@ import { SharedModule } from "./shared/shared.module";
     IdentityModule,
     AuthModule,
     EventTypesModule,
+    SchedulesModule,
   ],
 })
 export class AppModule {}

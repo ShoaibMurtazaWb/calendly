@@ -119,9 +119,9 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
       },
       {
         label: "Availability",
-        href: "#",
-        active: false,
-        disabled: true,
+        href: "/dashboard/availability",
+        active: pathname.startsWith("/dashboard/availability"),
+        disabled: false,
         icon: Clock,
       },
       {

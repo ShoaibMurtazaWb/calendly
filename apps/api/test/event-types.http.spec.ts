@@ -27,7 +27,7 @@ describe("event types HTTP", () => {
     };
     const res = await request(app.getHttpServer()).post("/api/v1/auth/register").send(payload);
     expect(res.status).toBe(201);
-    return { cookies: res.headers["set-cookie"] as string[], user: res.body as { id: string; username: string } };
+    return { cookies: res.headers["set-cookie"] as unknown as string[], user: res.body as { id: string; username: string } };
   }
 
   it("creates, lists, updates, and archives event types for the owner", async () => {

@@ -29,6 +29,9 @@ export class EventTypesService {
           slug: input.slug,
           description: input.description,
           durationMinutes: input.durationMinutes,
+          beforeBufferMinutes: input.beforeBufferMinutes,
+          afterBufferMinutes: input.afterBufferMinutes,
+          minimumNoticeMinutes: input.minimumNoticeMinutes,
         },
       });
       return toOwnerEventType(row);
@@ -57,6 +60,9 @@ export class EventTypesService {
           ...(input.slug !== undefined ? { slug: input.slug } : {}),
           ...(input.description !== undefined ? { description: input.description } : {}),
           ...(input.durationMinutes !== undefined ? { durationMinutes: input.durationMinutes } : {}),
+          ...(input.beforeBufferMinutes !== undefined ? { beforeBufferMinutes: input.beforeBufferMinutes } : {}),
+          ...(input.afterBufferMinutes !== undefined ? { afterBufferMinutes: input.afterBufferMinutes } : {}),
+          ...(input.minimumNoticeMinutes !== undefined ? { minimumNoticeMinutes: input.minimumNoticeMinutes } : {}),
         },
       });
       return toOwnerEventType(row);
@@ -91,7 +97,40 @@ export class EventTypesService {
     return toOwnerEventType(row);
   }
 
-  async getPublic(username: string, eventSlug: string): Promise<PublicEventTypeResponse> {
+  async getPublicHostProfile(username: string): Promise<import("@sched/api-contract").PublicHostProfileResponse> {
+    const user = await this.prisma.user.findUnique({
+      where: { username },
+      include: {
+        eventTypes: {
+          where: { archivedAt: null },
+          orderBy: { createdAt: "desc" },
+        },
+      },
+    });
+
+    if (!user) {
+      throw new NotFoundError();
+    }
+
+    return {
+      user: {
+        name: user.name,
+        username: user.username,
+        timezone: user.timezone,
+      },
+      eventTypes: user.eventTypes.map((et) => ({
+        id: et.id,
+        title: et.title,
+        slug: et.slug,
+        description: et.description,
+        durationMinutes: et.durationMinutes,
+        beforeBufferMinutes: et.beforeBufferMinutes,
+        afterBufferMinutes: et.afterBufferMinutes,
+      })),
+    };
+  }
+
+  async getPublicRaw(username: string, eventSlug: string) {
     const row = await this.prisma.eventType.findFirst({
       where: {
         slug: eventSlug,
@@ -103,6 +142,11 @@ export class EventTypesService {
     if (!row) {
       throw new NotFoundError();
     }
+    return row;
+  }
+
+  async getPublic(username: string, eventSlug: string): Promise<PublicEventTypeResponse> {
+    const row = await this.getPublicRaw(username, eventSlug);
     return toPublicEventType(row, row.user);
   }
 

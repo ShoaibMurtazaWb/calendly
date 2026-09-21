@@ -6,6 +6,10 @@ import { HttpErrorFilter } from "../src/shared/filters/http-error.filter";
 import { RequestIdInterceptor } from "../src/shared/interceptors/request-id.interceptor";
 import { PrismaService } from "../src/shared/prisma/prisma.service";
 
+if (!process.env.DATABASE_URL) {
+  process.env.DATABASE_URL = "postgresql://sched:sched@localhost:5432/sched";
+}
+
 export async function createTestApp(): Promise<INestApplication> {
   const moduleRef = await Test.createTestingModule({
     imports: [AppModule],
@@ -20,6 +24,31 @@ export async function createTestApp(): Promise<INestApplication> {
 
 export async function resetDatabase(app: INestApplication): Promise<void> {
   const prisma = app.get(PrismaService);
+  const userFilter = {
+    schedule: {
+      user: {
+        email: {
+          contains: "example.com",
+        },
+      },
+    },
+  };
+
+  await prisma.scheduleOverride.deleteMany({
+    where: userFilter,
+  });
+  await prisma.scheduleDay.deleteMany({
+    where: userFilter,
+  });
+  await prisma.schedule.deleteMany({
+    where: {
+      user: {
+        email: {
+          contains: "example.com",
+        },
+      },
+    },
+  });
   await prisma.eventType.deleteMany({
     where: {
       user: {

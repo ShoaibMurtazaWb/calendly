@@ -68,7 +68,7 @@ describe("auth HTTP", () => {
       .post("/api/v1/auth/login")
       .send({ email: payload.email, password: payload.password });
     expect(login.status).toBe(200);
-    const cookies = login.headers["set-cookie"];
+    const cookies = login.headers["set-cookie"] as unknown as string[];
     expect(cookies).toBeDefined();
 
     const me = await request(app.getHttpServer()).get("/api/v1/auth/me").set("Cookie", cookies);

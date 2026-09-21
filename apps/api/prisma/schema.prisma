@@ -18,6 +18,7 @@ model User {
   updatedAt    DateTime    @updatedAt @map("updated_at") @db.Timestamptz(6)
   sessions     Session[]
   eventTypes   EventType[]
+  schedules    Schedule[]
 
   @@map("users")
 }
@@ -36,18 +37,64 @@ model Session {
 }
 
 model EventType {
-  id              String    @id @default(uuid()) @db.Uuid
-  userId          String    @map("user_id") @db.Uuid
-  user            User      @relation(fields: [userId], references: [id], onDelete: Restrict)
-  title           String
-  slug            String
-  description     String    @default("")
-  durationMinutes Int       @map("duration_minutes")
-  archivedAt      DateTime? @map("archived_at") @db.Timestamptz(6)
-  createdAt       DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
-  updatedAt       DateTime  @updatedAt @map("updated_at") @db.Timestamptz(6)
+  id                   String    @id @default(uuid()) @db.Uuid
+  userId               String    @map("user_id") @db.Uuid
+  user                 User      @relation(fields: [userId], references: [id], onDelete: Restrict)
+  title                String
+  slug                 String
+  description          String    @default("")
+  durationMinutes      Int       @map("duration_minutes")
+  beforeBufferMinutes  Int       @default(0) @map("before_buffer_minutes")
+  afterBufferMinutes   Int       @default(0) @map("after_buffer_minutes")
+  minimumNoticeMinutes Int       @default(60) @map("minimum_notice_minutes")
+  archivedAt           DateTime? @map("archived_at") @db.Timestamptz(6)
+  createdAt            DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt            DateTime  @updatedAt @map("updated_at") @db.Timestamptz(6)
 
   @@unique([userId, slug])
   @@index([userId, archivedAt])
   @@map("event_types")
+}
+
+model Schedule {
+  id        String             @id @default(uuid()) @db.Uuid
+  userId    String             @map("user_id") @db.Uuid
+  user      User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+  name      String             @default("Working Hours")
+  timeZone  String             @default("UTC") @map("time_zone")
+  isDefault Boolean            @default(true) @map("is_default")
+  createdAt DateTime           @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt DateTime           @updatedAt @map("updated_at") @db.Timestamptz(6)
+  days      ScheduleDay[]
+  overrides ScheduleOverride[]
+
+  @@index([userId, isDefault])
+  @@map("schedules")
+}
+
+model ScheduleDay {
+  id         String   @id @default(uuid()) @db.Uuid
+  scheduleId String   @map("schedule_id") @db.Uuid
+  schedule   Schedule @relation(fields: [scheduleId], references: [id], onDelete: Cascade)
+  dayOfWeek  Int      @map("day_of_week") // 0=Sunday, 1=Monday, ..., 6=Saturday
+  startTime  String   @map("start_time") // "HH:mm" e.g. "09:00"
+  endTime    String   @map("end_time")   // "HH:mm" e.g. "17:00"
+
+  @@index([scheduleId, dayOfWeek])
+  @@map("schedule_days")
+}
+
+model ScheduleOverride {
+  id            String   @id @default(uuid()) @db.Uuid
+  scheduleId    String   @map("schedule_id") @db.Uuid
+  schedule      Schedule @relation(fields: [scheduleId], references: [id], onDelete: Cascade)
+  date          String   // "YYYY-MM-DD" e.g. "2026-10-15"
+  isUnavailable Boolean  @default(false) @map("is_unavailable")
+  startTime     String?  @map("start_time") // "HH:mm"
+  endTime       String?  @map("end_time")   // "HH:mm"
+  createdAt     DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  @@unique([scheduleId, date])
+  @@index([scheduleId, date])
+  @@map("schedule_overrides")
 }
