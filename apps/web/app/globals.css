@@ -40,7 +40,11 @@
 }
 
 body {
-  @apply min-h-screen bg-neutral-50 text-neutral-950 antialiased;
+  min-height: 100vh;
+  background-color: var(--bg-canvas);
+  color: var(--text-primary);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 
 /* Reduced-motion accessibility fallback */
