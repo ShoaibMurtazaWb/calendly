@@ -2,8 +2,55 @@
 
 :root {
   color-scheme: light;
+
+  /* Surfaces & Canvas */
+  --bg-canvas: #FAFAFA;
+  --bg-surface: #FFFFFF;
+  --bg-subtle: #F4F4F5;
+  --bg-muted: #E4E4E7;
+
+  /* Borders & Outlines */
+  --border-subtle: #E4E4E7;
+  --border-strong: #D4D4D8;
+  --border-focus: #18181B;
+  --focus-ring: #18181B;
+
+  /* Typography */
+  --text-primary: #09090B;
+  --text-secondary: #52525B;
+  --text-muted: #71717A;
+  --text-disabled: #A1A1AA;
+
+  /* Semantic Status Tokens */
+  --status-success-bg: #ECFDF5;
+  --status-success-border: #A7F3D0;
+  --status-success-text: #065F46;
+
+  --status-danger-bg: #FFF1F2;
+  --status-danger-border: #FECDD3;
+  --status-danger-text: #9F1239;
+
+  --status-warning-bg: #FFFBEB;
+  --status-warning-border: #FDE68A;
+  --status-warning-text: #92400E;
+
+  --status-info-bg: #EFF6FF;
+  --status-info-border: #BFDBFE;
+  --status-info-text: #1E40AF;
 }
 
 body {
   @apply min-h-screen bg-neutral-50 text-neutral-950 antialiased;
+}
+
+/* Reduced-motion accessibility fallback */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  ::before,
+  ::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
 }
