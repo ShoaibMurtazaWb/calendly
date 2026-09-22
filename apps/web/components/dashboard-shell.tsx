@@ -16,6 +16,7 @@ import {
   User as UserIcon,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Logo } from "@/components/logo";
 import { api, type CurrentUser } from "@/lib/api";
 import { ApiError } from "@/lib/api-error";
 
@@ -197,9 +198,7 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
             <div className="flex items-center gap-4 sm:gap-6 shrink-0">
               {/* Brand Logo */}
               <Link href="/dashboard" className="flex items-center gap-2.5 group shrink-0">
-                <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-slate-950 text-white font-bold text-sm shadow-xs transition-transform group-hover:scale-105">
-                  <span className="font-mono">S</span>
-                </div>
+                <Logo className="h-8 w-8 shrink-0 transition-transform group-hover:scale-105" />
                 <div className="flex items-center gap-1.5">
                   <span className="font-semibold tracking-tight text-slate-950 text-base">Sched</span>
                 </div>

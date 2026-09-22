@@ -13,6 +13,7 @@ import {
   Zap,
   Layers,
 } from "lucide-react";
+import { Logo } from "@/components/logo";
 
 const DEMO_EVENTS = [
   {
@@ -159,9 +160,7 @@ export default function HomePage() {
       <header className="sticky top-0 z-50 border-b border-neutral-200/80 bg-white/90 backdrop-blur-md">
         <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-3.5">
           <Link href="/" className="flex items-center gap-2.5 transition hover:opacity-90">
-            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-neutral-900 text-white font-semibold text-sm shadow-sm">
-              S
-            </div>
+            <Logo className="h-8 w-8 shrink-0 shadow-sm" />
             <div className="flex items-center gap-1.5">
               <span className="text-lg font-bold tracking-tight text-neutral-900">Sched</span>
             </div>
@@ -484,9 +483,7 @@ export default function HomePage() {
       <footer className="border-t border-neutral-200/80 bg-neutral-50 py-8">
         <div className="mx-auto flex max-w-5xl flex-col items-center justify-between gap-4 px-6 sm:flex-row text-xs text-neutral-500">
           <div className="flex items-center gap-2">
-            <div className="flex h-5 w-5 items-center justify-center rounded bg-neutral-900 text-white font-bold text-[10px]">
-              S
-            </div>
+            <Logo className="h-5 w-5 shrink-0" />
             <span className="font-semibold text-neutral-800">Sched</span>
             <span>— Autonomous Scheduling Platform</span>
           </div>

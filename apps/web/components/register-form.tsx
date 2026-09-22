@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardDescription, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Logo } from "@/components/logo";
 import { api } from "@/lib/api";
 import { ApiError, fieldErrors } from "@/lib/api-error";
 
@@ -126,9 +127,7 @@ export function RegisterForm() {
       <Card className="w-full max-w-lg rounded-2xl border border-slate-200/90 bg-white p-6 sm:p-8 shadow-sm">
         {/* Brand Header */}
         <div className="flex items-center gap-2.5 mb-6">
-          <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-slate-950 text-white font-bold text-base shadow-xs">
-            <span className="font-mono">S</span>
-          </div>
+          <Logo className="h-9 w-9 shrink-0 shadow-xs" />
           <div>
             <h1 className="font-semibold tracking-tight text-slate-950 text-base leading-tight">Sched</h1>
             <p className="text-[11px] text-slate-500 font-mono">Infrastructure for High-Precision Booking</p>

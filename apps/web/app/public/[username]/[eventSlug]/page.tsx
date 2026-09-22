@@ -13,6 +13,7 @@ import {
   ArrowLeft,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Logo } from "@/components/logo";
 import { api } from "@/lib/api";
 import type { TimeSlot } from "@sched/api-contract";
 
@@ -383,6 +384,17 @@ export default function PublicBookingPage({
             )}
           </div>
         </div>
+
+        <footer className="py-8 text-center mt-6">
+          <Link
+            href="/"
+            className="inline-flex items-center gap-1.5 text-xs text-neutral-400 hover:text-neutral-700 transition"
+          >
+            <span>Powered by</span>
+            <Logo className="h-4 w-4" />
+            <span className="font-semibold text-neutral-600">Sched</span>
+          </Link>
+        </footer>
       </div>
     </div>
   );

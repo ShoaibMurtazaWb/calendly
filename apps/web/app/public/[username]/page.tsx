@@ -12,6 +12,7 @@ import {
 } from "lucide-react";
 import { api } from "@/lib/api";
 import { Card } from "@/components/ui/card";
+import { Logo } from "@/components/logo";
 import type { PublicHostProfileResponse } from "@sched/api-contract";
 
 export default function PublicHostPage({
@@ -108,9 +109,7 @@ export default function PublicHostPage({
       <header className="border-b border-neutral-200/80 bg-white px-6 py-4">
         <div className="mx-auto flex max-w-4xl items-center justify-between">
           <Link href="/" className="flex items-center gap-2">
-            <div className="flex h-7 w-7 items-center justify-center rounded-md bg-neutral-900 text-white font-bold text-xs">
-              S
-            </div>
+            <Logo className="h-7 w-7 shrink-0" />
             <span className="font-bold text-sm tracking-tight text-neutral-900">Sched</span>
           </Link>
           <div className="flex items-center gap-2 text-xs text-neutral-500">
@@ -206,6 +205,17 @@ export default function PublicHostPage({
           )}
         </div>
       </main>
+
+      <footer className="py-8 text-center border-t border-neutral-200/60 mt-12">
+        <Link
+          href="/"
+          className="inline-flex items-center gap-1.5 text-xs text-neutral-400 hover:text-neutral-700 transition"
+        >
+          <span>Powered by</span>
+          <Logo className="h-4 w-4" />
+          <span className="font-semibold text-neutral-600">Sched</span>
+        </Link>
+      </footer>
     </div>
   );
 }

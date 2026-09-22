@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardDescription, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Logo } from "@/components/logo";
 import { api } from "@/lib/api";
 import { ApiError, fieldErrors } from "@/lib/api-error";
 
@@ -26,12 +27,12 @@ export function LoginForm() {
 
     const parsed = loginBodySchema.safeParse({ email, password });
     if (!parsed.success) {
-      const next: Record<string, string> = {};
-      for (const issue of parsed.error.issues) {
-        const key = String(issue.path[0] ?? "form");
-        if (!next[key]) next[key] = issue.message;
+      const flattened = parsed.error.flatten().fieldErrors;
+      const mapped: Record<string, string> = {};
+      for (const [k, v] of Object.entries(flattened)) {
+        if (v && v[0]) mapped[k] = v[0];
       }
-      setFields(next);
+      setFields(mapped);
       return;
     }
 
@@ -42,10 +43,14 @@ export function LoginForm() {
         body: JSON.stringify(parsed.data),
       });
       window.location.href = "/dashboard";
-    } catch (caught) {
-      if (caught instanceof ApiError) {
-        setError(caught.message);
-        setFields(fieldErrors(caught));
+    } catch (err) {
+      if (err instanceof ApiError) {
+        if (err.body.error.code === "INVALID_CREDENTIALS") {
+          setError("Invalid email or password.");
+        } else {
+          setError(err.message);
+        }
+        setFields(fieldErrors(err));
       } else {
         setError("Could not log in. Please check your credentials.");
       }
@@ -58,9 +63,7 @@ export function LoginForm() {
       <Card className="w-full max-w-md rounded-2xl border border-slate-200/90 bg-white p-6 sm:p-8 shadow-sm">
         {/* Brand Header */}
         <div className="flex items-center gap-2.5 mb-6">
-          <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-slate-950 text-white font-bold text-base shadow-xs">
-            <span className="font-mono">S</span>
-          </div>
+          <Logo className="h-9 w-9 shrink-0 shadow-xs" />
           <div>
             <h1 className="font-semibold tracking-tight text-slate-950 text-base leading-tight">Sched</h1>
             <p className="text-[11px] text-slate-500 font-mono">Infrastructure for High-Precision Booking</p>
