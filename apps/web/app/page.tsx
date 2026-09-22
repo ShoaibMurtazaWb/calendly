@@ -14,6 +14,8 @@ import {
   Layers,
 } from "lucide-react";
 import { Logo } from "@/components/logo";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 
 const DEMO_EVENTS = [
   {
@@ -21,24 +23,21 @@ const DEMO_EVENTS = [
     title: "30 Min Discovery Call",
     duration: 30,
     slug: "discovery",
-    description: "Quick introductory sync to discuss roadmap, architecture, or partnerships.",
-    color: "bg-emerald-500",
+    description: "Introductory consultation to align on architecture, goals, and delivery timelines.",
   },
   {
     id: "2",
     title: "45 Min Technical Deep Dive",
     duration: 45,
     slug: "tech-deep-dive",
-    description: "In-depth code review, system design session, and pair programming walkthrough.",
-    color: "bg-blue-500",
+    description: "Structured architectural review, code walkthrough, and technical roadmap planning.",
   },
   {
     id: "3",
-    title: "15 Min Coffee Chat",
+    title: "15 Min Quick Sync",
     duration: 15,
-    slug: "coffee-chat",
-    description: "Casual catch-up for general networking, advice, and quick Q&A.",
-    color: "bg-amber-500",
+    slug: "quick-sync",
+    description: "Brief checkpoint for rapid Q&A, status updates, and priority unblocking.",
   },
 ];
 
@@ -55,64 +54,64 @@ const SAMPLE_SLOTS = [
 
 const FEATURES = [
   {
-    icon: <Zap className="h-5 w-5 text-neutral-900" />,
+    icon: <Zap className="h-4 w-4 text-[var(--text-primary)]" />,
     title: "Sub-Second Slot Projection",
     description:
-      "Deterministic availability generation engine that computes valid time slots instantly with zero calendar overlaps.",
-    tag: "High Performance",
+      "Deterministic availability generation engine computing conflict-free slots with zero calendar overlaps.",
+    tag: "Performance",
   },
   {
-    icon: <Globe className="h-5 w-5 text-neutral-900" />,
+    icon: <Globe className="h-4 w-4 text-[var(--text-primary)]" />,
     title: "Universal IANA Timezones",
     description:
-      "Full bi-directional timezone conversion between hosts and invitees with automatic daylight saving drift protection.",
+      "Bi-directional timezone conversion between hosts and invitees with automatic daylight saving transition safety.",
     tag: "Global Ready",
   },
   {
-    icon: <ShieldCheck className="h-5 w-5 text-neutral-900" />,
-    title: "Double-Booking Prevention",
+    icon: <ShieldCheck className="h-4 w-4 text-[var(--text-primary)]" />,
+    title: "Concurrency Lock Protection",
     description:
-      "Database-level concurrency locking ensuring two invitees never book the same slot simultaneously under high concurrency.",
+      "Database-level concurrency safeguards ensuring two invitees cannot double-book identical time slots.",
     tag: "Zero Conflicts",
   },
   {
-    icon: <Calendar className="h-5 w-5 text-neutral-900" />,
-    title: "Clean Custom Booking Links",
+    icon: <Calendar className="h-4 w-4 text-[var(--text-primary)]" />,
+    title: "Clean Booking URLs",
     description:
-      "Memorable, fast personalized URLs like /public/username/slug that give your clients a frictionless booking experience.",
-    tag: "Brand First",
+      "Memorable, fast personal URLs like /public/username/slug that deliver a frictionless booking flow.",
+    tag: "Direct Links",
   },
   {
-    icon: <Clock className="h-5 w-5 text-neutral-900" />,
-    title: "Granular Schedule Overrides",
+    icon: <Clock className="h-4 w-4 text-[var(--text-primary)]" />,
+    title: "Granular Schedule Control",
     description:
-      "Configure custom weekly recurring hours, minimum booking notices, buffer times, and date-specific blackout dates.",
-    tag: "Total Control",
+      "Configure custom weekly recurring hours, minimum booking notices, buffers, and date-specific blackout overrides.",
+    tag: "Availability",
   },
   {
-    icon: <Layers className="h-5 w-5 text-neutral-900" />,
+    icon: <Layers className="h-4 w-4 text-[var(--text-primary)]" />,
     title: "Modern Full-Stack SaaS",
     description:
       "Engineered with Next.js 15, Turborepo, NestJS, and PostgreSQL with sub-50ms latency worldwide.",
-    tag: "Enterprise Grade",
+    tag: "Architecture",
   },
 ];
 
 const STEPS = [
   {
     step: "01",
-    title: "Set your Availability",
-    description: "Define your working hours, recurring schedules, and buffer times between meetings.",
+    title: "Configure Availability",
+    description: "Define weekly working hours, meeting buffers, advance notice limits, and specific date overrides.",
   },
   {
     step: "02",
     title: "Create Event Types",
-    description: "Configure 15, 30, or 60-minute meeting cards with custom descriptions and slug URLs.",
+    description: "Set up 15, 30, or 45-minute booking types with custom slugs, durations, and descriptions.",
   },
   {
     step: "03",
-    title: "Share your Sched Link",
-    description: "Send your custom booking link to clients or teammates for instant 1-click booking.",
+    title: "Share Your Link",
+    description: "Send your clean personalized URL to clients or colleagues for instantaneous slot reservation.",
   },
 ];
 
@@ -127,14 +126,13 @@ export default function HomePage() {
       const now = new Date();
       setCurrentTime(
         now.toLocaleTimeString("en-US", {
-          hour: "2-digit",
+          hour: "numeric",
           minute: "2-digit",
-          second: "2-digit",
         })
       );
     };
     updateTime();
-    const interval = setInterval(updateTime, 1000);
+    const interval = setInterval(updateTime, 30000);
     return () => clearInterval(interval);
   }, []);
 
@@ -147,51 +145,59 @@ export default function HomePage() {
   };
 
   return (
-    <div className="min-h-screen bg-neutral-50 font-sans text-neutral-900 selection:bg-neutral-900 selection:text-white">
+    <div className="min-h-screen bg-[var(--bg-canvas)] font-sans text-[var(--text-primary)] selection:bg-neutral-900 selection:text-white">
       {/* Top Announcement Bar */}
-      <div className="border-b border-neutral-200/80 bg-white px-4 py-2 text-center text-xs font-medium text-neutral-600">
+      <div className="border-b border-[var(--border-subtle)] bg-[var(--bg-surface)] px-4 py-2 text-center text-xs font-medium text-[var(--text-secondary)]">
         <span className="inline-flex items-center gap-1.5">
-          <Sparkles className="h-3.5 w-3.5 text-neutral-900" />
-          High-precision scheduling infrastructure for modern teams & hosts
+          <Sparkles className="h-3.5 w-3.5 text-[var(--text-primary)]" />
+          High-precision scheduling infrastructure for modern teams and hosts
         </span>
       </div>
 
       {/* Header / Navbar */}
-      <header className="sticky top-0 z-50 border-b border-neutral-200/80 bg-white/90 backdrop-blur-md">
+      <header className="sticky top-0 z-50 border-b border-[var(--border-subtle)] bg-[var(--bg-surface)]/90 backdrop-blur-md">
         <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-3.5">
-          <Link href="/" className="flex items-center gap-2.5 transition hover:opacity-90">
-            <Logo className="h-8 w-8 shrink-0 shadow-sm" />
+          <Link
+            href="/"
+            className="flex items-center gap-2.5 transition-[opacity] duration-150 hover:opacity-90"
+          >
+            <Logo className="h-8 w-8 shrink-0 shadow-2xs" />
             <div className="flex items-center gap-1.5">
-              <span className="text-lg font-bold tracking-tight text-neutral-900">Sched</span>
+              <span className="text-lg font-bold tracking-tight text-[var(--text-primary)]">Sched</span>
             </div>
           </Link>
 
-          <nav className="hidden items-center gap-6 md:flex text-sm font-medium text-neutral-600">
-            <a href="#features" className="transition hover:text-neutral-900">
+          <nav className="hidden items-center gap-6 md:flex text-sm font-medium text-[var(--text-secondary)]">
+            <a
+              href="#features"
+              className="transition-[color] duration-150 hover:text-[var(--text-primary)]"
+            >
               Features
             </a>
-            <a href="#interactive-demo" className="transition hover:text-neutral-900">
+            <a
+              href="#interactive-demo"
+              className="transition-[color] duration-150 hover:text-[var(--text-primary)]"
+            >
               Live Preview
             </a>
-            <a href="#how-it-works" className="transition hover:text-neutral-900">
+            <a
+              href="#how-it-works"
+              className="transition-[color] duration-150 hover:text-[var(--text-primary)]"
+            >
               How it Works
             </a>
           </nav>
 
           <div className="flex items-center gap-3">
-            <Link
-              href="/login"
-              className="rounded-md border border-neutral-300 bg-white px-3.5 py-1.5 text-sm font-medium text-neutral-700 shadow-sm transition hover:bg-neutral-50 hover:text-neutral-900"
-            >
-              Sign in
-            </Link>
-            <Link
-              href="/register"
-              className="inline-flex items-center gap-1.5 rounded-md bg-neutral-900 px-3.5 py-1.5 text-sm font-medium text-white shadow-sm transition hover:bg-neutral-800 active:scale-[0.98]"
-            >
-              <span>Get started</span>
-              <ArrowRight className="h-3.5 w-3.5" />
-            </Link>
+            <Button asChild variant="outline" size="sm">
+              <Link href="/login">Sign in</Link>
+            </Button>
+            <Button asChild size="sm">
+              <Link href="/register">
+                <span>Get started</span>
+                <ArrowRight className="h-3.5 w-3.5" />
+              </Link>
+            </Button>
           </div>
         </div>
       </header>
@@ -199,48 +205,44 @@ export default function HomePage() {
       {/* Hero Section */}
       <section className="relative pt-16 pb-14 md:pt-24 md:pb-20">
         <div className="mx-auto max-w-5xl px-6 text-center">
-          <div className="inline-flex items-center gap-2 rounded-full border border-neutral-200 bg-white px-3 py-1 text-xs font-medium text-neutral-700 shadow-xs">
-            <span className="flex h-2 w-2 rounded-full bg-emerald-500" />
-            <span>Autonomous Scheduling · Frictionless Booking</span>
-          </div>
+          <Badge variant="default" className="rounded-full px-3 py-1 text-xs shadow-2xs">
+            <span className="h-2 w-2 rounded-full bg-emerald-500 mr-1.5" />
+            <span>Autonomous Scheduling · Zero Double-Bookings</span>
+          </Badge>
 
-          <h1 className="mx-auto mt-6 max-w-3xl text-4xl font-bold tracking-tight text-neutral-900 sm:text-5xl sm:leading-[1.15]">
+          <h1 className="mx-auto mt-6 max-w-3xl text-4xl font-bold tracking-tight text-[var(--text-primary)] sm:text-5xl sm:leading-[1.15]">
             Share your page. <br className="hidden sm:inline" />
-            <span className="text-neutral-900">Book effortlessly.</span>
+            <span>Book effortlessly.</span>
           </h1>
 
-          <p className="mx-auto mt-5 max-w-2xl text-base text-neutral-600 sm:text-lg leading-relaxed">
+          <p className="mx-auto mt-5 max-w-2xl text-base text-[var(--text-secondary)] sm:text-lg leading-relaxed">
             Create custom event types and personal booking links with high-precision scheduling infrastructure.
-            Synchronize real-time availability across multiple timezones and eliminate back-and-forth emails.
+            Synchronize real-time availability across global timezones and eliminate scheduling friction.
           </p>
 
           <div className="mt-8 flex flex-col items-center justify-center gap-3 sm:flex-row">
-            <Link
-              href="/register"
-              className="w-full sm:w-auto inline-flex items-center justify-center gap-2 rounded-md bg-neutral-900 px-5 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-neutral-800 active:scale-[0.98]"
-            >
-              <span>Create account free</span>
-              <ArrowRight className="h-4 w-4" />
-            </Link>
-            <a
-              href="#interactive-demo"
-              className="w-full sm:w-auto inline-flex items-center justify-center rounded-md border border-neutral-300 bg-white px-5 py-2.5 text-sm font-medium text-neutral-700 shadow-xs transition hover:bg-neutral-50 active:scale-[0.98]"
-            >
-              View live demo
-            </a>
+            <Button asChild size="lg" className="w-full sm:w-auto">
+              <Link href="/register">
+                <span>Create account free</span>
+                <ArrowRight className="h-4 w-4" />
+              </Link>
+            </Button>
+            <Button asChild variant="outline" size="lg" className="w-full sm:w-auto">
+              <a href="#interactive-demo">View live demo</a>
+            </Button>
           </div>
 
-          <div className="mt-10 flex flex-wrap items-center justify-center gap-6 text-xs text-neutral-500">
+          <div className="mt-10 flex flex-wrap items-center justify-center gap-6 text-xs text-[var(--text-muted)]">
             <div className="flex items-center gap-1.5">
-              <CheckCircle2 className="h-4 w-4 text-emerald-600" />
+              <CheckCircle2 className="h-4 w-4 text-emerald-600 shrink-0" />
               <span>No credit card required</span>
             </div>
             <div className="flex items-center gap-1.5">
-              <CheckCircle2 className="h-4 w-4 text-emerald-600" />
+              <CheckCircle2 className="h-4 w-4 text-emerald-600 shrink-0" />
               <span>Instant slot projection</span>
             </div>
             <div className="flex items-center gap-1.5">
-              <CheckCircle2 className="h-4 w-4 text-emerald-600" />
+              <CheckCircle2 className="h-4 w-4 text-emerald-600 shrink-0" />
               <span>Automatic IANA timezone sync</span>
             </div>
           </div>
@@ -252,54 +254,57 @@ export default function HomePage() {
         <div className="mx-auto max-w-5xl px-6">
           <div className="mb-6 flex flex-col sm:flex-row sm:items-end sm:justify-between gap-2">
             <div>
-              <p className="text-xs font-semibold uppercase tracking-wider text-neutral-500">Interactive Preview</p>
-              <h2 className="text-xl font-bold tracking-tight text-neutral-900">
+              <p className="text-xs font-semibold uppercase tracking-wider text-[var(--text-muted)]">
+                Interactive Preview
+              </p>
+              <h2 className="text-xl font-bold tracking-tight text-[var(--text-primary)]">
                 Test the booking experience
               </h2>
             </div>
-            <p className="text-xs text-neutral-500">Select an event type and try picking an available slot.</p>
+            <p className="text-xs text-[var(--text-muted)]">
+              Select an event type and pick an available slot.
+            </p>
           </div>
 
           {/* Browser Window Frame */}
-          <div className="rounded-xl border border-neutral-200/80 bg-white shadow-sm overflow-hidden">
+          <div className="rounded-2xl border border-[var(--border-subtle)] bg-[var(--bg-surface)] shadow-xs overflow-hidden">
             {/* Window header */}
-            <div className="flex items-center justify-between border-b border-neutral-200/80 bg-neutral-50/80 px-4 py-2.5 text-xs">
+            <div className="flex items-center justify-between border-b border-[var(--border-subtle)] bg-[var(--bg-subtle)]/70 px-4 py-2.5 text-xs">
               <div className="flex items-center gap-2">
                 <div className="flex gap-1.5">
-                  <div className="h-2.5 w-2.5 rounded-full bg-neutral-300" />
-                  <div className="h-2.5 w-2.5 rounded-full bg-neutral-300" />
-                  <div className="h-2.5 w-2.5 rounded-full bg-neutral-300" />
+                  <div className="h-2.5 w-2.5 rounded-full bg-[var(--border-strong)]" />
+                  <div className="h-2.5 w-2.5 rounded-full bg-[var(--border-strong)]" />
+                  <div className="h-2.5 w-2.5 rounded-full bg-[var(--border-strong)]" />
                 </div>
-                <span className="ml-2 font-mono text-neutral-500 text-[11px]">
+                <span className="ml-2 font-mono text-[var(--text-muted)] text-[11px]">
                   https://sched.com/public/shoaib/{selectedEvent.slug}
                 </span>
               </div>
-              <div className="flex items-center gap-1.5 text-[11px] text-neutral-500 font-mono">
-                <Clock className="h-3.5 w-3.5 text-neutral-400" />
+              <div className="flex items-center gap-1.5 text-[11px] text-[var(--text-muted)] font-mono">
+                <Clock className="h-3.5 w-3.5 text-[var(--text-muted)]" />
                 <span>Host local: {currentTime || "10:00 AM"}</span>
               </div>
             </div>
 
             {/* Content Body */}
-            <div className="grid grid-cols-1 md:grid-cols-12 divide-y md:divide-y-0 md:divide-x divide-neutral-200/80">
+            <div className="grid grid-cols-1 md:grid-cols-12 divide-y md:divide-y-0 md:divide-x divide-[var(--border-subtle)]">
               {/* Left Column: Host Details */}
               <div className="p-6 md:col-span-5 flex flex-col justify-between space-y-6">
                 <div>
                   <div className="flex items-center gap-3">
-                    <div className="flex h-11 w-11 items-center justify-center rounded-full bg-neutral-900 text-sm font-semibold text-white">
+                    <div className="flex h-11 w-11 items-center justify-center rounded-full bg-neutral-900 text-sm font-semibold text-white select-none">
                       SM
                     </div>
                     <div>
-                      <div className="flex items-center gap-1">
-                        <span className="font-semibold text-neutral-900 text-sm">Shoaib Murtaza</span>
-                        <CheckCircle2 className="h-3.5 w-3.5 text-emerald-600" />
-                      </div>
-                      <p className="text-xs text-neutral-500">@shoaib · Product & Engineering</p>
+                      <span className="font-semibold text-[var(--text-primary)] text-sm">Shoaib Murtaza</span>
+                      <p className="text-xs text-[var(--text-muted)] font-mono">@shoaib · Product & Engineering</p>
                     </div>
                   </div>
 
                   <div className="mt-6">
-                    <p className="text-xs font-semibold text-neutral-500 uppercase tracking-wider">Available Event Types</p>
+                    <p className="text-xs font-semibold text-[var(--text-muted)] uppercase tracking-wider">
+                      Available Event Types
+                    </p>
                     <div className="mt-2.5 space-y-2">
                       {DEMO_EVENTS.map((event) => {
                         const isSelected = selectedEvent.id === event.id;
@@ -308,19 +313,19 @@ export default function HomePage() {
                             key={event.id}
                             type="button"
                             onClick={() => setSelectedEvent(event)}
-                            className={`w-full text-left rounded-lg p-3 transition border ${
+                            className={`w-full text-left rounded-xl p-3 transition-[background-color,border-color,box-shadow] duration-150 border cursor-pointer ${
                               isSelected
-                                ? "border-neutral-900 bg-neutral-50 text-neutral-900 shadow-xs"
-                                : "border-neutral-200 bg-white text-neutral-600 hover:border-neutral-300 hover:bg-neutral-50/50"
+                                ? "border-neutral-900 bg-[var(--bg-subtle)] text-[var(--text-primary)] shadow-2xs"
+                                : "border-[var(--border-subtle)] bg-[var(--bg-surface)] text-[var(--text-secondary)] hover:border-[var(--border-strong)] hover:bg-[var(--bg-subtle)]/50"
                             }`}
                           >
                             <div className="flex items-center justify-between">
-                              <span className="text-sm font-medium text-neutral-900">{event.title}</span>
-                              <span className="rounded bg-neutral-100 px-1.5 py-0.5 text-[10px] font-medium text-neutral-600">
-                                {event.duration} min
+                              <span className="text-sm font-medium text-[var(--text-primary)]">{event.title}</span>
+                              <span className="rounded-md bg-[var(--bg-muted)] px-1.5 py-0.5 text-[10px] font-medium text-[var(--text-secondary)] tabular-nums font-sans">
+                                {event.duration}m
                               </span>
                             </div>
-                            <p className="mt-1 text-xs text-neutral-500 line-clamp-1">{event.description}</p>
+                            <p className="mt-1 text-xs text-[var(--text-muted)] line-clamp-1">{event.description}</p>
                           </button>
                         );
                       })}
@@ -328,13 +333,13 @@ export default function HomePage() {
                   </div>
                 </div>
 
-                <div className="rounded-md border border-neutral-200 bg-neutral-50 p-3 text-xs text-neutral-600">
-                  <div className="flex items-center gap-2 font-medium text-neutral-800">
-                    <Globe className="h-4 w-4 text-neutral-500" />
+                <div className="rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-subtle)]/50 p-3 text-xs text-[var(--text-secondary)]">
+                  <div className="flex items-center gap-2 font-medium text-[var(--text-primary)]">
+                    <Globe className="h-4 w-4 text-[var(--text-muted)]" />
                     <span>Google Meet / Zoom</span>
                   </div>
-                  <p className="mt-1 text-[11px] text-neutral-500">
-                    Meeting URL and invite will be shared upon slot confirmation.
+                  <p className="mt-1 text-[11px] text-[var(--text-muted)]">
+                    Meeting link generated automatically upon slot booking.
                   </p>
                 </div>
               </div>
@@ -344,12 +349,12 @@ export default function HomePage() {
                 <div>
                   <div className="flex items-center justify-between">
                     <div>
-                      <h3 className="text-sm font-semibold text-neutral-900">Select a Time Slot</h3>
-                      <p className="text-xs text-neutral-500">Today · Asia/Karachi (GMT+5)</p>
+                      <h3 className="text-sm font-semibold text-[var(--text-primary)]">Select a Time Slot</h3>
+                      <p className="text-xs text-[var(--text-muted)] font-mono">Today · Asia/Karachi (GMT+5)</p>
                     </div>
-                    <span className="rounded-full bg-neutral-100 px-2.5 py-0.5 text-[11px] font-medium text-neutral-700">
+                    <Badge variant="secondary" className="tabular-nums font-sans">
                       {SAMPLE_SLOTS.length} slots available
-                    </span>
+                    </Badge>
                   </div>
 
                   <div className="mt-4 grid grid-cols-2 gap-2">
@@ -360,14 +365,14 @@ export default function HomePage() {
                           key={slot}
                           type="button"
                           onClick={() => handleBookSlot(slot)}
-                          className={`flex items-center justify-between rounded-md border px-3 py-2 text-xs font-medium transition ${
+                          className={`flex items-center justify-between rounded-lg border px-3 py-2 text-xs font-medium transition-[background-color,border-color,color,box-shadow,transform] duration-150 active:scale-[0.98] cursor-pointer ${
                             isSelected
-                              ? "border-neutral-900 bg-neutral-900 text-white shadow-xs"
-                              : "border-neutral-200 bg-white text-neutral-800 hover:border-neutral-400 hover:bg-neutral-50"
+                              ? "border-neutral-900 bg-neutral-900 text-white shadow-2xs"
+                              : "border-[var(--border-subtle)] bg-[var(--bg-surface)] text-[var(--text-primary)] hover:border-[var(--border-strong)] hover:bg-[var(--bg-subtle)]"
                           }`}
                         >
-                          <span>{slot}</span>
-                          <span className={isSelected ? "text-neutral-200" : "text-neutral-400"}>
+                          <span className="tabular-nums font-sans">{slot}</span>
+                          <span className={isSelected ? "text-neutral-200 text-[11px]" : "text-[var(--text-muted)] text-[11px]"}>
                             {isSelected ? "Selected ✓" : "Book →"}
                           </span>
                         </button>
@@ -378,14 +383,17 @@ export default function HomePage() {
 
                 {/* Instant Feedback Notice */}
                 {bookedState ? (
-                  <div className="mt-6 rounded-md border border-emerald-200 bg-emerald-50 p-3 text-center text-xs font-medium text-emerald-800">
-                    ✓ Simulated Booking Confirmed for <span className="font-semibold">{selectedEvent.title}</span> at{" "}
-                    <span className="font-semibold">{selectedSlot}</span>
+                  <div className="mt-6 rounded-xl border border-[var(--status-success-border)] bg-[var(--status-success-bg)] p-3 text-center text-xs font-medium text-[var(--status-success-text)] transition-[opacity,transform] duration-150">
+                    ✓ Simulated booking confirmed for <span className="font-semibold">{selectedEvent.title}</span> at{" "}
+                    <span className="font-semibold tabular-nums font-sans">{selectedSlot}</span>
                   </div>
                 ) : (
-                  <div className="mt-6 flex items-center justify-between text-xs text-neutral-500">
+                  <div className="mt-6 flex items-center justify-between text-xs text-[var(--text-muted)]">
                     <span>Instant calendar synchronization</span>
-                    <Link href="/register" className="font-medium text-neutral-900 hover:underline">
+                    <Link
+                      href="/register"
+                      className="font-medium text-[var(--text-primary)] hover:underline"
+                    >
                       Create your own link →
                     </Link>
                   </div>
@@ -397,14 +405,14 @@ export default function HomePage() {
       </section>
 
       {/* Feature Grid */}
-      <section id="features" className="py-16 border-t border-neutral-200/80 bg-white">
+      <section id="features" className="py-16 border-t border-[var(--border-subtle)] bg-[var(--bg-surface)]">
         <div className="mx-auto max-w-5xl px-6">
           <div className="mb-12 text-center">
-            <p className="text-xs font-semibold uppercase tracking-wider text-neutral-500">High Reliability</p>
-            <h2 className="mt-1 text-2xl font-bold tracking-tight text-neutral-900 sm:text-3xl">
+            <p className="text-xs font-semibold uppercase tracking-wider text-[var(--text-muted)]">High Reliability</p>
+            <h2 className="mt-1 text-2xl font-bold tracking-tight text-[var(--text-primary)] sm:text-3xl">
               Engineered for seamless calendar operations
             </h2>
-            <p className="mt-2 text-sm text-neutral-600 max-w-xl mx-auto">
+            <p className="mt-2 text-sm text-[var(--text-secondary)] max-w-xl mx-auto">
               Everything required to manage host availability, prevent scheduling collisions, and project real-time slots.
             </p>
           </div>
@@ -413,18 +421,16 @@ export default function HomePage() {
             {FEATURES.map((feature, i) => (
               <div
                 key={i}
-                className="rounded-xl border border-neutral-200/80 bg-neutral-50/50 p-5 transition hover:border-neutral-300 hover:bg-neutral-50 hover:shadow-xs"
+                className="rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-canvas)] p-5 transition-[border-color,background-color,box-shadow] duration-150 hover:border-[var(--border-strong)] hover:bg-[var(--bg-surface)] hover:shadow-2xs"
               >
                 <div className="flex items-center justify-between mb-3">
-                  <div className="flex h-9 w-9 items-center justify-center rounded-lg border border-neutral-200 bg-white shadow-xs">
+                  <div className="flex h-9 w-9 items-center justify-center rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-surface)] shadow-2xs">
                     {feature.icon}
                   </div>
-                  <span className="rounded bg-white border border-neutral-200 px-2 py-0.5 text-[10px] font-medium text-neutral-600">
-                    {feature.tag}
-                  </span>
+                  <Badge variant="secondary">{feature.tag}</Badge>
                 </div>
-                <h3 className="text-sm font-semibold text-neutral-900">{feature.title}</h3>
-                <p className="mt-1.5 text-xs text-neutral-600 leading-relaxed">{feature.description}</p>
+                <h3 className="text-sm font-semibold text-[var(--text-primary)]">{feature.title}</h3>
+                <p className="mt-1.5 text-xs text-[var(--text-secondary)] leading-relaxed">{feature.description}</p>
               </div>
             ))}
           </div>
@@ -432,21 +438,24 @@ export default function HomePage() {
       </section>
 
       {/* How it Works */}
-      <section id="how-it-works" className="py-16 border-t border-neutral-200/80 bg-neutral-50">
+      <section id="how-it-works" className="py-16 border-t border-[var(--border-subtle)] bg-[var(--bg-canvas)]">
         <div className="mx-auto max-w-5xl px-6">
           <div className="mb-12 text-center">
-            <p className="text-xs font-semibold uppercase tracking-wider text-neutral-500">Fast Setup</p>
-            <h2 className="mt-1 text-2xl font-bold tracking-tight text-neutral-900 sm:text-3xl">
+            <p className="text-xs font-semibold uppercase tracking-wider text-[var(--text-muted)]">Fast Setup</p>
+            <h2 className="mt-1 text-2xl font-bold tracking-tight text-[var(--text-primary)] sm:text-3xl">
               Get started in three simple steps
             </h2>
           </div>
 
           <div className="grid grid-cols-1 gap-6 md:grid-cols-3">
             {STEPS.map((s, idx) => (
-              <div key={idx} className="rounded-xl border border-neutral-200/80 bg-white p-6 shadow-xs">
-                <span className="font-mono text-2xl font-bold text-neutral-300">{s.step}</span>
-                <h3 className="mt-3 text-base font-semibold text-neutral-900">{s.title}</h3>
-                <p className="mt-1.5 text-xs text-neutral-600 leading-relaxed">{s.description}</p>
+              <div
+                key={idx}
+                className="rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-surface)] p-6 shadow-2xs"
+              >
+                <span className="font-mono text-2xl font-bold text-[var(--text-muted)]">{s.step}</span>
+                <h3 className="mt-3 text-base font-semibold text-[var(--text-primary)]">{s.title}</h3>
+                <p className="mt-1.5 text-xs text-[var(--text-secondary)] leading-relaxed">{s.description}</p>
               </div>
             ))}
           </div>
@@ -454,37 +463,39 @@ export default function HomePage() {
       </section>
 
       {/* Bottom CTA Banner */}
-      <section className="py-14 border-t border-neutral-200/80 bg-white">
+      <section className="py-14 border-t border-[var(--border-subtle)] bg-[var(--bg-surface)]">
         <div className="mx-auto max-w-4xl px-6">
-          <div className="rounded-2xl border border-neutral-200 bg-neutral-900 p-8 sm:p-10 text-center text-white shadow-sm">
+          <div className="rounded-2xl border border-neutral-800 bg-neutral-900 p-8 sm:p-10 text-center text-white shadow-sm">
             <h2 className="text-2xl font-bold sm:text-3xl">Ready to streamline your scheduling?</h2>
             <p className="mx-auto mt-2 max-w-lg text-xs sm:text-sm text-neutral-400">
               Create your custom booking page, manage availability, and let attendees book slots directly.
             </p>
             <div className="mt-6 flex flex-col items-center justify-center gap-3 sm:flex-row">
-              <Link
-                href="/register"
-                className="w-full sm:w-auto inline-flex items-center justify-center rounded-md bg-white px-5 py-2.5 text-sm font-semibold text-neutral-900 shadow-sm transition hover:bg-neutral-100 active:scale-[0.98]"
+              <Button
+                asChild
+                size="lg"
+                className="w-full sm:w-auto bg-white text-neutral-900 hover:bg-neutral-100 font-semibold"
               >
-                Create your page free
-              </Link>
-              <Link
-                href="/login"
-                className="w-full sm:w-auto inline-flex items-center justify-center rounded-md border border-neutral-700 bg-neutral-800 px-5 py-2.5 text-sm font-medium text-neutral-200 transition hover:bg-neutral-700 active:scale-[0.98]"
+                <Link href="/register">Create your page free</Link>
+              </Button>
+              <Button
+                asChild
+                size="lg"
+                className="w-full sm:w-auto border border-neutral-700 bg-neutral-800 text-neutral-200 hover:bg-neutral-700 hover:text-white"
               >
-                Sign in to Dashboard
-              </Link>
+                <Link href="/login">Sign in to Dashboard</Link>
+              </Button>
             </div>
           </div>
         </div>
       </section>
 
       {/* Footer */}
-      <footer className="border-t border-neutral-200/80 bg-neutral-50 py-8">
-        <div className="mx-auto flex max-w-5xl flex-col items-center justify-between gap-4 px-6 sm:flex-row text-xs text-neutral-500">
+      <footer className="border-t border-[var(--border-subtle)] bg-[var(--bg-surface)] py-8">
+        <div className="mx-auto flex max-w-5xl flex-col items-center justify-between gap-4 px-6 sm:flex-row text-xs text-[var(--text-muted)]">
           <div className="flex items-center gap-2">
             <Logo className="h-5 w-5 shrink-0" />
-            <span className="font-semibold text-neutral-800">Sched</span>
+            <span className="font-semibold text-[var(--text-primary)]">Sched</span>
             <span>— Autonomous Scheduling Platform</span>
           </div>
 
@@ -500,3 +511,4 @@ export default function HomePage() {
     </div>
   );
 }
+

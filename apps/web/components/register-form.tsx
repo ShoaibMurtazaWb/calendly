@@ -8,6 +8,8 @@ import { Button } from "@/components/ui/button";
 import { Card, CardDescription, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Select } from "@/components/ui/select";
+import { Spinner } from "@/components/ui/spinner";
 import { Logo } from "@/components/logo";
 import { api } from "@/lib/api";
 import { ApiError, fieldErrors } from "@/lib/api-error";
@@ -123,22 +125,22 @@ export function RegisterForm() {
   }
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-slate-50/70 p-4 sm:p-6 py-12">
-      <Card className="w-full max-w-lg rounded-2xl border border-slate-200/90 bg-white p-6 sm:p-8 shadow-sm">
+    <div className="flex min-h-screen items-center justify-center bg-[var(--bg-canvas)] p-4 sm:p-6 py-12">
+      <Card className="w-full max-w-lg rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-surface)] p-6 sm:p-8 shadow-xs">
         {/* Brand Header */}
         <div className="flex items-center gap-2.5 mb-6">
-          <Logo className="h-9 w-9 shrink-0 shadow-xs" />
+          <Logo className="h-8 w-8 shrink-0 shadow-2xs" />
           <div>
-            <h1 className="font-semibold tracking-tight text-slate-950 text-base leading-tight">Sched</h1>
-            <p className="text-[11px] text-slate-500 font-mono">Infrastructure for High-Precision Booking</p>
+            <span className="font-semibold tracking-tight text-[var(--text-primary)] text-base leading-tight">Sched</span>
+            <p className="text-[11px] text-[var(--text-muted)] font-mono">Infrastructure for High-Precision Booking</p>
           </div>
         </div>
 
-        <div className="pb-4 border-b border-slate-100">
-          <CardTitle className="text-xl font-bold tracking-tight text-slate-950">
+        <div className="pb-4 border-b border-[var(--border-subtle)]">
+          <CardTitle className="text-xl font-bold tracking-tight text-[var(--text-primary)]">
             Create your host account
           </CardTitle>
-          <CardDescription className="mt-1 text-xs text-slate-500">
+          <CardDescription className="mt-1 text-xs text-[var(--text-muted)]">
             Get started with your custom booking profile and scheduling infrastructure.
           </CardDescription>
         </div>
@@ -146,11 +148,9 @@ export function RegisterForm() {
         <form className="mt-6 space-y-4" noValidate onSubmit={handleSubmit}>
           {/* Full Name */}
           <div className="space-y-1.5">
-            <Label htmlFor="name" className="text-xs font-semibold text-slate-700">
-              Full name
-            </Label>
+            <Label htmlFor="name">Full name</Label>
             <div className="relative">
-              <User className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+              <User className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-[var(--text-muted)]" />
               <Input
                 id="name"
                 name="name"
@@ -160,19 +160,18 @@ export function RegisterForm() {
                 onChange={(e) => setName(e.target.value)}
                 placeholder="Shoaib Murtaza"
                 required
-                className="h-10 pl-9 rounded-xl text-sm border-slate-200 shadow-2xs focus-visible:ring-slate-900"
+                className="pl-9"
+                aria-invalid={Boolean(fields.name)}
               />
             </div>
-            {fields.name && <p className="text-xs text-red-600 font-medium">{fields.name}</p>}
+            {fields.name && <p className="text-xs text-[var(--status-danger-text)] font-medium">{fields.name}</p>}
           </div>
 
           {/* Username */}
           <div className="space-y-1.5">
-            <Label htmlFor="username" className="text-xs font-semibold text-slate-700">
-              Username & Profile handle
-            </Label>
+            <Label htmlFor="username">Username & Profile handle</Label>
             <div className="relative">
-              <AtSign className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+              <AtSign className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-[var(--text-muted)]" />
               <Input
                 id="username"
                 name="username"
@@ -182,22 +181,21 @@ export function RegisterForm() {
                 onChange={(e) => setUsername(e.target.value.toLowerCase().trim())}
                 placeholder="shoaib"
                 required
-                className="h-10 pl-9 rounded-xl text-sm font-mono border-slate-200 shadow-2xs focus-visible:ring-slate-900"
+                className="pl-9 font-mono text-xs"
+                aria-invalid={Boolean(fields.username)}
               />
             </div>
-            <p className="text-[11px] text-slate-400">
-              Your public link: <span className="font-mono text-slate-600">sched.com/public/@{username || "username"}</span>
+            <p className="text-[11px] text-[var(--text-muted)]">
+              Your public link: <span className="font-mono text-[var(--text-secondary)]">sched.com/public/@{username || "username"}</span>
             </p>
-            {fields.username && <p className="text-xs text-red-600 font-medium">{fields.username}</p>}
+            {fields.username && <p className="text-xs text-[var(--status-danger-text)] font-medium">{fields.username}</p>}
           </div>
 
           {/* Email */}
           <div className="space-y-1.5">
-            <Label htmlFor="email" className="text-xs font-semibold text-slate-700">
-              Email address
-            </Label>
+            <Label htmlFor="email">Email address</Label>
             <div className="relative">
-              <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+              <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-[var(--text-muted)]" />
               <Input
                 id="email"
                 name="email"
@@ -207,19 +205,18 @@ export function RegisterForm() {
                 onChange={(e) => setEmail(e.target.value)}
                 placeholder="you@company.com"
                 required
-                className="h-10 pl-9 rounded-xl text-sm border-slate-200 shadow-2xs focus-visible:ring-slate-900"
+                className="pl-9"
+                aria-invalid={Boolean(fields.email)}
               />
             </div>
-            {fields.email && <p className="text-xs text-red-600 font-medium">{fields.email}</p>}
+            {fields.email && <p className="text-xs text-[var(--status-danger-text)] font-medium">{fields.email}</p>}
           </div>
 
           {/* Password */}
           <div className="space-y-1.5">
-            <Label htmlFor="password" className="text-xs font-semibold text-slate-700">
-              Password
-            </Label>
+            <Label htmlFor="password">Password</Label>
             <div className="relative">
-              <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+              <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-[var(--text-muted)]" />
               <Input
                 id="password"
                 name="password"
@@ -229,39 +226,38 @@ export function RegisterForm() {
                 onChange={(e) => setPassword(e.target.value)}
                 placeholder="Minimum 8 characters"
                 required
-                className="h-10 pl-9 rounded-xl text-sm border-slate-200 shadow-2xs focus-visible:ring-slate-900"
+                className="pl-9"
+                aria-invalid={Boolean(fields.password)}
               />
             </div>
-            {fields.password && <p className="text-xs text-red-600 font-medium">{fields.password}</p>}
+            {fields.password && <p className="text-xs text-[var(--status-danger-text)] font-medium">{fields.password}</p>}
           </div>
 
           {/* Timezone */}
           <div className="space-y-1.5">
-            <Label htmlFor="timezone" className="text-xs font-semibold text-slate-700">
-              Host Primary Timezone
-            </Label>
+            <Label htmlFor="timezone">Host Primary Timezone</Label>
             <div className="relative">
-              <Globe className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400 pointer-events-none" />
-              <select
+              <Globe className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-[var(--text-muted)] z-10 pointer-events-none" />
+              <Select
                 id="timezone"
                 name="timezone"
                 value={timezone}
                 onChange={(e) => setTimezone(e.target.value)}
-                className="h-10 w-full pl-9 pr-4 rounded-xl text-xs border border-slate-200 bg-white shadow-2xs focus:ring-2 focus:ring-slate-900 focus:outline-none"
+                className="pl-9 font-mono text-xs"
               >
                 {timezones.map((zone) => (
                   <option key={zone} value={zone}>
                     {zone}
                   </option>
                 ))}
-              </select>
+              </Select>
             </div>
-            {fields.timezone && <p className="text-xs text-red-600 font-medium">{fields.timezone}</p>}
+            {fields.timezone && <p className="text-xs text-[var(--status-danger-text)] font-medium">{fields.timezone}</p>}
           </div>
 
           {/* Error Message */}
           {error && (
-            <div className="rounded-xl bg-red-50 border border-red-200 p-3 text-xs text-red-600 font-medium">
+            <div className="rounded-lg bg-[var(--status-danger-bg)] border border-[var(--status-danger-border)] p-3 text-xs text-[var(--status-danger-text)] font-medium">
               {error}
             </div>
           )}
@@ -270,25 +266,25 @@ export function RegisterForm() {
           <Button
             type="submit"
             disabled={pending}
-            className="w-full h-10 rounded-xl bg-slate-950 text-white hover:bg-slate-800 text-xs font-semibold shadow-xs flex items-center justify-center gap-2 mt-4 cursor-pointer"
+            className="w-full mt-4 gap-2"
           >
             {pending ? (
-              <div className="flex items-center gap-2">
-                <div className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent" />
+              <>
+                <Spinner size="sm" />
                 <span>Creating account…</span>
-              </div>
+              </>
             ) : (
               <>
                 <span>Create account</span>
-                <ArrowRight className="h-4 w-4" />
+                <ArrowRight className="h-3.5 w-3.5" />
               </>
             )}
           </Button>
         </form>
 
-        <p className="mt-6 text-center text-xs text-slate-500">
+        <p className="mt-6 text-center text-xs text-[var(--text-muted)]">
           Already have an account?{" "}
-          <Link className="font-semibold text-slate-900 hover:underline" href="/login">
+          <Link className="font-semibold text-[var(--text-primary)] hover:underline" href="/login">
             Log in
           </Link>
         </p>

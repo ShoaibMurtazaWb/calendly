@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardDescription, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Spinner } from "@/components/ui/spinner";
 import { Logo } from "@/components/logo";
 import { api } from "@/lib/api";
 import { ApiError, fieldErrors } from "@/lib/api-error";
@@ -70,22 +71,22 @@ export function LoginForm() {
   }
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-slate-50/70 p-4 sm:p-6">
-      <Card className="w-full max-w-md rounded-2xl border border-slate-200/90 bg-white p-6 sm:p-8 shadow-sm">
+    <div className="flex min-h-screen items-center justify-center bg-[var(--bg-canvas)] p-4 sm:p-6">
+      <Card className="w-full max-w-md rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-surface)] p-6 sm:p-8 shadow-xs">
         {/* Brand Header */}
         <div className="flex items-center gap-2.5 mb-6">
-          <Logo className="h-9 w-9 shrink-0 shadow-xs" />
+          <Logo className="h-8 w-8 shrink-0 shadow-2xs" />
           <div>
-            <h1 className="font-semibold tracking-tight text-slate-950 text-base leading-tight">Sched</h1>
-            <p className="text-[11px] text-slate-500 font-mono">Infrastructure for High-Precision Booking</p>
+            <span className="font-semibold tracking-tight text-[var(--text-primary)] text-base leading-tight">Sched</span>
+            <p className="text-[11px] text-[var(--text-muted)] font-mono">Infrastructure for High-Precision Booking</p>
           </div>
         </div>
 
-        <div className="pb-4 border-b border-slate-100">
-          <CardTitle className="text-xl font-bold tracking-tight text-slate-950">
+        <div className="pb-4 border-b border-[var(--border-subtle)]">
+          <CardTitle className="text-xl font-bold tracking-tight text-[var(--text-primary)]">
             Welcome back
           </CardTitle>
-          <CardDescription className="mt-1 text-xs text-slate-500">
+          <CardDescription className="mt-1 text-xs text-[var(--text-muted)]">
             Sign in to manage your scheduling links and events.
           </CardDescription>
         </div>
@@ -93,11 +94,9 @@ export function LoginForm() {
         <form className="mt-6 space-y-4" noValidate onSubmit={handleSubmit}>
           {/* Email Field */}
           <div className="space-y-1.5">
-            <Label htmlFor="email" className="text-xs font-semibold text-slate-700">
-              Email address
-            </Label>
+            <Label htmlFor="email">Email address</Label>
             <div className="relative">
-              <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+              <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-[var(--text-muted)]" />
               <Input
                 id="email"
                 name="email"
@@ -107,21 +106,20 @@ export function LoginForm() {
                 onChange={(e) => setEmail(e.target.value)}
                 placeholder="you@company.com"
                 required
-                className="h-10 pl-9 rounded-xl text-sm border-slate-200 shadow-2xs focus-visible:ring-slate-900"
+                className="pl-9"
+                aria-invalid={Boolean(fields.email)}
               />
             </div>
-            {fields.email && <p className="text-xs text-red-600 font-medium">{fields.email}</p>}
+            {fields.email && <p className="text-xs text-[var(--status-danger-text)] font-medium">{fields.email}</p>}
           </div>
 
           {/* Password Field */}
           <div className="space-y-1.5">
             <div className="flex items-center justify-between">
-              <Label htmlFor="password" className="text-xs font-semibold text-slate-700">
-                Password
-              </Label>
+              <Label htmlFor="password">Password</Label>
             </div>
             <div className="relative">
-              <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+              <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-[var(--text-muted)]" />
               <Input
                 id="password"
                 name="password"
@@ -131,15 +129,16 @@ export function LoginForm() {
                 onChange={(e) => setPassword(e.target.value)}
                 placeholder="••••••••"
                 required
-                className="h-10 pl-9 rounded-xl text-sm border-slate-200 shadow-2xs focus-visible:ring-slate-900"
+                className="pl-9"
+                aria-invalid={Boolean(fields.password)}
               />
             </div>
-            {fields.password && <p className="text-xs text-red-600 font-medium">{fields.password}</p>}
+            {fields.password && <p className="text-xs text-[var(--status-danger-text)] font-medium">{fields.password}</p>}
           </div>
 
           {/* Error Message */}
           {error && (
-            <div className="rounded-xl bg-red-50 border border-red-200 p-3 text-xs text-red-600 font-medium">
+            <div className="rounded-lg bg-[var(--status-danger-bg)] border border-[var(--status-danger-border)] p-3 text-xs text-[var(--status-danger-text)] font-medium">
               {error}
             </div>
           )}
@@ -148,25 +147,25 @@ export function LoginForm() {
           <Button
             type="submit"
             disabled={pending}
-            className="w-full h-10 rounded-xl bg-slate-950 text-white hover:bg-slate-800 text-xs font-semibold shadow-xs flex items-center justify-center gap-2 mt-2 cursor-pointer"
+            className="w-full mt-2 gap-2"
           >
             {pending ? (
-              <div className="flex items-center gap-2">
-                <div className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent" />
+              <>
+                <Spinner size="sm" />
                 <span>Signing in…</span>
-              </div>
+              </>
             ) : (
               <>
                 <span>Sign in</span>
-                <ArrowRight className="h-4 w-4" />
+                <ArrowRight className="h-3.5 w-3.5" />
               </>
             )}
           </Button>
         </form>
 
-        <p className="mt-6 text-center text-xs text-slate-500">
+        <p className="mt-6 text-center text-xs text-[var(--text-muted)]">
           Don&apos;t have an account?{" "}
-          <Link className="font-semibold text-slate-900 hover:underline" href="/register">
+          <Link className="font-semibold text-[var(--text-primary)] hover:underline" href="/register">
             Create an account
           </Link>
         </p>
