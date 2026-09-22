@@ -34,6 +34,15 @@ export async function resetDatabase(app: INestApplication): Promise<void> {
     },
   };
 
+  await prisma.booking.deleteMany({
+    where: {
+      host: {
+        email: {
+          contains: "example.com",
+        },
+      },
+    },
+  });
   await prisma.scheduleOverride.deleteMany({
     where: userFilter,
   });
@@ -75,6 +84,7 @@ export async function resetDatabase(app: INestApplication): Promise<void> {
     },
   });
 }
+
 
 export function uniqueLabel(prefix: string): string {
   return `${prefix}-${Math.random().toString(36).slice(2, 10)}`;

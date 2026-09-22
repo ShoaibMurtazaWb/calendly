@@ -113,10 +113,10 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
         icon: Layers,
       },
       {
-        label: "Scheduled Events",
-        href: "#",
-        active: false,
-        disabled: true,
+        label: "Bookings",
+        href: "/dashboard/bookings",
+        active: pathname.startsWith("/dashboard/bookings"),
+        disabled: false,
         icon: Calendar,
       },
       {
@@ -136,6 +136,7 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
     ],
     [pathname]
   );
+
 
   if (isLoading) {
     return (

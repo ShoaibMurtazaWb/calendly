@@ -2,6 +2,7 @@
 
 import { use, useEffect, useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import {
   Clock,
   Globe,
@@ -9,15 +10,22 @@ import {
   ChevronRight,
   Calendar as CalendarIcon,
   ArrowLeft,
-  Check,
+  User,
+  Mail,
 } from "lucide-react";
+
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 import { Select } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Spinner } from "@/components/ui/spinner";
 import { toast } from "@/components/ui/toast";
 import { Logo } from "@/components/logo";
 import { api } from "@/lib/api";
-import type { TimeSlot } from "@sched/api-contract";
+import { ApiError, fieldErrors } from "@/lib/api-error";
+import type { BookingResponse, TimeSlot } from "@sched/api-contract";
 
 interface PublicEventDetails {
   id: string;
@@ -37,6 +45,7 @@ export default function PublicBookingPage({
 }: {
   params: Promise<{ username: string; eventSlug: string }>;
 }) {
+  const router = useRouter();
   const { username, eventSlug } = use(params);
   const [eventDetails, setEventDetails] = useState<PublicEventDetails | null>(null);
   const [isLoadingEvent, setIsLoadingEvent] = useState(true);
@@ -46,8 +55,8 @@ export default function PublicBookingPage({
   const [attendeeTimezone, setAttendeeTimezone] = useState<string>("UTC");
   const [availableTimezones, setAvailableTimezones] = useState<string[]>([]);
 
-  // Mobile active step ('date' | 'slots')
-  const [mobileStep, setMobileStep] = useState<"date" | "slots">("date");
+  // Mobile active step ('date' | 'slots' | 'details')
+  const [mobileStep, setMobileStep] = useState<"date" | "slots" | "details">("date");
 
   // Calendar date selection
   const [currentMonth, setCurrentMonth] = useState<Date>(new Date());
@@ -63,7 +72,13 @@ export default function PublicBookingPage({
   const [slots, setSlots] = useState<TimeSlot[]>([]);
   const [isLoadingSlots, setIsLoadingSlots] = useState(false);
   const [selectedSlot, setSelectedSlot] = useState<TimeSlot | null>(null);
-  const [isBookedSimulated, setIsBookedSimulated] = useState(false);
+
+  // Form input state
+  const [attendeeName, setAttendeeName] = useState("");
+  const [attendeeEmail, setAttendeeEmail] = useState("");
+  const [attendeeNotes, setAttendeeNotes] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [fieldValidationErrors, setFieldValidationErrors] = useState<Record<string, string>>({});
 
   // Initialize browser timezone
   useEffect(() => {
@@ -72,7 +87,14 @@ export default function PublicBookingPage({
       if (detected) setAttendeeTimezone(detected);
       setAvailableTimezones(Intl.supportedValuesOf("timeZone"));
     } catch {
-      setAvailableTimezones(["UTC", "America/New_York", "America/Los_Angeles", "Europe/London", "Asia/Karachi", "Asia/Tokyo"]);
+      setAvailableTimezones([
+        "UTC",
+        "America/New_York",
+        "America/Los_Angeles",
+        "Europe/London",
+        "Asia/Karachi",
+        "Asia/Tokyo",
+      ]);
     }
   }, []);
 
@@ -125,11 +147,47 @@ export default function PublicBookingPage({
     setCurrentMonth(new Date(currentMonth.getFullYear(), currentMonth.getMonth() + 1, 1));
   };
 
+  const handleBookSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!selectedSlot) {
+      toast.error("Slot Required", "Please select an available time slot first.");
+      return;
+    }
+
+    setIsSubmitting(true);
+    setFieldValidationErrors({});
+
+    try {
+      const result = await api<BookingResponse>(`/public/${username}/${eventSlug}/book`, {
+        method: "POST",
+        body: JSON.stringify({
+          startUtc: selectedSlot.startUtc,
+          attendeeName,
+          attendeeEmail,
+          attendeeTimeZone: attendeeTimezone,
+          attendeeNotes: attendeeNotes || undefined,
+        }),
+      });
+
+      toast.success("Booking Confirmed!", "Your meeting has been scheduled.");
+      router.push(`/public/bookings/${result.id}`);
+    } catch (err) {
+      if (err instanceof ApiError) {
+        setFieldValidationErrors(fieldErrors(err));
+        toast.error("Booking Failed", err.message);
+      } else {
+        toast.error("Booking Failed", "An error occurred while confirming your booking.");
+      }
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
   if (isLoadingEvent) {
     return (
       <div className="min-h-screen bg-[var(--bg-canvas)] py-8 px-4 sm:px-6">
         <div className="mx-auto max-w-5xl space-y-6">
-          <Skeleton className="h-4 w-36 rounded-md" />
+          <Skeleton className="h-4 w-32 rounded-md" />
           <Skeleton className="h-[480px] rounded-2xl border border-[var(--border-subtle)]" />
         </div>
       </div>
@@ -189,7 +247,7 @@ export default function PublicBookingPage({
                 : "text-[var(--text-secondary)]"
             }`}
           >
-            1. Select Date
+            1. Date
           </button>
           <button
             type="button"
@@ -200,18 +258,28 @@ export default function PublicBookingPage({
                 : "text-[var(--text-secondary)]"
             }`}
           >
-            2. Pick Time ({slots.length})
+            2. Slot ({slots.length})
+          </button>
+          <button
+            type="button"
+            onClick={() => setMobileStep("details")}
+            className={`flex-1 py-1.5 text-xs font-medium rounded-md transition-all duration-150 ${
+              mobileStep === "details"
+                ? "bg-[var(--bg-surface)] text-[var(--text-primary)] font-semibold shadow-xs"
+                : "text-[var(--text-secondary)]"
+            }`}
+          >
+            3. Details
           </button>
         </div>
 
         {/* Main High-Emphasis Booking Shell */}
         <div className="overflow-hidden rounded-2xl border border-[var(--border-subtle)] bg-[var(--bg-surface)] shadow-sm grid grid-cols-1 lg:grid-cols-12 divide-y lg:divide-y-0 lg:divide-x divide-[var(--border-subtle)]">
-          
           {/* Left Column: Event & Host Details */}
           <div className="p-6 sm:p-8 lg:col-span-4 flex flex-col justify-between space-y-6">
             <div className="space-y-4">
               <div className="flex items-center gap-3">
-                <div className="flex h-10 w-10 items-center justify-center rounded-full bg-neutral-900 font-bold text-white text-xs">
+                <div className="flex h-10 w-10 items-center justify-center rounded-full bg-neutral-900 font-bold text-white text-xs select-none">
                   {eventDetails.host.name.slice(0, 2).toUpperCase()}
                 </div>
                 <div>
@@ -259,7 +327,11 @@ export default function PublicBookingPage({
           </div>
 
           {/* Middle Column: Calendar Month & Date Picker */}
-          <div className={`p-6 sm:p-8 lg:col-span-5 space-y-6 ${mobileStep === "slots" ? "hidden md:block" : "block"}`}>
+          <div
+            className={`p-6 sm:p-8 lg:col-span-4 space-y-6 ${
+              mobileStep !== "date" ? "hidden md:block" : "block"
+            }`}
+          >
             <div className="flex items-center justify-between">
               <h2 className="text-sm font-semibold text-[var(--text-primary)]">{monthName}</h2>
               <div className="flex items-center gap-1">
@@ -339,86 +411,139 @@ export default function PublicBookingPage({
             </div>
           </div>
 
-          {/* Right Column: Time Slots & Confirmation */}
-          <div className={`p-6 sm:p-8 lg:col-span-3 flex flex-col justify-between space-y-6 ${mobileStep === "date" ? "hidden md:flex" : "flex"}`}>
-            <div>
-              <div className="flex items-center justify-between mb-3">
-                <h3 className="text-xs font-semibold text-[var(--text-primary)]">Available Slots</h3>
-                <span className="rounded-full bg-[var(--bg-subtle)] border border-[var(--border-subtle)] px-2 py-0.5 text-[10px] tabular-nums font-sans text-[var(--text-secondary)]">
-                  {slots.length} slots
-                </span>
-              </div>
-
-              {isLoadingSlots ? (
-                <div className="space-y-2 py-2">
-                  <Skeleton className="h-9 w-full rounded-lg" />
-                  <Skeleton className="h-9 w-full rounded-lg" />
-                  <Skeleton className="h-9 w-full rounded-lg" />
-                </div>
-              ) : slots.length === 0 ? (
-                <div className="rounded-xl border border-dashed border-[var(--border-subtle)] p-6 text-center text-xs text-[var(--text-muted)]">
-                  No slots available for this date.
-                </div>
-              ) : (
-                <div className="max-h-72 overflow-y-auto space-y-2 pr-1">
-                  {slots.map((slot) => {
-                    const isSelected = selectedSlot?.startUtc === slot.startUtc;
-                    return (
-                      <button
-                        key={slot.startUtc}
-                        type="button"
-                        onClick={() => setSelectedSlot(slot)}
-                        className={`w-full flex items-center justify-between rounded-lg border px-3 py-2 text-xs tabular-nums font-sans transition-[background-color,border-color,color] duration-150 ease-out cursor-pointer ${
-                          isSelected
-                            ? "border-neutral-900 bg-neutral-900 text-white shadow-2xs font-semibold"
-                            : "border-[var(--border-subtle)] bg-[var(--bg-surface)] text-[var(--text-primary)] hover:border-[var(--border-focus)] hover:bg-[var(--bg-subtle)]"
-                        }`}
-                      >
-                        <span>{slot.time}</span>
-                        <span className={`text-[11px] ${isSelected ? "text-neutral-300" : "text-[var(--text-muted)]"}`}>
-                          {isSelected ? "Selected ✓" : "Pick →"}
-                        </span>
-                      </button>
-                    );
-                  })}
-                </div>
-              )}
-            </div>
-
-            {/* Selected Slot Confirmation Summary */}
-            {selectedSlot && (
-              <div className="rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-subtle)] p-4 space-y-3 animate-in fade-in-0 duration-150">
-                <div className="text-xs text-[var(--text-secondary)] space-y-0.5">
-                  <p className="font-semibold text-[var(--text-primary)]">Booking Summary</p>
-                  <p className="tabular-nums font-sans">
-                    {selectedDate} at <span className="font-semibold text-[var(--text-primary)]">{selectedSlot.time}</span>
-                  </p>
-                  <p className="text-[11px] text-[var(--text-muted)] font-mono">{attendeeTimezone}</p>
+          {/* Right Column: Time Slots & Attendee Form */}
+          <div
+            className={`p-6 sm:p-8 lg:col-span-4 flex flex-col justify-between space-y-6 ${
+              mobileStep === "date" ? "hidden md:flex" : "flex"
+            }`}
+          >
+            {!selectedSlot ? (
+              <div>
+                <div className="flex items-center justify-between mb-3">
+                  <h3 className="text-xs font-semibold text-[var(--text-primary)]">Available Slots</h3>
+                  <span className="rounded-full bg-[var(--bg-subtle)] border border-[var(--border-subtle)] px-2 py-0.5 text-[10px] tabular-nums font-sans text-[var(--text-secondary)]">
+                    {slots.length} slots
+                  </span>
                 </div>
 
-                {isBookedSimulated ? (
-                  <div className="rounded-lg bg-[var(--status-success-bg)] border border-[var(--status-success-border)] p-2.5 text-center text-xs font-semibold text-[var(--status-success-text)] flex items-center justify-center gap-1.5">
-                    <Check className="h-3.5 w-3.5" />
-                    <span>Booking Confirmed!</span>
+                {isLoadingSlots ? (
+                  <div className="space-y-2 py-2">
+                    <Skeleton className="h-9 w-full rounded-lg" />
+                    <Skeleton className="h-9 w-full rounded-lg" />
+                    <Skeleton className="h-9 w-full rounded-lg" />
+                  </div>
+                ) : slots.length === 0 ? (
+                  <div className="rounded-xl border border-dashed border-[var(--border-subtle)] p-6 text-center text-xs text-[var(--text-muted)]">
+                    No available slots for this date.
                   </div>
                 ) : (
-                  <Button
-                    type="button"
-                    onClick={() => {
-                      setIsBookedSimulated(true);
-                      toast.success(
-                        "Booking Request Confirmed",
-                        `${selectedDate} at ${selectedSlot.time} (${attendeeTimezone})`,
+                  <div className="max-h-80 overflow-y-auto space-y-2 pr-1">
+                    {slots.map((slot) => {
+                      return (
+                        <button
+                          key={slot.startUtc}
+                          type="button"
+                          onClick={() => {
+                            setSelectedSlot(slot);
+                            setMobileStep("details");
+                          }}
+                          className="w-full flex items-center justify-between rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-surface)] px-3 py-2 text-xs tabular-nums font-sans text-[var(--text-primary)] hover:border-neutral-900 hover:bg-[var(--bg-subtle)] transition-[background-color,border-color] duration-150 ease-out cursor-pointer"
+                        >
+                          <span>{slot.time}</span>
+                          <span className="text-[11px] text-[var(--text-muted)]">Book →</span>
+                        </button>
                       );
-                      setTimeout(() => setIsBookedSimulated(false), 4000);
-                    }}
-                    size="sm"
-                    className="w-full"
-                  >
-                    Confirm & Reserve Slot
-                  </Button>
+                    })}
+                  </div>
                 )}
               </div>
+            ) : (
+              /* Attendee Form */
+              <form onSubmit={handleBookSubmit} className="space-y-4">
+                <div className="flex items-center justify-between pb-3 border-b border-[var(--border-subtle)]">
+                  <div>
+                    <h3 className="text-xs font-semibold text-[var(--text-primary)]">Confirm Booking</h3>
+                    <p className="text-[11px] text-[var(--text-muted)] tabular-nums font-sans">
+                      {selectedDate} at {selectedSlot.time}
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setSelectedSlot(null)}
+                    className="text-[11px] text-[var(--text-secondary)] hover:text-[var(--text-primary)] underline cursor-pointer"
+                  >
+                    Change slot
+                  </button>
+                </div>
+
+                {/* Name */}
+                <div className="space-y-1">
+                  <Label htmlFor="attendeeName">Your Name</Label>
+                  <div className="relative">
+                    <User className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-[var(--text-muted)]" />
+                    <Input
+                      id="attendeeName"
+                      value={attendeeName}
+                      onChange={(e) => setAttendeeName(e.target.value)}
+                      placeholder="Jane Doe"
+                      required
+                      className="pl-8"
+                      aria-invalid={Boolean(fieldValidationErrors.attendeeName)}
+                    />
+                  </div>
+                  {fieldValidationErrors.attendeeName && (
+                    <p className="text-[11px] text-[var(--status-danger-text)]">
+                      {fieldValidationErrors.attendeeName}
+                    </p>
+                  )}
+                </div>
+
+                {/* Email */}
+                <div className="space-y-1">
+                  <Label htmlFor="attendeeEmail">Your Email</Label>
+                  <div className="relative">
+                    <Mail className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-[var(--text-muted)]" />
+                    <Input
+                      id="attendeeEmail"
+                      type="email"
+                      value={attendeeEmail}
+                      onChange={(e) => setAttendeeEmail(e.target.value)}
+                      placeholder="jane@company.com"
+                      required
+                      className="pl-8"
+                      aria-invalid={Boolean(fieldValidationErrors.attendeeEmail)}
+                    />
+                  </div>
+                  {fieldValidationErrors.attendeeEmail && (
+                    <p className="text-[11px] text-[var(--status-danger-text)]">
+                      {fieldValidationErrors.attendeeEmail}
+                    </p>
+                  )}
+                </div>
+
+                {/* Notes */}
+                <div className="space-y-1">
+                  <Label htmlFor="attendeeNotes">Notes / Agenda (Optional)</Label>
+                  <Textarea
+                    id="attendeeNotes"
+                    value={attendeeNotes}
+                    onChange={(e) => setAttendeeNotes(e.target.value)}
+                    placeholder="Briefly share what you would like to discuss..."
+                    rows={3}
+                  />
+                </div>
+
+                <Button type="submit" disabled={isSubmitting} className="w-full mt-2 gap-2">
+                  {isSubmitting ? (
+                    <>
+                      <Spinner size="sm" />
+                      <span>Reserving Slot…</span>
+                    </>
+                  ) : (
+                    <span>Schedule Meeting</span>
+                  )}
+                </Button>
+              </form>
             )}
           </div>
         </div>
@@ -437,3 +562,4 @@ export default function PublicBookingPage({
     </div>
   );
 }
+

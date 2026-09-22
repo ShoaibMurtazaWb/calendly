@@ -16,7 +16,8 @@ export class SlotsService {
     startDateStr: string,
     endDateStr: string,
     inviteeTimezone: string,
-    now: Date = new Date()
+    now: Date = new Date(),
+    existingBookings: Array<{ startTime: Date; endTime: Date }> = []
   ): TimeSlot[] {
     const slots: TimeSlot[] = [];
     const hostTimeZone = schedule.timeZone || "UTC";
@@ -26,7 +27,7 @@ export class SlotsService {
 
     if (currentDate > targetEndDate) return [];
 
-    const overridesMap = new Map<string, typeof schedule.overrides[number]>();
+    const overridesMap = new Map<string, (typeof schedule.overrides)[number]>();
     for (const override of schedule.overrides) {
       overridesMap.set(override.date, override);
     }
@@ -80,10 +81,29 @@ export class SlotsService {
       currentDate.setUTCDate(currentDate.getUTCDate() + 1);
     }
 
-    // Sort all slots chronologically by UTC start time
-    slots.sort((a, b) => new Date(a.startUtc).getTime() - new Date(b.startUtc).getTime());
+    // Filter out any slots that collide with existing confirmed bookings
+    const availableSlots = slots.filter((slot) => {
+      const slotStart = new Date(slot.startUtc).getTime();
+      const slotEnd = new Date(slot.endUtc).getTime();
+      const blockedStart = slotStart - eventType.beforeBufferMinutes * 60 * 1000;
+      const blockedEnd = slotEnd + eventType.afterBufferMinutes * 60 * 1000;
 
-    return slots;
+      for (const booking of existingBookings) {
+        const bookingStart = new Date(booking.startTime).getTime();
+        const bookingEnd = new Date(booking.endTime).getTime();
+
+        // Check interval overlap: [blockedStart, blockedEnd] overlaps [bookingStart, bookingEnd]
+        if (blockedStart < bookingEnd && blockedEnd > bookingStart) {
+          return false;
+        }
+      }
+      return true;
+    });
+
+    // Sort all slots chronologically by UTC start time
+    availableSlots.sort((a, b) => new Date(a.startUtc).getTime() - new Date(b.startUtc).getTime());
+
+    return availableSlots;
   }
 
   private generateIntervalSlots(

@@ -19,6 +19,7 @@ model User {
   sessions     Session[]
   eventTypes   EventType[]
   schedules    Schedule[]
+  bookings     Booking[]
 
   @@map("users")
 }
@@ -50,6 +51,7 @@ model EventType {
   archivedAt           DateTime? @map("archived_at") @db.Timestamptz(6)
   createdAt            DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
   updatedAt            DateTime  @updatedAt @map("updated_at") @db.Timestamptz(6)
+  bookings             Booking[]
 
   @@unique([userId, slug])
   @@index([userId, archivedAt])
@@ -98,3 +100,28 @@ model ScheduleOverride {
   @@index([scheduleId, date])
   @@map("schedule_overrides")
 }
+
+model Booking {
+  id                 String    @id @default(uuid()) @db.Uuid
+  eventTypeId        String    @map("event_type_id") @db.Uuid
+  eventType          EventType @relation(fields: [eventTypeId], references: [id], onDelete: Restrict)
+  hostId             String    @map("host_id") @db.Uuid
+  host               User      @relation(fields: [hostId], references: [id], onDelete: Restrict)
+  startTime          DateTime  @map("start_time") @db.Timestamptz(6)
+  endTime            DateTime  @map("end_time") @db.Timestamptz(6)
+  status             String    @default("CONFIRMED") // "CONFIRMED" | "CANCELLED"
+  attendeeName       String    @map("attendee_name")
+  attendeeEmail      String    @map("attendee_email") @db.Citext
+  attendeeTimeZone   String    @map("attendee_timezone")
+  attendeeNotes      String    @default("") @map("attendee_notes")
+  cancellationReason String?   @map("cancellation_reason")
+  cancelledAt        DateTime? @map("cancelled_at") @db.Timestamptz(6)
+  cancelledBy        String?   @map("cancelled_by") // "HOST" | "ATTENDEE"
+  createdAt          DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt          DateTime  @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  @@index([hostId, startTime, status])
+  @@index([eventTypeId, startTime, status])
+  @@map("bookings")
+}
+
