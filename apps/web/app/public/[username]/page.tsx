@@ -115,97 +115,99 @@ export default function PublicHostPage({
     .toUpperCase() || "H";
 
   return (
-    <div className="min-h-screen bg-[var(--bg-canvas)] font-sans text-[var(--text-primary)]">
+    <div className="min-h-screen flex flex-col justify-between bg-[var(--bg-canvas)] font-sans text-[var(--text-primary)]">
       {/* Header */}
-      <header className="border-b border-[var(--border-subtle)] bg-[var(--bg-surface)] px-6 py-4">
-        <div className="mx-auto flex max-w-4xl items-center justify-between">
-          <Link href="/" className="flex items-center gap-2">
-            <Logo className="h-7 w-7 shrink-0" />
-            <span className="font-semibold text-sm tracking-tight text-[var(--text-primary)]">Sched</span>
-          </Link>
-          <div className="flex items-center gap-2 text-xs text-[var(--text-secondary)]">
-            <span className="flex h-2 w-2 rounded-full bg-emerald-500" />
-            <span>Accepting bookings</span>
+      <div>
+        <header className="border-b border-[var(--border-subtle)] bg-[var(--bg-surface)] px-6 py-4">
+          <div className="mx-auto flex max-w-4xl items-center justify-between">
+            <Link href="/" className="flex items-center gap-2">
+              <Logo className="h-7 w-7 shrink-0" />
+              <span className="font-semibold text-sm tracking-tight text-[var(--text-primary)]">Sched</span>
+            </Link>
+            <div className="flex items-center gap-2 text-xs text-[var(--text-secondary)]">
+              <span className="flex h-2 w-2 rounded-full bg-emerald-500" />
+              <span>Accepting bookings</span>
+            </div>
           </div>
-        </div>
-      </header>
+        </header>
 
-      <main className="mx-auto max-w-4xl px-6 py-12 space-y-10">
-        {/* Host Profile Card */}
-        <Card className="p-8 bg-[var(--bg-surface)] border-[var(--border-subtle)] shadow-xs flex flex-col sm:flex-row items-center sm:items-start gap-6 text-center sm:text-left rounded-xl">
-          <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-full bg-neutral-900 text-xl font-bold text-white shadow-2xs">
-            {initials}
-          </div>
+        <main className="mx-auto max-w-4xl px-6 py-12 space-y-10">
+          {/* Host Profile Card */}
+          <Card className="p-8 bg-[var(--bg-surface)] border-[var(--border-subtle)] shadow-xs flex flex-col sm:flex-row items-center sm:items-start gap-6 text-center sm:text-left rounded-xl">
+            <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-full bg-neutral-900 text-xl font-bold text-white shadow-2xs">
+              {initials}
+            </div>
 
-          <div className="flex-1 space-y-1.5">
-            <h1 className="text-2xl font-bold text-[var(--text-primary)]">{profile.user.name}</h1>
-            <p className="text-xs font-mono text-[var(--text-muted)]">@{profile.user.username}</p>
+            <div className="flex-1 space-y-1.5">
+              <h1 className="text-2xl font-bold text-[var(--text-primary)]">{profile.user.name}</h1>
+              <p className="text-xs font-mono text-[var(--text-muted)]">@{profile.user.username}</p>
 
-            <div className="flex flex-wrap items-center justify-center sm:justify-start gap-4 pt-2 text-xs text-[var(--text-secondary)]">
-              <div className="flex items-center gap-1.5 font-mono">
-                <Globe className="h-3.5 w-3.5 text-[var(--text-muted)]" />
-                <span>{profile.user.timezone}</span>
-              </div>
-              {hostTime && (
+              <div className="flex flex-wrap items-center justify-center sm:justify-start gap-4 pt-2 text-xs text-[var(--text-secondary)]">
                 <div className="flex items-center gap-1.5 font-mono">
-                  <Clock className="h-3.5 w-3.5 text-[var(--text-muted)]" />
-                  <span>Local Time: <span className="tabular-nums">{hostTime}</span></span>
+                  <Globe className="h-3.5 w-3.5 text-[var(--text-muted)]" />
+                  <span>{profile.user.timezone}</span>
                 </div>
-              )}
+                {hostTime && (
+                  <div className="flex items-center gap-1.5 font-mono">
+                    <Clock className="h-3.5 w-3.5 text-[var(--text-muted)]" />
+                    <span>Local Time: <span className="tabular-nums">{hostTime}</span></span>
+                  </div>
+                )}
+              </div>
             </div>
-          </div>
-        </Card>
+          </Card>
 
-        {/* Active Event Types List */}
-        <div className="space-y-4">
-          <div>
-            <h2 className="text-lg font-semibold text-[var(--text-primary)]">Select an Event Type</h2>
-            <p className="text-xs text-[var(--text-secondary)]">Choose a meeting format to view available dates and times.</p>
-          </div>
+          {/* Active Event Types List */}
+          <div className="space-y-4">
+            <div>
+              <h2 className="text-lg font-semibold text-[var(--text-primary)]">Select an Event Type</h2>
+              <p className="text-xs text-[var(--text-secondary)]">Choose a meeting format to view available dates and times.</p>
+            </div>
 
-          {profile.eventTypes.length === 0 ? (
-            <Card className="p-8 text-center bg-[var(--bg-surface)] border-[var(--border-subtle)] rounded-xl">
-              <p className="text-sm text-[var(--text-muted)]">This host has no active event types available for booking.</p>
-            </Card>
-          ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {profile.eventTypes.map((et) => (
-                <Link
-                  key={et.id}
-                  href={`/public/${profile.user.username}/${et.slug}`}
-                  className="group block"
-                >
-                  <Card className="h-full p-6 bg-[var(--bg-surface)] border-[var(--border-subtle)] rounded-xl shadow-2xs hover:border-[var(--border-strong)] hover:shadow-xs transition-[border-color,box-shadow] duration-150 ease-out flex flex-col justify-between space-y-4 cursor-pointer">
-                    <div>
-                      <div className="flex items-center justify-between">
-                        <span className="rounded-full bg-[var(--bg-subtle)] border border-[var(--border-subtle)] px-2.5 py-0.5 text-xs font-medium tabular-nums font-sans text-[var(--text-secondary)]">
-                          {et.durationMinutes} min meeting
-                        </span>
-                        <div className="flex items-center gap-1 text-xs text-[var(--text-muted)] group-hover:text-[var(--text-primary)] transition-colors duration-150">
-                          <span>Select</span>
-                          <ArrowRight className="h-3.5 w-3.5 transition-transform duration-150 group-hover:translate-x-0.5" />
+            {profile.eventTypes.length === 0 ? (
+              <Card className="p-8 text-center bg-[var(--bg-surface)] border-[var(--border-subtle)] rounded-xl">
+                <p className="text-sm text-[var(--text-muted)]">This host has no active event types available for booking.</p>
+              </Card>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {profile.eventTypes.map((et) => (
+                  <Link
+                    key={et.id}
+                    href={`/public/${profile.user.username}/${et.slug}`}
+                    className="group block"
+                  >
+                    <Card className="h-full p-6 bg-[var(--bg-surface)] border-[var(--border-subtle)] rounded-xl shadow-2xs hover:border-[var(--border-strong)] hover:shadow-xs transition-[border-color,box-shadow] duration-150 ease-out flex flex-col justify-between space-y-4 cursor-pointer">
+                      <div>
+                        <div className="flex items-center justify-between">
+                          <span className="rounded-full bg-[var(--bg-subtle)] border border-[var(--border-subtle)] px-2.5 py-0.5 text-xs font-medium tabular-nums font-sans text-[var(--text-secondary)]">
+                            {et.durationMinutes} min meeting
+                          </span>
+                          <div className="flex items-center gap-1 text-xs text-[var(--text-muted)] group-hover:text-[var(--text-primary)] transition-colors duration-150">
+                            <span>Select</span>
+                            <ArrowRight className="h-3.5 w-3.5 transition-transform duration-150 group-hover:translate-x-0.5" />
+                          </div>
                         </div>
+
+                        <h3 className="mt-3 text-base font-semibold text-[var(--text-primary)]">
+                          {et.title}
+                        </h3>
+
+                        {et.description && (
+                          <p className="mt-1.5 text-xs text-[var(--text-secondary)] line-clamp-2 leading-relaxed">
+                            {et.description}
+                          </p>
+                        )}
                       </div>
+                    </Card>
+                  </Link>
+                ))}
+              </div>
+            )}
+          </div>
+        </main>
+      </div>
 
-                      <h3 className="mt-3 text-base font-semibold text-[var(--text-primary)]">
-                        {et.title}
-                      </h3>
-
-                      {et.description && (
-                        <p className="mt-1.5 text-xs text-[var(--text-secondary)] line-clamp-2 leading-relaxed">
-                          {et.description}
-                        </p>
-                      )}
-                    </div>
-                  </Card>
-                </Link>
-              ))}
-            </div>
-          )}
-        </div>
-      </main>
-
-      <footer className="py-8 text-center border-t border-[var(--border-subtle)] mt-12">
+      <footer className="border-t border-[var(--border-subtle)] bg-[var(--bg-surface)] py-6 text-center mt-12">
         <Link
           href="/"
           className="inline-flex items-center gap-1.5 text-xs text-[var(--text-muted)] hover:text-[var(--text-primary)] transition-colors duration-150"
@@ -218,3 +220,4 @@ export default function PublicHostPage({
     </div>
   );
 }
+

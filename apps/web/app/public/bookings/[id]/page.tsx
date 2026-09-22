@@ -162,204 +162,210 @@ export default function PublicBookingConfirmationPage({
   )}`;
 
   return (
-    <div className="min-h-screen bg-[var(--bg-canvas)] font-sans text-[var(--text-primary)] selection:bg-neutral-900 selection:text-white py-12 px-4 sm:px-6">
-      <div className="mx-auto max-w-xl">
-        {/* Card Shell */}
-        <Card className="rounded-2xl border border-[var(--border-subtle)] bg-[var(--bg-surface)] p-6 sm:p-8 shadow-sm">
-          {/* Header Status */}
-          <div className="text-center pb-6 border-b border-[var(--border-subtle)]">
-            {isCancelled ? (
-              <>
-                <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-[var(--status-danger-bg)] text-[var(--status-danger-text)] mb-3">
-                  <XCircle className="h-7 w-7" />
-                </div>
-                <Badge variant="danger" className="mb-2">
-                  Cancelled
-                </Badge>
-                <h1 className="text-2xl font-bold tracking-tight text-[var(--text-primary)]">
-                  Meeting Cancelled
-                </h1>
-                <p className="mt-1 text-xs text-[var(--text-muted)]">
-                  {booking.cancelledBy === "HOST"
-                    ? `Cancelled by host (${booking.host.name})`
-                    : "Cancelled by attendee"}
-                  {booking.cancellationReason && ` · "${booking.cancellationReason}"`}
-                </p>
-              </>
-            ) : (
-              <>
-                <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-[var(--status-success-bg)] text-[var(--status-success-text)] mb-3">
-                  <CheckCircle2 className="h-7 w-7" />
-                </div>
-                <Badge variant="success" className="mb-2">
-                  Confirmed
-                </Badge>
-                <h1 className="text-2xl font-bold tracking-tight text-[var(--text-primary)]">
-                  You are scheduled!
-                </h1>
-                <p className="mt-1 text-xs text-[var(--text-secondary)]">
-                  A calendar invitation has been generated for your session with {booking.host.name}.
-                </p>
-              </>
-            )}
-          </div>
-
-          {/* Meeting Details Content */}
-          <div className="py-6 space-y-4 text-xs">
-            <div className="rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-subtle)]/60 p-4 space-y-3">
-              <div className="flex items-center justify-between pb-3 border-b border-[var(--border-subtle)]">
-                <div>
-                  <h2 className="text-sm font-semibold text-[var(--text-primary)]">
-                    {booking.eventType.title}
-                  </h2>
-                  <p className="text-[11px] text-[var(--text-muted)]">
-                    with {booking.host.name} (@{booking.host.username})
+    <div className="min-h-screen flex flex-col justify-between bg-[var(--bg-canvas)] font-sans text-[var(--text-primary)] selection:bg-neutral-900 selection:text-white">
+      <main className="flex-1 py-12 px-4 sm:px-6 flex flex-col justify-center">
+        <div className="mx-auto max-w-xl w-full">
+          {/* Card Shell */}
+          <Card className="rounded-2xl border border-[var(--border-subtle)] bg-[var(--bg-surface)] p-6 sm:p-8 shadow-sm">
+            {/* Header Status */}
+            <div className="text-center pb-6 border-b border-[var(--border-subtle)]">
+              {isCancelled ? (
+                <>
+                  <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-[var(--status-danger-bg)] text-[var(--status-danger-text)] mb-3">
+                    <XCircle className="h-7 w-7" />
+                  </div>
+                  <Badge variant="danger" className="mb-2">
+                    Cancelled
+                  </Badge>
+                  <h1 className="text-2xl font-bold tracking-tight text-[var(--text-primary)]">
+                    Meeting Cancelled
+                  </h1>
+                  <p className="mt-1 text-xs text-[var(--text-muted)]">
+                    {booking.cancelledBy === "HOST"
+                      ? `Cancelled by host (${booking.host.name})`
+                      : "Cancelled by attendee"}
+                    {booking.cancellationReason && ` · "${booking.cancellationReason}"`}
                   </p>
+                </>
+              ) : (
+                <>
+                  <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-[var(--status-success-bg)] text-[var(--status-success-text)] mb-3">
+                    <CheckCircle2 className="h-7 w-7" />
+                  </div>
+                  <Badge variant="success" className="mb-2">
+                    Confirmed
+                  </Badge>
+                  <h1 className="text-2xl font-bold tracking-tight text-[var(--text-primary)]">
+                    You are scheduled!
+                  </h1>
+                  <p className="mt-1 text-xs text-[var(--text-secondary)]">
+                    A calendar invitation has been generated for your session with {booking.host.name}.
+                  </p>
+                </>
+              )}
+            </div>
+
+            {/* Meeting Details Content */}
+            <div className="py-6 space-y-4 text-xs">
+              <div className="rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-subtle)]/60 p-4 space-y-3">
+                <div className="flex items-center justify-between pb-3 border-b border-[var(--border-subtle)]">
+                  <div>
+                    <h2 className="text-sm font-semibold text-[var(--text-primary)]">
+                      {booking.eventType.title}
+                    </h2>
+                    <p className="text-[11px] text-[var(--text-muted)]">
+                      with {booking.host.name} (@{booking.host.username})
+                    </p>
+                  </div>
+                  <Badge variant="secondary" className="tabular-nums font-sans">
+                    {booking.eventType.durationMinutes}m
+                  </Badge>
                 </div>
-                <Badge variant="secondary" className="tabular-nums font-sans">
-                  {booking.eventType.durationMinutes}m
-                </Badge>
+
+                {/* Date and Time */}
+                <div className="flex items-start gap-2.5 text-[var(--text-secondary)]">
+                  <CalendarIcon className="h-4 w-4 text-[var(--text-muted)] shrink-0 mt-0.5" />
+                  <div>
+                    <p className="font-semibold text-[var(--text-primary)]">{formattedDate}</p>
+                    <p className="tabular-nums font-sans">
+                      {formattedStartTime} – {formattedEndTime} ({booking.attendeeTimeZone})
+                    </p>
+                    <p className="text-[11px] text-[var(--text-muted)] font-mono mt-0.5">
+                      Host local: {hostFormattedTime} ({booking.host.timezone})
+                    </p>
+                  </div>
+                </div>
+
+                {/* Attendee Info */}
+                <div className="flex items-center gap-2.5 text-[var(--text-secondary)]">
+                  <User className="h-4 w-4 text-[var(--text-muted)] shrink-0" />
+                  <span>
+                    {booking.attendeeName} ({booking.attendeeEmail})
+                  </span>
+                </div>
+
+                {/* Notes */}
+                {booking.attendeeNotes && (
+                  <div className="pt-2 border-t border-[var(--border-subtle)] text-[var(--text-secondary)]">
+                    <p className="font-medium text-[var(--text-primary)]">Notes / Agenda:</p>
+                    <p className="mt-0.5 text-[11px] text-[var(--text-muted)] whitespace-pre-wrap">
+                      {booking.attendeeNotes}
+                    </p>
+                  </div>
+                )}
               </div>
 
-              {/* Date and Time */}
-              <div className="flex items-start gap-2.5 text-[var(--text-secondary)]">
-                <CalendarIcon className="h-4 w-4 text-[var(--text-muted)] shrink-0 mt-0.5" />
-                <div>
-                  <p className="font-semibold text-[var(--text-primary)]">{formattedDate}</p>
-                  <p className="tabular-nums font-sans">
-                    {formattedStartTime} – {formattedEndTime} ({booking.attendeeTimeZone})
-                  </p>
-                  <p className="text-[11px] text-[var(--text-muted)] font-mono mt-0.5">
-                    Host local: {hostFormattedTime} ({booking.host.timezone})
-                  </p>
+              {/* Calendar Export Actions (if not cancelled) */}
+              {!isCancelled && (
+                <div className="space-y-2 pt-2">
+                  <p className="font-semibold text-[var(--text-primary)] text-xs">Add to Calendar:</p>
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                    <Button asChild variant="outline" size="sm" className="w-full justify-center">
+                      <a href={googleCalendarUrl} target="_blank" rel="noopener noreferrer">
+                        <ExternalLink className="h-3.5 w-3.5 mr-1" />
+                        Google Cal
+                      </a>
+                    </Button>
+                    <Button asChild variant="outline" size="sm" className="w-full justify-center">
+                      <a href={outlookCalendarUrl} target="_blank" rel="noopener noreferrer">
+                        <ExternalLink className="h-3.5 w-3.5 mr-1" />
+                        Outlook
+                      </a>
+                    </Button>
+                    <Button asChild variant="outline" size="sm" className="w-full justify-center">
+                      <a href={`/api/v1/public/bookings/${booking.id}/ics`} download>
+                        <Download className="h-3.5 w-3.5 mr-1" />
+                        .ics File
+                      </a>
+                    </Button>
+                  </div>
                 </div>
-              </div>
+              )}
 
-              {/* Attendee Info */}
-              <div className="flex items-center gap-2.5 text-[var(--text-secondary)]">
-                <User className="h-4 w-4 text-[var(--text-muted)] shrink-0" />
-                <span>
-                  {booking.attendeeName} ({booking.attendeeEmail})
-                </span>
-              </div>
-
-              {/* Notes */}
-              {booking.attendeeNotes && (
-                <div className="pt-2 border-t border-[var(--border-subtle)] text-[var(--text-secondary)]">
-                  <p className="font-medium text-[var(--text-primary)]">Notes / Agenda:</p>
-                  <p className="mt-0.5 text-[11px] text-[var(--text-muted)] whitespace-pre-wrap">
-                    {booking.attendeeNotes}
-                  </p>
+              {/* Cancellation Section */}
+              {!isCancelled && (
+                <div className="pt-4 border-t border-[var(--border-subtle)]">
+                  {isCancelOpen ? (
+                    <div className="rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-canvas)] p-4 space-y-3">
+                      <p className="font-semibold text-[var(--text-primary)]">Cancel this booking?</p>
+                      <p className="text-[11px] text-[var(--text-muted)]">
+                        This will free up the time slot for other attendees.
+                      </p>
+                      <input
+                        type="text"
+                        value={cancelReason}
+                        onChange={(e) => setCancelReason(e.target.value)}
+                        placeholder="Optional reason for cancellation..."
+                        className="w-full rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-surface)] px-3 py-1.5 text-xs text-[var(--text-primary)] focus:outline-none focus:ring-1 focus:ring-[var(--focus-ring)]"
+                      />
+                      <div className="flex items-center justify-end gap-2">
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => setIsCancelOpen(false)}
+                        >
+                          Keep Meeting
+                        </Button>
+                        <Button
+                          type="button"
+                          variant="destructive"
+                          size="sm"
+                          disabled={isCancelling}
+                          onClick={handleCancelBooking}
+                        >
+                          {isCancelling ? (
+                            <>
+                              <Spinner size="sm" />
+                              <span>Cancelling…</span>
+                            </>
+                          ) : (
+                            <span>Confirm Cancellation</span>
+                          )}
+                        </Button>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="flex items-center justify-between text-xs text-[var(--text-muted)]">
+                      <span>Need to make changes?</span>
+                      <button
+                        type="button"
+                        onClick={() => setIsCancelOpen(true)}
+                        className="font-medium text-rose-600 hover:underline cursor-pointer"
+                      >
+                        Cancel booking
+                      </button>
+                    </div>
+                  )}
                 </div>
               )}
             </div>
 
-            {/* Calendar Export Actions (if not cancelled) */}
-            {!isCancelled && (
-              <div className="space-y-2 pt-2">
-                <p className="font-semibold text-[var(--text-primary)] text-xs">Add to Calendar:</p>
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
-                  <Button asChild variant="outline" size="sm" className="w-full justify-center">
-                    <a href={googleCalendarUrl} target="_blank" rel="noopener noreferrer">
-                      <ExternalLink className="h-3.5 w-3.5 mr-1" />
-                      Google Cal
-                    </a>
-                  </Button>
-                  <Button asChild variant="outline" size="sm" className="w-full justify-center">
-                    <a href={outlookCalendarUrl} target="_blank" rel="noopener noreferrer">
-                      <ExternalLink className="h-3.5 w-3.5 mr-1" />
-                      Outlook
-                    </a>
-                  </Button>
-                  <Button asChild variant="outline" size="sm" className="w-full justify-center">
-                    <a href={`/api/v1/public/bookings/${booking.id}/ics`} download>
-                      <Download className="h-3.5 w-3.5 mr-1" />
-                      .ics File
-                    </a>
-                  </Button>
-                </div>
-              </div>
-            )}
+            {/* Footer Action */}
+            <div className="pt-4 border-t border-[var(--border-subtle)] flex items-center justify-between">
+              <Link
+                href={`/public/${booking.host.username}`}
+                className="inline-flex items-center gap-1 text-xs text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors duration-150"
+              >
+                <ArrowLeft className="h-3.5 w-3.5" />
+                <span>Book another meeting</span>
+              </Link>
+            </div>
+          </Card>
+        </div>
+      </main>
 
-            {/* Cancellation Section */}
-            {!isCancelled && (
-              <div className="pt-4 border-t border-[var(--border-subtle)]">
-                {isCancelOpen ? (
-                  <div className="rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-canvas)] p-4 space-y-3">
-                    <p className="font-semibold text-[var(--text-primary)]">Cancel this booking?</p>
-                    <p className="text-[11px] text-[var(--text-muted)]">
-                      This will free up the time slot for other attendees.
-                    </p>
-                    <input
-                      type="text"
-                      value={cancelReason}
-                      onChange={(e) => setCancelReason(e.target.value)}
-                      placeholder="Optional reason for cancellation..."
-                      className="w-full rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-surface)] px-3 py-1.5 text-xs text-[var(--text-primary)] focus:outline-none focus:ring-1 focus:ring-[var(--focus-ring)]"
-                    />
-                    <div className="flex items-center justify-end gap-2">
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => setIsCancelOpen(false)}
-                      >
-                        Keep Meeting
-                      </Button>
-                      <Button
-                        type="button"
-                        variant="destructive"
-                        size="sm"
-                        disabled={isCancelling}
-                        onClick={handleCancelBooking}
-                      >
-                        {isCancelling ? (
-                          <>
-                            <Spinner size="sm" />
-                            <span>Cancelling…</span>
-                          </>
-                        ) : (
-                          <span>Confirm Cancellation</span>
-                        )}
-                      </Button>
-                    </div>
-                  </div>
-                ) : (
-                  <div className="flex items-center justify-between text-xs text-[var(--text-muted)]">
-                    <span>Need to make changes?</span>
-                    <button
-                      type="button"
-                      onClick={() => setIsCancelOpen(true)}
-                      className="font-medium text-rose-600 hover:underline cursor-pointer"
-                    >
-                      Cancel booking
-                    </button>
-                  </div>
-                )}
-              </div>
-            )}
-          </div>
-
-          {/* Footer Action */}
-          <div className="pt-4 border-t border-[var(--border-subtle)] flex items-center justify-between">
-            <Link
-              href={`/public/${booking.host.username}`}
-              className="inline-flex items-center gap-1 text-xs text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors duration-150"
-            >
-              <ArrowLeft className="h-3.5 w-3.5" />
-              <span>Book another meeting</span>
-            </Link>
-
-            <Link
-              href="/"
-              className="inline-flex items-center gap-1.5 text-xs text-[var(--text-muted)] hover:text-[var(--text-primary)]"
-            >
-              <Logo className="h-3.5 w-3.5" />
-              <span>Sched</span>
-            </Link>
-          </div>
-        </Card>
-      </div>
+      <footer className="border-t border-[var(--border-subtle)] bg-[var(--bg-surface)] py-6 text-center">
+        <Link
+          href="/"
+          className="inline-flex items-center gap-1.5 text-xs text-[var(--text-muted)] hover:text-[var(--text-primary)] transition-colors duration-150"
+        >
+          <span>Powered by</span>
+          <Logo className="h-4 w-4" />
+          <span className="font-semibold text-[var(--text-secondary)]">Sched</span>
+        </Link>
+      </footer>
     </div>
   );
 }
+

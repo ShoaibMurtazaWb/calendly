@@ -223,10 +223,12 @@ export default function PublicBookingPage({
   const todayStr = new Date().toISOString().split("T")[0]!;
 
   return (
-    <div className="min-h-screen bg-[var(--bg-canvas)] font-sans text-[var(--text-primary)] selection:bg-neutral-900 selection:text-white py-8 px-4 sm:px-6">
-      <div className="mx-auto max-w-5xl">
-        {/* Back Link */}
-        <div className="mb-6">
+    <div className="min-h-screen flex flex-col justify-between bg-[var(--bg-canvas)] font-sans text-[var(--text-primary)] selection:bg-neutral-900 selection:text-white">
+      <main className="flex-1 py-8 px-4 sm:px-6">
+        <div className="mx-auto max-w-5xl">
+          {/* Back Link */}
+          <div className="mb-6">
+
           <Link
             href={`/public/${username}`}
             className="inline-flex items-center gap-1.5 text-xs font-medium text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors duration-150"
@@ -547,19 +549,23 @@ export default function PublicBookingPage({
             )}
           </div>
         </div>
-
-        <footer className="py-8 text-center mt-6">
-          <Link
-            href="/"
-            className="inline-flex items-center gap-1.5 text-xs text-[var(--text-muted)] hover:text-[var(--text-primary)] transition-colors duration-150"
-          >
-            <span>Powered by</span>
-            <Logo className="h-4 w-4" />
-            <span className="font-semibold text-[var(--text-secondary)]">Sched</span>
-          </Link>
-        </footer>
       </div>
+    </main>
+
+
+
+      <footer className="border-t border-[var(--border-subtle)] bg-[var(--bg-surface)] py-6 text-center mt-12">
+        <Link
+          href="/"
+          className="inline-flex items-center gap-1.5 text-xs text-[var(--text-muted)] hover:text-[var(--text-primary)] transition-colors duration-150"
+        >
+          <span>Powered by</span>
+          <Logo className="h-4 w-4" />
+          <span className="font-semibold text-[var(--text-secondary)]">Sched</span>
+        </Link>
+      </footer>
     </div>
   );
 }
+
 
