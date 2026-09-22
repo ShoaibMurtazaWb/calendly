@@ -23,7 +23,7 @@ export function Select({
   size,
   children,
   ...props
-}: React.ComponentProps<"select"> & VariantProps<typeof selectVariants>) {
+}: Omit<React.ComponentProps<"select">, "size"> & VariantProps<typeof selectVariants>) {
   return (
     <div className="relative inline-flex w-full items-center">
       <select

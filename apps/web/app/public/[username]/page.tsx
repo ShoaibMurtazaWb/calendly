@@ -7,11 +7,10 @@ import {
   Calendar,
   ArrowRight,
   Globe,
-  CheckCircle2,
-  Video,
 } from "lucide-react";
 import { api } from "@/lib/api";
 import { Card } from "@/components/ui/card";
+import { Skeleton } from "@/components/ui/skeleton";
 import { Logo } from "@/components/logo";
 import type { PublicHostProfileResponse } from "@sched/api-contract";
 
@@ -41,6 +40,7 @@ export default function PublicHostPage({
     void loadHostProfile();
   }, [username]);
 
+  // Minute-level clock updates to eliminate per-second repaints
   useEffect(() => {
     if (!profile?.user.timezone) return;
 
@@ -52,7 +52,6 @@ export default function PublicHostPage({
             timeZone: profile?.user.timezone,
             hour: "2-digit",
             minute: "2-digit",
-            second: "2-digit",
           })
         );
       } catch {
@@ -61,34 +60,46 @@ export default function PublicHostPage({
     }
 
     updateClock();
-    const interval = setInterval(updateClock, 1000);
+    const interval = setInterval(updateClock, 30000);
     return () => clearInterval(interval);
   }, [profile?.user.timezone]);
 
   if (isLoading) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-neutral-50">
-        <div className="flex items-center gap-2 text-sm text-neutral-500">
-          <Clock className="h-4 w-4 animate-spin text-neutral-900" />
-          <span>Loading booking profile...</span>
-        </div>
+      <div className="min-h-screen bg-[var(--bg-canvas)] font-sans text-[var(--text-primary)]">
+        <header className="border-b border-[var(--border-subtle)] bg-[var(--bg-surface)] px-6 py-4">
+          <div className="mx-auto flex max-w-4xl items-center justify-between">
+            <div className="flex items-center gap-2">
+              <Logo className="h-7 w-7 shrink-0" />
+              <span className="font-semibold text-sm tracking-tight text-[var(--text-primary)]">Sched</span>
+            </div>
+          </div>
+        </header>
+
+        <main className="mx-auto max-w-4xl px-6 py-12 space-y-10">
+          <Skeleton className="h-32 rounded-xl border border-[var(--border-subtle)]" />
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <Skeleton className="h-40 rounded-xl border border-[var(--border-subtle)]" />
+            <Skeleton className="h-40 rounded-xl border border-[var(--border-subtle)]" />
+          </div>
+        </main>
       </div>
     );
   }
 
   if (error || !profile) {
     return (
-      <div className="flex min-h-screen flex-col items-center justify-center bg-neutral-50 px-6 text-center">
-        <div className="flex h-12 w-12 items-center justify-center rounded-full bg-neutral-100 text-neutral-400 mb-4">
+      <div className="flex min-h-screen flex-col items-center justify-center bg-[var(--bg-canvas)] px-6 text-center">
+        <div className="flex h-12 w-12 items-center justify-center rounded-full bg-[var(--bg-subtle)] text-[var(--text-muted)] mb-4">
           <Calendar className="h-6 w-6" />
         </div>
-        <h1 className="text-xl font-bold text-neutral-900">Host Not Found</h1>
-        <p className="mt-1 text-sm text-neutral-500 max-w-sm">
+        <h1 className="text-xl font-bold text-[var(--text-primary)]">Host Not Found</h1>
+        <p className="mt-1 text-sm text-[var(--text-secondary)] max-w-sm">
           The user @{username} does not exist or has no active public booking links.
         </p>
         <Link
           href="/"
-          className="mt-6 inline-flex items-center gap-1.5 rounded-md bg-neutral-900 px-4 py-2 text-xs font-semibold text-white hover:bg-neutral-800 transition"
+          className="mt-6 inline-flex items-center gap-1.5 rounded-lg bg-neutral-900 px-4 py-2 text-xs font-semibold text-white hover:bg-neutral-800 transition-colors duration-150"
         >
           <span>Return Home</span>
         </Link>
@@ -104,15 +115,15 @@ export default function PublicHostPage({
     .toUpperCase() || "H";
 
   return (
-    <div className="min-h-screen bg-neutral-50 font-sans text-neutral-900">
+    <div className="min-h-screen bg-[var(--bg-canvas)] font-sans text-[var(--text-primary)]">
       {/* Header */}
-      <header className="border-b border-neutral-200/80 bg-white px-6 py-4">
+      <header className="border-b border-[var(--border-subtle)] bg-[var(--bg-surface)] px-6 py-4">
         <div className="mx-auto flex max-w-4xl items-center justify-between">
           <Link href="/" className="flex items-center gap-2">
             <Logo className="h-7 w-7 shrink-0" />
-            <span className="font-bold text-sm tracking-tight text-neutral-900">Sched</span>
+            <span className="font-semibold text-sm tracking-tight text-[var(--text-primary)]">Sched</span>
           </Link>
-          <div className="flex items-center gap-2 text-xs text-neutral-500">
+          <div className="flex items-center gap-2 text-xs text-[var(--text-secondary)]">
             <span className="flex h-2 w-2 rounded-full bg-emerald-500" />
             <span>Accepting bookings</span>
           </div>
@@ -121,28 +132,24 @@ export default function PublicHostPage({
 
       <main className="mx-auto max-w-4xl px-6 py-12 space-y-10">
         {/* Host Profile Card */}
-        <Card className="p-8 bg-white border-neutral-200 shadow-xs flex flex-col sm:flex-row items-center sm:items-start gap-6 text-center sm:text-left">
-          <div className="flex h-20 w-20 shrink-0 items-center justify-center rounded-full bg-neutral-900 text-2xl font-bold text-white shadow-sm">
+        <Card className="p-8 bg-[var(--bg-surface)] border-[var(--border-subtle)] shadow-xs flex flex-col sm:flex-row items-center sm:items-start gap-6 text-center sm:text-left rounded-xl">
+          <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-full bg-neutral-900 text-xl font-bold text-white shadow-2xs">
             {initials}
           </div>
 
-          <div className="flex-1 space-y-2">
-            <div className="flex flex-wrap items-center justify-center sm:justify-start gap-2">
-              <h1 className="text-2xl font-bold text-neutral-900">{profile.user.name}</h1>
-              <CheckCircle2 className="h-5 w-5 text-emerald-600" />
-            </div>
+          <div className="flex-1 space-y-1.5">
+            <h1 className="text-2xl font-bold text-[var(--text-primary)]">{profile.user.name}</h1>
+            <p className="text-xs font-mono text-[var(--text-muted)]">@{profile.user.username}</p>
 
-            <p className="text-sm font-mono text-neutral-500">@{profile.user.username}</p>
-
-            <div className="flex flex-wrap items-center justify-center sm:justify-start gap-4 pt-2 text-xs text-neutral-500">
+            <div className="flex flex-wrap items-center justify-center sm:justify-start gap-4 pt-2 text-xs text-[var(--text-secondary)]">
               <div className="flex items-center gap-1.5 font-mono">
-                <Globe className="h-3.5 w-3.5 text-neutral-400" />
+                <Globe className="h-3.5 w-3.5 text-[var(--text-muted)]" />
                 <span>{profile.user.timezone}</span>
               </div>
               {hostTime && (
                 <div className="flex items-center gap-1.5 font-mono">
-                  <Clock className="h-3.5 w-3.5 text-neutral-400" />
-                  <span>Local Time: {hostTime}</span>
+                  <Clock className="h-3.5 w-3.5 text-[var(--text-muted)]" />
+                  <span>Local Time: <span className="tabular-nums">{hostTime}</span></span>
                 </div>
               )}
             </div>
@@ -152,13 +159,13 @@ export default function PublicHostPage({
         {/* Active Event Types List */}
         <div className="space-y-4">
           <div>
-            <h2 className="text-lg font-bold text-neutral-900">Select an Event Type</h2>
-            <p className="text-xs text-neutral-500">Choose a meeting format to view available dates and times.</p>
+            <h2 className="text-lg font-semibold text-[var(--text-primary)]">Select an Event Type</h2>
+            <p className="text-xs text-[var(--text-secondary)]">Choose a meeting format to view available dates and times.</p>
           </div>
 
           {profile.eventTypes.length === 0 ? (
-            <Card className="p-8 text-center bg-white border-neutral-200">
-              <p className="text-sm text-neutral-500">This host has no active event types available for booking.</p>
+            <Card className="p-8 text-center bg-[var(--bg-surface)] border-[var(--border-subtle)] rounded-xl">
+              <p className="text-sm text-[var(--text-muted)]">This host has no active event types available for booking.</p>
             </Card>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -168,35 +175,27 @@ export default function PublicHostPage({
                   href={`/public/${profile.user.username}/${et.slug}`}
                   className="group block"
                 >
-                  <Card className="h-full p-6 bg-white border-neutral-200/90 shadow-2xs hover:border-neutral-900 hover:shadow-xs transition-all duration-200 flex flex-col justify-between space-y-4 cursor-pointer">
+                  <Card className="h-full p-6 bg-[var(--bg-surface)] border-[var(--border-subtle)] rounded-xl shadow-2xs hover:border-[var(--border-strong)] hover:shadow-xs transition-[border-color,box-shadow] duration-150 ease-out flex flex-col justify-between space-y-4 cursor-pointer">
                     <div>
                       <div className="flex items-center justify-between">
-                        <span className="rounded bg-neutral-100 px-2 py-0.5 text-[11px] font-semibold text-neutral-700">
+                        <span className="rounded-full bg-[var(--bg-subtle)] border border-[var(--border-subtle)] px-2.5 py-0.5 text-xs font-medium tabular-nums font-sans text-[var(--text-secondary)]">
                           {et.durationMinutes} min meeting
                         </span>
-                        <div className="flex items-center gap-1 text-xs text-neutral-400 group-hover:text-neutral-900 transition">
+                        <div className="flex items-center gap-1 text-xs text-[var(--text-muted)] group-hover:text-[var(--text-primary)] transition-colors duration-150">
                           <span>Select</span>
-                          <ArrowRight className="h-3.5 w-3.5 transition-transform group-hover:translate-x-0.5" />
+                          <ArrowRight className="h-3.5 w-3.5 transition-transform duration-150 group-hover:translate-x-0.5" />
                         </div>
                       </div>
 
-                      <h3 className="mt-3 text-base font-bold text-neutral-900 group-hover:text-neutral-950">
+                      <h3 className="mt-3 text-base font-semibold text-[var(--text-primary)]">
                         {et.title}
                       </h3>
 
                       {et.description && (
-                        <p className="mt-1.5 text-xs text-neutral-600 line-clamp-2 leading-relaxed">
+                        <p className="mt-1.5 text-xs text-[var(--text-secondary)] line-clamp-2 leading-relaxed">
                           {et.description}
                         </p>
                       )}
-                    </div>
-
-                    <div className="pt-3 border-t border-neutral-100 flex items-center justify-between text-xs text-neutral-500">
-                      <div className="flex items-center gap-1.5">
-                        <Video className="h-3.5 w-3.5 text-neutral-400" />
-                        <span>Google Meet / Zoom</span>
-                      </div>
-                      <span>Instant sync</span>
                     </div>
                   </Card>
                 </Link>
@@ -206,14 +205,14 @@ export default function PublicHostPage({
         </div>
       </main>
 
-      <footer className="py-8 text-center border-t border-neutral-200/60 mt-12">
+      <footer className="py-8 text-center border-t border-[var(--border-subtle)] mt-12">
         <Link
           href="/"
-          className="inline-flex items-center gap-1.5 text-xs text-neutral-400 hover:text-neutral-700 transition"
+          className="inline-flex items-center gap-1.5 text-xs text-[var(--text-muted)] hover:text-[var(--text-primary)] transition-colors duration-150"
         >
           <span>Powered by</span>
           <Logo className="h-4 w-4" />
-          <span className="font-semibold text-neutral-600">Sched</span>
+          <span className="font-semibold text-[var(--text-secondary)]">Sched</span>
         </Link>
       </footer>
     </div>

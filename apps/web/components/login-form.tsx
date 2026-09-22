@@ -2,7 +2,7 @@
 
 import { loginBodySchema } from "@sched/api-contract";
 import Link from "next/link";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { ArrowRight, Lock, Mail } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardDescription, CardTitle } from "@/components/ui/card";
@@ -18,6 +18,14 @@ export function LoginForm() {
   const [error, setError] = useState<string | null>(null);
   const [fields, setFields] = useState<Record<string, string>>({});
   const [pending, setPending] = useState(false);
+
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      const params = new URLSearchParams(window.location.search);
+      const emailParam = params.get("email");
+      if (emailParam) setEmail(emailParam);
+    }
+  }, []);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -45,8 +53,11 @@ export function LoginForm() {
       window.location.href = "/dashboard";
     } catch (err) {
       if (err instanceof ApiError) {
-        if (err.body.error.code === "INVALID_CREDENTIALS") {
-          setError("Invalid email or password.");
+        if (
+          err.body.error.code === "INVALID_CREDENTIALS" ||
+          err.body.error.code === "UNAUTHENTICATED"
+        ) {
+          setError(err.body.error.message || "Invalid email or password.");
         } else {
           setError(err.message);
         }
@@ -79,7 +90,7 @@ export function LoginForm() {
           </CardDescription>
         </div>
 
-        <form className="mt-6 space-y-4" method="post" action="#" onSubmit={handleSubmit}>
+        <form className="mt-6 space-y-4" noValidate onSubmit={handleSubmit}>
           {/* Email Field */}
           <div className="space-y-1.5">
             <Label htmlFor="email" className="text-xs font-semibold text-slate-700">

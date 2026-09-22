@@ -3,14 +3,17 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
-import { ArrowLeft, Clock, Link2, Sparkles } from "lucide-react";
+import { ArrowLeft, Clock, Link2 } from "lucide-react";
 import { createEventTypeBodySchema, updateEventTypeBodySchema } from "@sched/api-contract";
 import { DashboardShell } from "@/components/dashboard-shell";
 import { Button } from "@/components/ui/button";
 import { Card, CardTitle, CardDescription } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Skeleton } from "@/components/ui/skeleton";
+import { Spinner } from "@/components/ui/spinner";
 import { Textarea } from "@/components/ui/textarea";
+import { toast } from "@/components/ui/toast";
 import { api, type CurrentUser, type EventType } from "@/lib/api";
 import { ApiError, fieldErrors } from "@/lib/api-error";
 
@@ -24,15 +27,19 @@ function generateSlug(text: string): string {
     .replace(/^-+|-+$/g, "");
 }
 
-export function EventTypeForm({ eventTypeId }: { eventTypeId?: string }) {
+interface EventTypeFormProps {
+  eventTypeId?: string;
+}
+
+export function EventTypeForm({ eventTypeId }: EventTypeFormProps) {
   const router = useRouter();
-  const [existing, setExisting] = useState<EventType | null>(null);
   const [user, setUser] = useState<CurrentUser | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [fields, setFields] = useState<Record<string, string>>({});
   const [pending, setPending] = useState(false);
+  const [loadingInitial, setLoadingInitial] = useState(Boolean(eventTypeId));
 
-  // Controlled form values for live slug & duration pills
+  // Controlled form values
   const [title, setTitle] = useState("");
   const [slug, setSlug] = useState("");
   const [duration, setDuration] = useState<number>(30);
@@ -42,17 +49,22 @@ export function EventTypeForm({ eventTypeId }: { eventTypeId?: string }) {
   useEffect(() => {
     api<CurrentUser>("/auth/me").then(setUser).catch(() => {});
 
-    if (!eventTypeId) return;
+    if (!eventTypeId) {
+      setLoadingInitial(false);
+      return;
+    }
+
+    setLoadingInitial(true);
     api<EventType>(`/event-types/${eventTypeId}`)
       .then((data) => {
-        setExisting(data);
         setTitle(data.title);
         setSlug(data.slug);
         setDuration(data.durationMinutes);
         setDescription(data.description || "");
         setIsSlugTouched(true);
       })
-      .catch(() => setError("Event type not found."));
+      .catch(() => setError("Event type not found."))
+      .finally(() => setLoadingInitial(false));
   }, [eventTypeId]);
 
   function handleTitleChange(val: string) {
@@ -95,33 +107,35 @@ export function EventTypeForm({ eventTypeId }: { eventTypeId?: string }) {
           method: "PATCH",
           body: JSON.stringify(parsed.data),
         });
+        toast.success("Event type updated", "Changes saved successfully.");
       } else {
         await api("/event-types", {
           method: "POST",
           body: JSON.stringify(parsed.data),
         });
+        toast.success("Event type created", "Your new booking link is live.");
       }
       router.push("/dashboard");
     } catch (caught) {
       if (caught instanceof ApiError) {
         setError(caught.message);
         setFields(fieldErrors(caught));
+        toast.error("Could not save event type", caught.message);
       } else {
         setError("Could not save the event type.");
+        toast.error("Could not save the event type");
       }
     } finally {
       setPending(false);
     }
   }
 
-  if (eventTypeId && !existing && !error) {
+  if (loadingInitial) {
     return (
       <DashboardShell>
-        <div className="flex h-64 items-center justify-center">
-          <div className="flex items-center gap-3 text-sm text-slate-500 font-medium">
-            <div className="h-4 w-4 animate-spin rounded-full border-2 border-slate-400 border-t-transparent" />
-            Loading event type…
-          </div>
+        <div className="max-w-2xl mx-auto space-y-6">
+          <Skeleton className="h-4 w-32 rounded-md" />
+          <Skeleton className="h-96 rounded-xl border border-[var(--border-subtle)]" />
         </div>
       </DashboardShell>
     );
@@ -133,53 +147,46 @@ export function EventTypeForm({ eventTypeId }: { eventTypeId?: string }) {
         {/* Back Link */}
         <Link
           href="/dashboard"
-          className="inline-flex items-center gap-2 text-xs font-medium text-slate-500 hover:text-slate-900 transition-colors mb-6 group"
+          className="inline-flex items-center gap-2 text-xs font-medium text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors duration-150 mb-6 group"
         >
-          <ArrowLeft className="h-3.5 w-3.5 group-hover:-translate-x-0.5 transition-transform" />
+          <ArrowLeft className="h-3.5 w-3.5 group-hover:-translate-x-0.5 transition-transform duration-150" />
           Back to Event Types
         </Link>
 
         {/* Form Card */}
-        <Card className="rounded-2xl border border-slate-200/90 bg-white p-6 sm:p-8 shadow-xs">
-          <div className="flex items-center justify-between pb-5 border-b border-slate-100">
-            <div>
-              <CardTitle className="text-xl font-bold tracking-tight text-slate-950">
-                {eventTypeId ? "Edit Event Type" : "Create New Event Type"}
-              </CardTitle>
-              <CardDescription className="mt-1 text-xs text-slate-500">
-                Configure duration, slug, and public details for this booking link.
-              </CardDescription>
-            </div>
-            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-slate-100 text-slate-600">
-              <Sparkles className="h-5 w-5" />
-            </div>
+        <Card className="rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-surface)] p-6 sm:p-8 shadow-xs">
+          <div className="pb-5 border-b border-[var(--border-subtle)]">
+            <CardTitle className="text-lg font-semibold tracking-tight text-[var(--text-primary)]">
+              {eventTypeId ? "Edit Event Type" : "Create New Event Type"}
+            </CardTitle>
+            <CardDescription className="mt-1 text-xs text-[var(--text-muted)]">
+              Configure duration, booking slug, and attendee details.
+            </CardDescription>
           </div>
 
-          <form className="mt-6 space-y-6" onSubmit={handleSubmit}>
+          <form className="mt-6 space-y-5" onSubmit={handleSubmit}>
             {/* Title Field */}
             <div className="space-y-1.5">
-              <Label htmlFor="title" className="text-xs font-semibold text-slate-700">
-                Event Title
-              </Label>
+              <Label htmlFor="title">Event Title</Label>
               <Input
                 id="title"
                 name="title"
                 value={title}
                 onChange={(e) => handleTitleChange(e.target.value)}
-                placeholder="e.g. 30-Minute Strategy & Review"
+                placeholder="e.g. 30-Minute Strategy Session"
                 required
-                className="h-10 rounded-xl text-sm border-slate-200 shadow-2xs focus-visible:ring-slate-900"
+                aria-invalid={Boolean(fields.title)}
               />
-              {fields.title && <p className="text-xs text-red-600 font-medium">{fields.title}</p>}
+              {fields.title && (
+                <p className="text-xs text-[var(--status-danger-text)] font-medium">{fields.title}</p>
+              )}
             </div>
 
             {/* URL Slug Field */}
             <div className="space-y-1.5">
-              <Label htmlFor="slug" className="text-xs font-semibold text-slate-700">
-                URL Slug
-              </Label>
-              <div className="flex items-center rounded-xl border border-slate-200 bg-slate-50/70 focus-within:ring-2 focus-within:ring-slate-900 focus-within:bg-white overflow-hidden shadow-2xs">
-                <span className="flex items-center gap-1.5 px-3 text-xs text-slate-400 font-mono select-none">
+              <Label htmlFor="slug">URL Slug</Label>
+              <div className="flex items-center rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-subtle)] focus-within:border-[var(--border-focus)] focus-within:ring-1 focus-within:ring-[var(--focus-ring)] focus-within:bg-[var(--bg-surface)] overflow-hidden shadow-2xs transition-[border-color,box-shadow,background-color] duration-150 ease-out">
+                <span className="flex items-center gap-1.5 px-3 text-xs text-[var(--text-muted)] font-mono select-none">
                   <Link2 className="h-3.5 w-3.5" />
                   sched.com/public/@{user?.username || "username"}/
                 </span>
@@ -194,18 +201,22 @@ export function EventTypeForm({ eventTypeId }: { eventTypeId?: string }) {
                   }}
                   placeholder="intro-call"
                   required
-                  className="w-full bg-transparent py-2.5 pr-3 text-xs font-mono text-slate-900 outline-none"
+                  className="w-full bg-transparent py-2 pr-3 text-xs font-mono text-[var(--text-primary)] outline-none"
                 />
               </div>
-              {fields.slug && <p className="text-xs text-red-600 font-medium">{fields.slug}</p>}
+              {fields.slug && (
+                <p className="text-xs text-[var(--status-danger-text)] font-medium">{fields.slug}</p>
+              )}
             </div>
 
             {/* Duration Field with Presets */}
             <div className="space-y-2">
-              <Label htmlFor="durationMinutes" className="text-xs font-semibold text-slate-700 flex items-center justify-between">
-                <span>Duration</span>
-                <span className="text-slate-400 font-normal">{duration} minutes</span>
-              </Label>
+              <div className="flex items-center justify-between">
+                <Label htmlFor="durationMinutes">Duration</Label>
+                <span className="text-xs text-[var(--text-muted)] tabular-nums font-sans">
+                  {duration} minutes
+                </span>
+              </div>
 
               {/* Quick Duration Preset Pills */}
               <div className="flex flex-wrap gap-2">
@@ -214,14 +225,14 @@ export function EventTypeForm({ eventTypeId }: { eventTypeId?: string }) {
                     key={preset}
                     type="button"
                     onClick={() => setDuration(preset)}
-                    className={`flex items-center gap-1 rounded-xl px-3 py-1.5 text-xs font-medium transition-all cursor-pointer ${
+                    className={`flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-medium tabular-nums font-sans transition-[background-color,border-color,color] duration-150 ease-out cursor-pointer ${
                       duration === preset
-                        ? "bg-slate-950 text-white shadow-xs"
-                        : "bg-slate-100/80 text-slate-600 hover:bg-slate-200/80"
+                        ? "bg-neutral-900 text-white shadow-2xs border border-transparent"
+                        : "bg-[var(--bg-subtle)] text-[var(--text-secondary)] border border-[var(--border-subtle)] hover:bg-[var(--bg-muted)] hover:text-[var(--text-primary)]"
                     }`}
                   >
                     <Clock className="h-3 w-3" />
-                    <span>{preset}m</span>
+                    <span>{preset} min</span>
                   </button>
                 ))}
               </div>
@@ -236,18 +247,19 @@ export function EventTypeForm({ eventTypeId }: { eventTypeId?: string }) {
                 value={duration}
                 onChange={(e) => setDuration(Number(e.target.value))}
                 required
-                className="h-10 rounded-xl text-sm border-slate-200 shadow-2xs mt-2"
+                className="mt-2 tabular-nums"
+                aria-invalid={Boolean(fields.durationMinutes)}
               />
               {fields.durationMinutes && (
-                <p className="text-xs text-red-600 font-medium">{fields.durationMinutes}</p>
+                <p className="text-xs text-[var(--status-danger-text)] font-medium">
+                  {fields.durationMinutes}
+                </p>
               )}
             </div>
 
             {/* Description Field */}
             <div className="space-y-1.5">
-              <Label htmlFor="description" className="text-xs font-semibold text-slate-700">
-                Description & Agenda
-              </Label>
+              <Label htmlFor="description">Description & Preparation</Label>
               <Textarea
                 id="description"
                 name="description"
@@ -255,35 +267,40 @@ export function EventTypeForm({ eventTypeId }: { eventTypeId?: string }) {
                 onChange={(e) => setDescription(e.target.value)}
                 placeholder="Briefly explain what attendees should prepare or expect during this session."
                 rows={3}
-                className="rounded-xl text-sm border-slate-200 shadow-2xs resize-none"
+                className="resize-none"
+                aria-invalid={Boolean(fields.description)}
               />
               {fields.description && (
-                <p className="text-xs text-red-600 font-medium">{fields.description}</p>
+                <p className="text-xs text-[var(--status-danger-text)] font-medium">
+                  {fields.description}
+                </p>
               )}
             </div>
 
             {error && (
-              <div className="rounded-xl bg-red-50 border border-red-200 p-3 text-xs text-red-600 font-medium">
+              <div className="rounded-xl bg-[var(--status-danger-bg)] border border-[var(--status-danger-border)] p-3 text-xs text-[var(--status-danger-text)] font-medium">
                 {error}
               </div>
             )}
 
             {/* Action Buttons */}
-            <div className="pt-4 border-t border-slate-100 flex items-center justify-end gap-3">
+            <div className="pt-4 border-t border-[var(--border-subtle)] flex items-center justify-end gap-3">
               <Button
                 asChild
                 type="button"
                 variant="outline"
-                className="rounded-xl border-slate-200 text-xs font-medium"
+                size="sm"
               >
                 <Link href="/dashboard">Cancel</Link>
               </Button>
               <Button
                 type="submit"
                 disabled={pending}
-                className="rounded-xl bg-slate-950 text-white hover:bg-slate-800 text-xs font-medium px-5 shadow-xs"
+                size="sm"
+                className="gap-2"
               >
-                {pending ? "Saving…" : eventTypeId ? "Save Changes" : "Create Event Type"}
+                {pending && <Spinner size="sm" />}
+                <span>{pending ? "Saving…" : eventTypeId ? "Save Changes" : "Create Event Type"}</span>
               </Button>
             </div>
           </form>

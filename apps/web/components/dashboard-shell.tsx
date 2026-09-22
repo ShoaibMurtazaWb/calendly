@@ -16,6 +16,7 @@ import {
   User as UserIcon,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Spinner } from "@/components/ui/spinner";
 import { Logo } from "@/components/logo";
 import { api, type CurrentUser } from "@/lib/api";
 import { ApiError } from "@/lib/api-error";
@@ -75,7 +76,7 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
     void checkAuth();
   }, []);
 
-  // Live timezone clock for the host
+  // Minute-level clock updates to eliminate per-second repaints
   useEffect(() => {
     if (!user?.timezone) return;
 
@@ -138,9 +139,9 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
 
   if (isLoading) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-slate-50">
-        <div className="flex flex-col items-center gap-3 text-sm text-slate-500 font-medium">
-          <div className="h-5 w-5 animate-spin rounded-full border-2 border-slate-950 border-t-transparent" />
+      <div className="flex min-h-screen items-center justify-center bg-[var(--bg-canvas)]">
+        <div className="flex flex-col items-center gap-3 text-sm text-[var(--text-secondary)] font-medium">
+          <Spinner size="default" />
           <span>Loading workspace…</span>
         </div>
       </div>
@@ -149,25 +150,25 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
 
   if (errorMessage && !user) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-slate-50 p-6">
-        <div className="w-full max-w-md rounded-2xl border border-red-200 bg-white p-6 sm:p-8 shadow-md text-center">
-          <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-2xl bg-red-100 text-red-600 mb-4">
+      <div className="flex min-h-screen items-center justify-center bg-[var(--bg-canvas)] p-6">
+        <div className="w-full max-w-md rounded-xl border border-[var(--status-danger-border)] bg-[var(--bg-surface)] p-6 sm:p-8 shadow-md text-center">
+          <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-xl bg-[var(--status-danger-bg)] text-[var(--status-danger-text)] mb-4">
             <span className="font-mono text-lg font-bold">!</span>
           </div>
-          <h2 className="text-lg font-bold text-slate-900">API Connection Issue</h2>
-          <p className="mt-2 text-xs text-slate-600 leading-relaxed">{errorMessage}</p>
+          <h2 className="text-lg font-semibold text-[var(--text-primary)]">API Connection Issue</h2>
+          <p className="mt-2 text-xs text-[var(--text-secondary)] leading-relaxed">{errorMessage}</p>
           <div className="mt-6 flex flex-col sm:flex-row gap-2 justify-center">
             <Button
               type="button"
               onClick={() => void checkAuth()}
-              className="rounded-xl bg-slate-950 text-white hover:bg-slate-800 text-xs px-4"
+              size="sm"
             >
               Retry Connection
             </Button>
             <Button
               asChild
               variant="outline"
-              className="rounded-xl border-slate-200 text-xs px-4"
+              size="sm"
             >
               <Link href="/login">Go to Login</Link>
             </Button>
@@ -179,9 +180,9 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
 
   if (!user) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-slate-50">
-        <div className="flex items-center gap-3 text-sm text-slate-500 font-medium">
-          <div className="h-5 w-5 animate-spin rounded-full border-2 border-slate-950 border-t-transparent" />
+      <div className="flex min-h-screen items-center justify-center bg-[var(--bg-canvas)]">
+        <div className="flex items-center gap-3 text-sm text-[var(--text-secondary)] font-medium">
+          <Spinner size="default" />
           <span>Redirecting to login…</span>
         </div>
       </div>
@@ -189,19 +190,17 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
   }
 
   return (
-    <div className="min-h-screen bg-slate-50/60 text-slate-900 flex flex-col justify-between antialiased">
+    <div className="min-h-screen bg-[var(--bg-canvas)] text-[var(--text-primary)] flex flex-col justify-between antialiased">
       {/* Top Main Navigation Bar */}
       <div>
-        <header className="sticky top-0 z-40 border-b border-slate-200/80 bg-white/95 backdrop-blur-md px-4 sm:px-8 py-2.5">
+        <header className="sticky top-0 z-40 border-b border-[var(--border-subtle)] bg-[var(--bg-surface)]/95 backdrop-blur-md px-4 sm:px-8 py-2.5">
           <div className="mx-auto flex max-w-7xl items-center justify-between gap-4">
             {/* Left Brand + Nav Tabs */}
             <div className="flex items-center gap-4 sm:gap-6 shrink-0">
               {/* Brand Logo */}
               <Link href="/dashboard" className="flex items-center gap-2.5 group shrink-0">
-                <Logo className="h-8 w-8 shrink-0 transition-transform group-hover:scale-105" />
-                <div className="flex items-center gap-1.5">
-                  <span className="font-semibold tracking-tight text-slate-950 text-base">Sched</span>
-                </div>
+                <Logo className="h-7 w-7 shrink-0 transition-transform duration-150 group-hover:scale-105" />
+                <span className="font-semibold tracking-tight text-[var(--text-primary)] text-base">Sched</span>
               </Link>
 
               {/* Navigation Tabs */}
@@ -210,15 +209,20 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
                   <Link
                     key={item.label}
                     href={item.disabled ? "#" : item.href}
-                    className={`flex items-center gap-1.5 rounded-xl px-3.5 py-1.5 text-sm font-medium transition-all whitespace-nowrap shrink-0 ${
+                    className={`flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-medium transition-[background-color,color] duration-150 ease-out whitespace-nowrap shrink-0 ${
                       item.active
-                        ? "bg-blue-50/90 text-blue-700 font-semibold shadow-2xs border border-blue-100/80"
+                        ? "bg-neutral-900 text-white font-semibold shadow-xs"
                         : item.disabled
-                        ? "text-slate-400 hover:text-slate-500 cursor-not-allowed"
-                        : "text-slate-600 hover:text-slate-900 hover:bg-slate-100/80"
+                        ? "text-[var(--text-disabled)] cursor-not-allowed"
+                        : "text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-subtle)]"
                     }`}
                   >
                     <span className="whitespace-nowrap">{item.label}</span>
+                    {item.disabled && (
+                      <span className="text-[9px] uppercase px-1 py-0.2 rounded bg-[var(--bg-muted)] text-[var(--text-muted)] leading-none">
+                        Soon
+                      </span>
+                    )}
                   </Link>
                 ))}
               </nav>
@@ -227,10 +231,10 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
             {/* Right Actions: Header Create Button & User Profile Dropdown */}
             <div className="flex items-center gap-2.5 sm:gap-3 shrink-0">
               {/* Header Create CTA Button */}
-              <Button asChild size="sm" className="rounded-xl bg-slate-950 text-white hover:bg-slate-800 shadow-xs h-9 px-3.5 whitespace-nowrap shrink-0">
-                <Link href="/dashboard/event-types/new" className="flex items-center gap-1.5">
-                  <Plus className="h-4 w-4 stroke-[2.5] shrink-0" />
-                  <span className="font-medium">Create</span>
+              <Button asChild size="sm" className="h-8 px-3 whitespace-nowrap shrink-0 gap-1.5">
+                <Link href="/dashboard/event-types/new">
+                  <Plus className="h-3.5 w-3.5 stroke-[2.5]" />
+                  <span>Create</span>
                 </Link>
               </Button>
 
@@ -239,79 +243,77 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
                 <button
                   type="button"
                   onClick={() => setIsDropdownOpen((prev) => !prev)}
-                  className="flex items-center gap-2 rounded-xl p-1.5 hover:bg-slate-100 transition-colors cursor-pointer border border-transparent hover:border-slate-200"
+                  className="flex items-center gap-1.5 rounded-lg p-1 hover:bg-[var(--bg-subtle)] transition-[background-color,border-color] duration-150 cursor-pointer border border-transparent hover:border-[var(--border-subtle)]"
                   aria-expanded={isDropdownOpen}
                   aria-label="User menu"
                 >
                   <div className="relative">
-                    <div className="flex h-8 w-8 items-center justify-center rounded-full bg-linear-to-tr from-slate-900 to-slate-700 text-white text-xs font-bold shadow-2xs select-none">
+                    <div className="flex h-7 w-7 items-center justify-center rounded-full bg-neutral-900 text-white text-[11px] font-bold shadow-2xs select-none">
                       {user.name.charAt(0).toUpperCase()}
                     </div>
-                    <span className="absolute bottom-0 right-0 h-2.5 w-2.5 rounded-full bg-emerald-500 ring-2 ring-white" />
+                    <span className="absolute bottom-0 right-0 h-2 w-2 rounded-full bg-emerald-500 ring-2 ring-white" />
                   </div>
-                  <ChevronDown className={`h-3.5 w-3.5 text-slate-500 transition-transform duration-200 ${isDropdownOpen ? "rotate-180" : ""}`} />
+                  <ChevronDown className={`h-3 w-3 text-[var(--text-muted)] transition-transform duration-150 ${isDropdownOpen ? "rotate-180" : ""}`} />
                 </button>
 
                 {/* Dropdown Card */}
                 {isDropdownOpen && (
-                  <div className="absolute right-0 mt-2 w-72 rounded-2xl border border-slate-200/90 bg-white p-3 shadow-xl z-50 animate-in fade-in-0 zoom-in-95">
+                  <div className="absolute right-0 mt-2 w-72 rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-surface)] p-3 shadow-xl z-50 animate-in fade-in-0 zoom-in-95 duration-150">
                     {/* User Identity Header */}
-                    <div className="flex items-center gap-3 p-2.5 rounded-xl bg-slate-50 border border-slate-100">
-                      <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-slate-950 text-white font-bold text-sm shadow-xs select-none">
+                    <div className="flex items-center gap-3 p-2.5 rounded-lg bg-[var(--bg-subtle)] border border-[var(--border-subtle)]">
+                      <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-neutral-900 text-white font-bold text-xs shadow-xs select-none">
                         {user.name.charAt(0).toUpperCase()}
                       </div>
                       <div className="min-w-0 flex-1">
-                        <div className="flex items-center gap-1.5">
-                          <p className="truncate text-sm font-semibold text-slate-900">{user.name}</p>
-                        </div>
-                        <p className="truncate text-xs font-mono text-slate-500">@{user.username}</p>
-                        <p className="truncate text-[11px] text-slate-400">{user.email}</p>
+                        <p className="truncate text-xs font-semibold text-[var(--text-primary)]">{user.name}</p>
+                        <p className="truncate text-[11px] font-mono text-[var(--text-muted)]">@{user.username}</p>
+                        <p className="truncate text-[10px] text-[var(--text-disabled)]">{user.email}</p>
                       </div>
                     </div>
 
                     {/* Timezone / Live Clock Row */}
                     {user.timezone && (
-                      <div className="mt-2 flex items-center justify-between px-2.5 py-2 text-xs text-slate-600 rounded-lg bg-slate-50/50">
+                      <div className="mt-2 flex items-center justify-between px-2.5 py-1.5 text-xs text-[var(--text-secondary)] rounded-md bg-[var(--bg-subtle)]/50">
                         <div className="flex items-center gap-1.5 truncate">
-                          <Globe className="h-3.5 w-3.5 text-slate-400 shrink-0" />
-                          <span className="truncate">{user.timezone}</span>
+                          <Globe className="h-3 w-3 text-[var(--text-muted)] shrink-0" />
+                          <span className="truncate font-mono text-[11px]">{user.timezone}</span>
                         </div>
                         {currentTime && (
-                          <span className="text-[11px] font-mono font-medium text-slate-700 shrink-0">
+                          <span className="text-[11px] font-mono font-medium text-[var(--text-primary)] shrink-0 tabular-nums">
                             {currentTime}
                           </span>
                         )}
                       </div>
                     )}
 
-                    <div className="my-2 border-t border-slate-100" />
+                    <div className="my-2 border-t border-[var(--border-subtle)]" />
 
                     {/* Navigation Menu Items */}
-                    <div className="space-y-1">
+                    <div className="space-y-0.5">
                       <Link
                         href="/dashboard"
                         onClick={() => setIsDropdownOpen(false)}
-                        className="flex items-center gap-2.5 rounded-xl px-2.5 py-2 text-xs font-medium text-slate-700 hover:bg-slate-100 hover:text-slate-900 transition-colors"
+                        className="flex items-center gap-2.5 rounded-lg px-2.5 py-1.5 text-xs font-medium text-[var(--text-secondary)] hover:bg-[var(--bg-subtle)] hover:text-[var(--text-primary)] transition-colors duration-150"
                       >
-                        <Layers className="h-4 w-4 text-slate-400" />
+                        <Layers className="h-3.5 w-3.5 text-[var(--text-muted)]" />
                         <span>Event Types Dashboard</span>
                       </Link>
 
                       <Link
-                        href={`/public/${user.username}/30min`}
+                        href={`/public/${user.username}`}
                         target="_blank"
                         onClick={() => setIsDropdownOpen(false)}
-                        className="flex items-center justify-between rounded-xl px-2.5 py-2 text-xs font-medium text-slate-700 hover:bg-slate-100 hover:text-slate-900 transition-colors"
+                        className="flex items-center justify-between rounded-lg px-2.5 py-1.5 text-xs font-medium text-[var(--text-secondary)] hover:bg-[var(--bg-subtle)] hover:text-[var(--text-primary)] transition-colors duration-150"
                       >
                         <div className="flex items-center gap-2.5">
-                          <UserIcon className="h-4 w-4 text-slate-400" />
-                          <span>Public Booking Link</span>
+                          <UserIcon className="h-3.5 w-3.5 text-[var(--text-muted)]" />
+                          <span>Public Booking Profile</span>
                         </div>
-                        <ExternalLink className="h-3.5 w-3.5 text-slate-400" />
+                        <ExternalLink className="h-3 w-3 text-[var(--text-muted)]" />
                       </Link>
                     </div>
 
-                    <div className="my-2 border-t border-slate-100" />
+                    <div className="my-2 border-t border-[var(--border-subtle)]" />
 
                     {/* Logout Action */}
                     <button
@@ -320,9 +322,9 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
                         setIsDropdownOpen(false);
                         void logout();
                       }}
-                      className="flex w-full items-center gap-2.5 rounded-xl px-2.5 py-2 text-xs font-medium text-red-600 hover:bg-red-50 transition-colors cursor-pointer"
+                      className="flex w-full items-center gap-2.5 rounded-lg px-2.5 py-1.5 text-xs font-medium text-rose-600 hover:bg-rose-50 transition-colors duration-150 cursor-pointer"
                     >
-                      <LogOut className="h-4 w-4" />
+                      <LogOut className="h-3.5 w-3.5" />
                       <span>Sign out</span>
                     </button>
                   </div>
@@ -337,24 +339,23 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
       </div>
 
       {/* Global Dashboard Footer */}
-      <footer className="border-t border-slate-200/80 bg-white px-4 sm:px-8 py-6 mt-16">
-        <div className="mx-auto max-w-7xl flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-slate-500">
+      <footer className="border-t border-[var(--border-subtle)] bg-[var(--bg-surface)] px-4 sm:px-8 py-6 mt-16">
+        <div className="mx-auto max-w-7xl flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-[var(--text-muted)]">
           <div className="flex items-center gap-3">
-            <span className="font-semibold text-slate-900">Sched</span>
-            <span className="hidden sm:inline text-slate-300">|</span>
+            <span className="font-semibold text-[var(--text-primary)]">Sched</span>
+            <span className="hidden sm:inline text-[var(--border-subtle)]">|</span>
             <span>High-precision calendar scheduling infrastructure.</span>
           </div>
-          <div className="flex items-center gap-5 font-medium text-slate-600">
-            <span className="text-slate-400">Settings</span>
+          <div className="flex items-center gap-5 font-medium text-[var(--text-secondary)]">
             <Link
-              href={`/public/${user.username}/30min`}
+              href={`/public/${user.username}`}
               target="_blank"
-              className="hover:text-slate-900 flex items-center gap-1 transition-colors"
+              className="hover:text-[var(--text-primary)] flex items-center gap-1 transition-colors duration-150"
             >
               Public Profile
               <ExternalLink className="h-3 w-3" />
             </Link>
-            <span className="text-slate-400 font-normal">© 2026 Sched Inc.</span>
+            <span className="text-[var(--text-muted)] font-normal">© 2026 Sched Inc.</span>
           </div>
         </div>
       </footer>

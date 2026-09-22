@@ -143,7 +143,7 @@ export function RegisterForm() {
           </CardDescription>
         </div>
 
-        <form className="mt-6 space-y-4" method="post" action="#" onSubmit={handleSubmit}>
+        <form className="mt-6 space-y-4" noValidate onSubmit={handleSubmit}>
           {/* Full Name */}
           <div className="space-y-1.5">
             <Label htmlFor="name" className="text-xs font-semibold text-slate-700">
