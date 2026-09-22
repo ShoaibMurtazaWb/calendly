@@ -1,5 +1,6 @@
 import { Injectable } from "@nestjs/common";
 import type { BookingResponse, CreateBookingBody, ListBookingsQuery } from "@sched/api-contract";
+import { NotificationsService } from "../notifications/notifications.service";
 import { ConflictError, NotFoundError } from "../shared/errors/app-error";
 import { PrismaService } from "../shared/prisma/prisma.service";
 import { SchedulesService } from "../schedules/schedules.service";
@@ -10,7 +11,8 @@ export class BookingsService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly schedules: SchedulesService,
-    private readonly slots: SlotsService
+    private readonly slots: SlotsService,
+    private readonly notifications: NotificationsService
   ) {}
 
   async createBooking(
@@ -85,7 +87,7 @@ export class BookingsService {
       );
     }
 
-    // Double-booking prevention with transaction
+    // Double-booking prevention with atomic transaction
     const bufferedStart = new Date(startUtc.getTime() - eventType.beforeBufferMinutes * 60 * 1000);
     const bufferedEnd = new Date(endUtc.getTime() + eventType.afterBufferMinutes * 60 * 1000);
 
@@ -107,7 +109,7 @@ export class BookingsService {
         );
       }
 
-      return tx.booking.create({
+      const created = await tx.booking.create({
         data: {
           eventTypeId: eventType.id,
           hostId: eventType.userId,
@@ -124,6 +126,11 @@ export class BookingsService {
           host: true,
         },
       });
+
+      // Atomically enqueue transactional outbox jobs within the same transaction
+      await this.notifications.enqueueConfirmationJobsInTx(tx, created);
+
+      return created;
     });
 
     return this.mapToResponse(booking);
@@ -198,18 +205,25 @@ export class BookingsService {
       return this.mapToResponse(existing);
     }
 
-    const updated = await this.prisma.booking.update({
-      where: { id: existing.id },
-      data: {
-        status: "CANCELLED",
-        cancelledAt: new Date(),
-        cancelledBy: "HOST",
-        cancellationReason: reason ?? null,
-      },
-      include: {
-        eventType: true,
-        host: true,
-      },
+    const updated = await this.prisma.$transaction(async (tx) => {
+      const row = await tx.booking.update({
+        where: { id: existing.id },
+        data: {
+          status: "CANCELLED",
+          cancelledAt: new Date(),
+          cancelledBy: "HOST",
+          cancellationReason: reason ?? null,
+        },
+        include: {
+          eventType: true,
+          host: true,
+        },
+      });
+
+      // Atomically enqueue cancellation outbox job in same transaction
+      await this.notifications.enqueueCancellationJobInTx(tx, row, "HOST", reason);
+
+      return row;
     });
 
     return this.mapToResponse(updated);
@@ -229,18 +243,25 @@ export class BookingsService {
       return this.mapToResponse(existing);
     }
 
-    const updated = await this.prisma.booking.update({
-      where: { id: existing.id },
-      data: {
-        status: "CANCELLED",
-        cancelledAt: new Date(),
-        cancelledBy: "ATTENDEE",
-        cancellationReason: reason ?? null,
-      },
-      include: {
-        eventType: true,
-        host: true,
-      },
+    const updated = await this.prisma.$transaction(async (tx) => {
+      const row = await tx.booking.update({
+        where: { id: existing.id },
+        data: {
+          status: "CANCELLED",
+          cancelledAt: new Date(),
+          cancelledBy: "ATTENDEE",
+          cancellationReason: reason ?? null,
+        },
+        include: {
+          eventType: true,
+          host: true,
+        },
+      });
+
+      // Atomically enqueue cancellation outbox job in same transaction
+      await this.notifications.enqueueCancellationJobInTx(tx, row, "ATTENDEE", reason);
+
+      return row;
     });
 
     return this.mapToResponse(updated);

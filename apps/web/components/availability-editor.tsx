@@ -44,18 +44,30 @@ const TIME_OPTIONS = Array.from({ length: 48 }, (_, i) => {
   return { value, label };
 });
 
+interface LocalDaySchedule extends DaySchedule {
+  id: string;
+}
+
 interface InitialState {
   name: string;
   timeZone: string;
-  days: DaySchedule[];
+  days: LocalDaySchedule[];
   overrides: ScheduleOverride[];
+}
+
+function cleanDays(list: LocalDaySchedule[]): DaySchedule[] {
+  return list.map(({ dayOfWeek, startTime, endTime }) => ({
+    dayOfWeek,
+    startTime,
+    endTime,
+  }));
 }
 
 export function AvailabilityEditor() {
   const [initialState, setInitialState] = useState<InitialState | null>(null);
   const [timeZone, setTimeZone] = useState<string>("UTC");
   const [name, setName] = useState<string>("Working Hours");
-  const [days, setDays] = useState<DaySchedule[]>([]);
+  const [days, setDays] = useState<LocalDaySchedule[]>([]);
   const [overrides, setOverrides] = useState<ScheduleOverride[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
@@ -81,14 +93,18 @@ export function AvailabilityEditor() {
       setIsLoading(true);
       try {
         const data = await api<ScheduleResponse>("/schedules/default");
+        const loadedDays: LocalDaySchedule[] = data.days.map((d) => ({
+          ...d,
+          id: crypto.randomUUID(),
+        }));
         setName(data.name);
         setTimeZone(data.timeZone);
-        setDays(data.days);
+        setDays(loadedDays);
         setOverrides(data.overrides);
         setInitialState({
           name: data.name,
           timeZone: data.timeZone,
-          days: data.days,
+          days: loadedDays,
           overrides: data.overrides,
         });
       } catch {
@@ -106,7 +122,7 @@ export function AvailabilityEditor() {
     return (
       name !== initialState.name ||
       timeZone !== initialState.timeZone ||
-      JSON.stringify(days) !== JSON.stringify(initialState.days) ||
+      JSON.stringify(cleanDays(days)) !== JSON.stringify(cleanDays(initialState.days)) ||
       JSON.stringify(overrides) !== JSON.stringify(initialState.overrides)
     );
   }, [name, timeZone, days, overrides, initialState]);
@@ -132,46 +148,41 @@ export function AvailabilityEditor() {
     if (isDayEnabled(dayOfWeek)) {
       setDays((prev) => prev.filter((d) => d.dayOfWeek !== dayOfWeek));
     } else {
-      setDays((prev) => [...prev, { dayOfWeek, startTime: "09:00", endTime: "17:00" }]);
+      setDays((prev) => [
+        ...prev,
+        { id: crypto.randomUUID(), dayOfWeek, startTime: "09:00", endTime: "17:00" },
+      ]);
     }
   };
 
   const addInterval = (dayOfWeek: number) => {
-    setDays((prev) => [...prev, { dayOfWeek, startTime: "13:00", endTime: "17:00" }]);
+    const currentIntervals = days.filter((d) => d.dayOfWeek === dayOfWeek);
+    const lastInterval = currentIntervals[currentIntervals.length - 1];
+    let defaultStart = "13:00";
+    let defaultEnd = "17:00";
+
+    if (lastInterval && lastInterval.endTime < "23:00") {
+      defaultStart = lastInterval.endTime <= "13:00" ? "13:00" : lastInterval.endTime;
+      defaultEnd = "17:00" > defaultStart ? "17:00" : "22:00";
+    }
+
+    setDays((prev) => [
+      ...prev,
+      { id: crypto.randomUUID(), dayOfWeek, startTime: defaultStart, endTime: defaultEnd },
+    ]);
   };
 
-  const removeInterval = (dayOfWeek: number, index: number) => {
-    let dayCount = 0;
-    setDays((prev) =>
-      prev.filter((d) => {
-        if (d.dayOfWeek === dayOfWeek) {
-          const keep = dayCount !== index;
-          dayCount++;
-          return keep;
-        }
-        return true;
-      })
-    );
+  const removeInterval = (id: string) => {
+    setDays((prev) => prev.filter((d) => d.id !== id));
   };
 
   const updateIntervalTime = (
-    dayOfWeek: number,
-    index: number,
+    id: string,
     field: "startTime" | "endTime",
     val: string
   ) => {
-    let dayCount = 0;
     setDays((prev) =>
-      prev.map((d) => {
-        if (d.dayOfWeek === dayOfWeek) {
-          if (dayCount === index) {
-            dayCount++;
-            return { ...d, [field]: val };
-          }
-          dayCount++;
-        }
-        return d;
-      })
+      prev.map((d) => (d.id === id ? { ...d, [field]: val } : d))
     );
   };
 
@@ -206,23 +217,28 @@ export function AvailabilityEditor() {
   const handleSave = async () => {
     setIsSaving(true);
     try {
+      const payloadDays = cleanDays(days);
       const updated = await api<ScheduleResponse>("/schedules/default", {
         method: "PUT",
         body: JSON.stringify({
           name,
           timeZone,
-          days,
+          days: payloadDays,
           overrides,
         }),
       });
+      const loadedDays: LocalDaySchedule[] = updated.days.map((d) => ({
+        ...d,
+        id: crypto.randomUUID(),
+      }));
       setName(updated.name);
       setTimeZone(updated.timeZone);
-      setDays(updated.days);
+      setDays(loadedDays);
       setOverrides(updated.overrides);
       setInitialState({
         name: updated.name,
         timeZone: updated.timeZone,
-        days: updated.days,
+        days: loadedDays,
         overrides: updated.overrides,
       });
       toast.success("Schedule saved", "Your weekly availability has been updated.");
@@ -348,12 +364,12 @@ export function AvailabilityEditor() {
                       </div>
                     ) : (
                       intervals.map((interval, idx) => (
-                        <div key={idx} className="flex flex-wrap items-center gap-2">
+                        <div key={interval.id} className="flex flex-wrap items-center gap-2">
                           <div className="w-28">
                             <Select
                               size="sm"
                               value={interval.startTime}
-                              onChange={(e) => updateIntervalTime(day, idx, "startTime", e.target.value)}
+                              onChange={(e) => updateIntervalTime(interval.id, "startTime", e.target.value)}
                               className="tabular-nums font-sans"
                             >
                               {TIME_OPTIONS.map((t) => (
@@ -370,7 +386,7 @@ export function AvailabilityEditor() {
                             <Select
                               size="sm"
                               value={interval.endTime}
-                              onChange={(e) => updateIntervalTime(day, idx, "endTime", e.target.value)}
+                              onChange={(e) => updateIntervalTime(interval.id, "endTime", e.target.value)}
                               className="tabular-nums font-sans"
                             >
                               {TIME_OPTIONS.map((t) => (
@@ -386,7 +402,7 @@ export function AvailabilityEditor() {
                               type="button"
                               variant="ghost"
                               size="icon"
-                              onClick={() => removeInterval(day, idx)}
+                              onClick={() => removeInterval(interval.id)}
                               className="text-[var(--text-muted)] hover:text-rose-600 hover:bg-rose-50"
                               title="Remove interval"
                               aria-label="Remove interval"

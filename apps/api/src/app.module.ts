@@ -5,6 +5,7 @@ import { AuthModule } from "./auth/auth.module";
 import { BookingsModule } from "./bookings/bookings.module";
 import { EventTypesModule } from "./event-types/event-types.module";
 import { IdentityModule } from "./identity/identity.module";
+import { NotificationsModule } from "./notifications/notifications.module";
 import { SchedulesModule } from "./schedules/schedules.module";
 import { SharedModule } from "./shared/shared.module";
 
@@ -18,6 +19,7 @@ import { SharedModule } from "./shared/shared.module";
     IdentityModule,
     AuthModule,
     SchedulesModule,
+    NotificationsModule,
     BookingsModule,
     EventTypesModule,
   ],

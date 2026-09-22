@@ -118,10 +118,48 @@ model Booking {
   cancelledAt        DateTime? @map("cancelled_at") @db.Timestamptz(6)
   cancelledBy        String?   @map("cancelled_by") // "HOST" | "ATTENDEE"
   createdAt          DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
-  updatedAt          DateTime  @updatedAt @map("updated_at") @db.Timestamptz(6)
+  updatedAt          DateTime          @updatedAt @map("updated_at") @db.Timestamptz(6)
+  notificationJobs   NotificationJob[]
 
   @@index([hostId, startTime, status])
   @@index([eventTypeId, startTime, status])
   @@map("bookings")
+}
+
+enum NotificationType {
+  BOOKING_CONFIRMED_ATTENDEE
+  BOOKING_CONFIRMED_HOST
+  BOOKING_CANCELLED_ATTENDEE
+  BOOKING_CANCELLED_HOST
+}
+
+enum NotificationStatus {
+  PENDING
+  PROCESSING
+  SENT
+  FAILED
+}
+
+model NotificationJob {
+  id             String             @id @default(uuid()) @db.Uuid
+  idempotencyKey String             @unique @map("idempotency_key")
+  bookingId      String             @map("booking_id") @db.Uuid
+  booking        Booking            @relation(fields: [bookingId], references: [id], onDelete: Restrict)
+  type           NotificationType
+  recipientEmail String             @map("recipient_email") @db.Citext
+  status         NotificationStatus @default(PENDING)
+  attempts       Int                @default(0)
+  maxAttempts    Int                @default(3) @map("max_attempts")
+  nextRunAt      DateTime           @default(now()) @map("next_run_at") @db.Timestamptz(6)
+  lockedAt       DateTime?          @map("locked_at") @db.Timestamptz(6)
+  sentAt         DateTime?          @map("sent_at") @db.Timestamptz(6)
+  lastError      String?            @map("last_error")
+  payload        Json
+  createdAt      DateTime           @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt      DateTime           @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  @@index([status, nextRunAt])
+  @@index([bookingId])
+  @@map("notification_jobs")
 }
 
