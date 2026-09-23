@@ -1,8 +1,11 @@
 import { Injectable } from "@nestjs/common";
+import type { Prisma } from "@prisma/client";
 import type { CreateEventTypeBody, ListEventTypesQuery, UpdateEventTypeBody } from "@sched/api-contract";
-import { ConflictError, NotFoundError } from "../shared/errors/app-error";
+import { BadRequestError, ConflictError, NotFoundError } from "../shared/errors/app-error";
 import { PrismaService } from "../shared/prisma/prisma.service";
 import { rethrowUnique } from "../shared/prisma/unique";
+import { reconcileCustomQuestions } from "../shared/utils/custom-questions-parser";
+import { parseEventTypeLocation } from "../shared/utils/location-parser";
 import { toOwnerEventType, toPublicEventType, type OwnerEventTypeResponse, type PublicEventTypeResponse } from "./event-type.types";
 
 @Injectable()
@@ -21,6 +24,13 @@ export class EventTypesService {
   }
 
   async create(userId: string, input: CreateEventTypeBody): Promise<OwnerEventTypeResponse> {
+    const location = parseEventTypeLocation(input.location.type, input.location.data);
+    if (!location) {
+      throw new BadRequestError("INVALID_LOCATION", "Invalid location configuration.");
+    }
+
+    const customQuestions = reconcileCustomQuestions(input.customQuestions);
+
     try {
       const row = await this.prisma.eventType.create({
         data: {
@@ -32,6 +42,9 @@ export class EventTypesService {
           beforeBufferMinutes: input.beforeBufferMinutes,
           afterBufferMinutes: input.afterBufferMinutes,
           minimumNoticeMinutes: input.minimumNoticeMinutes,
+          locationType: location.type,
+          locationData: location.data as Prisma.InputJsonValue,
+          customQuestions: customQuestions as unknown as Prisma.InputJsonValue,
         },
       });
       return toOwnerEventType(row);
@@ -52,6 +65,35 @@ export class EventTypesService {
     if (existing.archivedAt) {
       throw new ConflictError("EVENT_TYPE_ARCHIVED", "Archived event types cannot be edited.");
     }
+
+    // Server-side enforcement: if existing has no location configured (legacy), updating requires valid location
+    if (existing.locationType === null && input.location === undefined) {
+      throw new BadRequestError(
+        "LOCATION_REQUIRED",
+        "Legacy event types must be configured with a valid location when updated."
+      );
+    }
+
+    let locationUpdate: { locationType?: import("@prisma/client").LocationType; locationData?: Prisma.InputJsonValue } = {};
+    if (input.location !== undefined) {
+      const parsedLocation = parseEventTypeLocation(input.location.type, input.location.data);
+      if (!parsedLocation) {
+        throw new BadRequestError("INVALID_LOCATION", "Invalid location configuration.");
+      }
+      locationUpdate = {
+        locationType: parsedLocation.type as import("@prisma/client").LocationType,
+        locationData: parsedLocation.data as Prisma.InputJsonValue,
+      };
+    }
+
+    let questionsUpdate: { customQuestions?: Prisma.InputJsonValue } = {};
+    if (input.customQuestions !== undefined) {
+      const customQuestions = reconcileCustomQuestions(input.customQuestions);
+      questionsUpdate = {
+        customQuestions: customQuestions as unknown as Prisma.InputJsonValue,
+      };
+    }
+
     try {
       const row = await this.prisma.eventType.update({
         where: { id: existing.id },
@@ -63,6 +105,8 @@ export class EventTypesService {
           ...(input.beforeBufferMinutes !== undefined ? { beforeBufferMinutes: input.beforeBufferMinutes } : {}),
           ...(input.afterBufferMinutes !== undefined ? { afterBufferMinutes: input.afterBufferMinutes } : {}),
           ...(input.minimumNoticeMinutes !== undefined ? { minimumNoticeMinutes: input.minimumNoticeMinutes } : {}),
+          ...locationUpdate,
+          ...questionsUpdate,
         },
       });
       return toOwnerEventType(row);

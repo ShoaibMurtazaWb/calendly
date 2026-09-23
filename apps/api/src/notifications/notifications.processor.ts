@@ -3,14 +3,18 @@ import { ConfigService } from "@nestjs/config";
 import type { NotificationJob } from "@prisma/client";
 import { NotificationStatus, NotificationType } from "@prisma/client";
 import { PrismaService } from "../shared/prisma/prisma.service";
+import { BookingTokenService } from "../shared/services/booking-token.service";
 import { EMAIL_PROVIDER, type EmailProvider } from "./interfaces/email-provider.interface";
 import {
   renderBookingCancelledAttendee,
   renderBookingCancelledHost,
   renderBookingConfirmedAttendee,
   renderBookingConfirmedHost,
+  renderBookingRescheduledAttendee,
+  renderBookingRescheduledHost,
   type SnapshotPayload,
 } from "./templates/email-templates";
+import { generateIcsCalendar } from "../shared/utils/ics-formatter";
 
 @Injectable()
 export class NotificationsProcessor implements OnModuleInit, OnModuleDestroy {
@@ -22,6 +26,7 @@ export class NotificationsProcessor implements OnModuleInit, OnModuleDestroy {
   constructor(
     private readonly prisma: PrismaService,
     private readonly config: ConfigService,
+    private readonly tokenService: BookingTokenService,
     @Inject(EMAIL_PROVIDER) private readonly emailProvider: EmailProvider
   ) {
     this.appUrl = this.config.get<string>("APP_URL", "http://localhost:3000");
@@ -73,35 +78,59 @@ export class NotificationsProcessor implements OnModuleInit, OnModuleDestroy {
   }
 
   /**
-   * Concurrency-safe job claiming using PostgreSQL SKIP LOCKED.
+   * Concurrency-safe, atomic job claiming using PostgreSQL SKIP LOCKED with CTE.
    */
   async claimPendingJobs(limit = 10): Promise<NotificationJob[]> {
-    const claimedRows = await this.prisma.$queryRaw<{ id: string }[]>`
-      SELECT id FROM notification_jobs
-      WHERE status = 'PENDING'::"NotificationStatus"
-        AND next_run_at <= NOW()
-      ORDER BY next_run_at ASC
-      LIMIT ${limit}
-      FOR UPDATE SKIP LOCKED;
+    const claimedRows = await this.prisma.$queryRaw<
+      Array<{
+        id: string;
+        idempotencyKey: string;
+        bookingId: string;
+        type: NotificationType;
+        recipientEmail: string;
+        status: NotificationStatus;
+        attempts: number;
+        maxAttempts: number;
+        nextRunAt: Date;
+        lockedAt: Date | null;
+        sentAt: Date | null;
+        lastError: string | null;
+        payload: unknown;
+        createdAt: Date;
+        updatedAt: Date;
+      }>
+    >`
+      WITH claimed AS (
+        SELECT id FROM notification_jobs
+        WHERE status = 'PENDING'::"NotificationStatus"
+          AND next_run_at <= NOW()
+        ORDER BY next_run_at ASC
+        LIMIT ${limit}
+        FOR UPDATE SKIP LOCKED
+      )
+      UPDATE notification_jobs
+      SET status = 'PROCESSING'::"NotificationStatus",
+          locked_at = NOW()
+      WHERE id IN (SELECT id FROM claimed)
+      RETURNING
+        id,
+        idempotency_key AS "idempotencyKey",
+        booking_id AS "bookingId",
+        type,
+        recipient_email AS "recipientEmail",
+        status,
+        attempts,
+        max_attempts AS "maxAttempts",
+        next_run_at AS "nextRunAt",
+        locked_at AS "lockedAt",
+        sent_at AS "sentAt",
+        last_error AS "lastError",
+        payload,
+        created_at AS "createdAt",
+        updated_at AS "updatedAt";
     `;
 
-    if (!claimedRows || claimedRows.length === 0) {
-      return [];
-    }
-
-    const ids = claimedRows.map((r) => r.id);
-
-    await this.prisma.notificationJob.updateMany({
-      where: { id: { in: ids } },
-      data: {
-        status: NotificationStatus.PROCESSING,
-        lockedAt: new Date(),
-      },
-    });
-
-    return this.prisma.notificationJob.findMany({
-      where: { id: { in: ids } },
-    });
+    return claimedRows as unknown as NotificationJob[];
   }
 
   /**
@@ -150,15 +179,22 @@ export class NotificationsProcessor implements OnModuleInit, OnModuleDestroy {
     let text = "";
     let attachments: Array<{ filename: string; content: string; contentType: string }> | undefined;
 
+    // Construct stateless signed attendee management capability URL
+    const manageUrl = this.tokenService.generateManagementUrl(
+      this.appUrl,
+      snapshot.bookingId,
+      snapshot.tokenVersion || 1
+    );
+
     switch (job.type) {
       case NotificationType.BOOKING_CONFIRMED_ATTENDEE: {
-        const rendered = renderBookingConfirmedAttendee(snapshot, this.appUrl);
+        const rendered = renderBookingConfirmedAttendee(snapshot, manageUrl);
         subject = rendered.subject;
         html = rendered.html;
         text = rendered.text;
 
         // Generate attached .ics calendar invite
-        const ics = this.buildIcsContent(snapshot);
+        const ics = this.buildIcsContent(snapshot, "REQUEST");
         attachments = [
           {
             filename: `${snapshot.eventSlug}-${snapshot.bookingId.slice(0, 8)}.ics`,
@@ -175,11 +211,45 @@ export class NotificationsProcessor implements OnModuleInit, OnModuleDestroy {
         text = rendered.text;
         break;
       }
+      case NotificationType.BOOKING_RESCHEDULED_ATTENDEE: {
+        const rendered = renderBookingRescheduledAttendee(snapshot, manageUrl);
+        subject = rendered.subject;
+        html = rendered.html;
+        text = rendered.text;
+
+        // Generate updated .ics calendar invite with incremented SEQUENCE
+        const ics = this.buildIcsContent(snapshot, "REQUEST");
+        attachments = [
+          {
+            filename: `${snapshot.eventSlug}-${snapshot.bookingId.slice(0, 8)}-v${snapshot.sequence}.ics`,
+            content: ics,
+            contentType: "text/calendar; charset=utf-8; method=REQUEST",
+          },
+        ];
+        break;
+      }
+      case NotificationType.BOOKING_RESCHEDULED_HOST: {
+        const rendered = renderBookingRescheduledHost(snapshot, this.appUrl);
+        subject = rendered.subject;
+        html = rendered.html;
+        text = rendered.text;
+        break;
+      }
       case NotificationType.BOOKING_CANCELLED_ATTENDEE: {
         const rendered = renderBookingCancelledAttendee(snapshot, this.appUrl);
         subject = rendered.subject;
         html = rendered.html;
         text = rendered.text;
+
+        // Cancellation .ics invite
+        const ics = this.buildIcsContent(snapshot, "CANCEL");
+        attachments = [
+          {
+            filename: `${snapshot.eventSlug}-${snapshot.bookingId.slice(0, 8)}-cancelled.ics`,
+            content: ics,
+            contentType: "text/calendar; charset=utf-8; method=CANCEL",
+          },
+        ];
         break;
       }
       case NotificationType.BOOKING_CANCELLED_HOST: {
@@ -243,38 +313,23 @@ export class NotificationsProcessor implements OnModuleInit, OnModuleDestroy {
     );
   }
 
-  private buildIcsContent(snapshot: SnapshotPayload): string {
-    const formatIcsDate = (date: Date) => {
-      return date.toISOString().replace(/[-:]/g, "").replace(/\.\d{3}/, "");
-    };
-
-    const startFormatted = formatIcsDate(new Date(snapshot.startUtc));
-    const endFormatted = formatIcsDate(new Date(snapshot.endUtc));
-    const nowFormatted = formatIcsDate(new Date());
-
-    const summary = `${snapshot.eventTitle} with ${snapshot.hostName}`;
-    const description = `Meeting between ${snapshot.hostName} and ${snapshot.attendeeName}\\n\\nNotes: ${
-      snapshot.attendeeNotes || "None"
-    }`;
-
-    const lines = [
-      "BEGIN:VCALENDAR",
-      "VERSION:2.0",
-      "PRODID:-//Sched//Calendar Meeting Engine//EN",
-      "CALSCALE:GREGORIAN",
-      "METHOD:REQUEST",
-      "BEGIN:VEVENT",
-      `UID:${snapshot.bookingId}@sched.com`,
-      `DTSTAMP:${nowFormatted}`,
-      `DTSTART:${startFormatted}`,
-      `DTEND:${endFormatted}`,
-      `SUMMARY:${summary}`,
-      `DESCRIPTION:${description}`,
-      `STATUS:${snapshot.status === "CONFIRMED" ? "CONFIRMED" : "CANCELLED"}`,
-      "END:VEVENT",
-      "END:VCALENDAR",
-    ];
-
-    return lines.join("\r\n");
+  private buildIcsContent(snapshot: SnapshotPayload, method: "REQUEST" | "CANCEL" = "REQUEST"): string {
+    return generateIcsCalendar({
+      uid: `${snapshot.bookingId}@sched.com`,
+      sequence: snapshot.sequence || 0,
+      dtstamp: new Date(),
+      startTime: new Date(snapshot.startUtc),
+      endTime: new Date(snapshot.endUtc),
+      summary: `${snapshot.eventTitle} with ${snapshot.hostName}`,
+      description: `Meeting between ${snapshot.hostName} and ${snapshot.attendeeName}\n\nNotes: ${
+        snapshot.attendeeNotes || "None"
+      }`,
+      status: method === "CANCEL" || snapshot.status === "CANCELLED" ? "CANCELLED" : "CONFIRMED",
+      locationType: snapshot.locationType,
+      locationData: snapshot.locationData,
+      attendeePhoneNumber: snapshot.attendeePhoneNumber,
+      hostName: snapshot.hostName,
+      attendeeName: snapshot.attendeeName,
+    });
   }
 }

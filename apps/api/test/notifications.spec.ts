@@ -64,6 +64,10 @@ describe("Notifications Subsystem Integration", () => {
         slug: "strategy-session",
         durationMinutes: 30,
         minimumNoticeMinutes: 0,
+        location: {
+          type: "STATIC_VIDEO",
+          data: { url: "https://meet.google.com/abc-defg-hij" },
+        },
       });
 
     return {
@@ -155,7 +159,7 @@ describe("Notifications Subsystem Integration", () => {
     const cancelRes = await request(app.getHttpServer())
       .patch(`/api/v1/bookings/${bookingId}/cancel`)
       .set("Cookie", cookies)
-      .send({ reason: "Scheduling conflict with board meeting" });
+      .send({ expectedSequence: 0, reason: "Scheduling conflict with board meeting" });
 
     expect(cancelRes.status).toBe(200);
 
@@ -189,13 +193,15 @@ describe("Notifications Subsystem Integration", () => {
       });
 
     const bookingId = bookRes.body.id;
+    const manageToken = bookRes.body.manageToken;
     await processor.processPendingJobs();
     devEmailProvider.clearSentEmails();
 
     // Attendee cancels booking
     const cancelRes = await request(app.getHttpServer())
       .patch(`/api/v1/public/bookings/${bookingId}/cancel`)
-      .send({ reason: "Feeling unwell, will reschedule soon" });
+      .set("x-booking-token", manageToken)
+      .send({ expectedSequence: 0, reason: "Feeling unwell, will reschedule soon" });
 
     expect(cancelRes.status).toBe(200);
 

@@ -1,5 +1,6 @@
-import { Controller, Get, Param, Query } from "@nestjs/common";
+import { Controller, Get, Param, Query, UseGuards } from "@nestjs/common";
 import { ApiOperation, ApiTags } from "@nestjs/swagger";
+import { Throttle, ThrottlerGuard } from "@nestjs/throttler";
 import {
   getPublicSlotsQuerySchema,
   publicEventTypeParamsSchema,
@@ -16,6 +17,7 @@ import { EventTypesService } from "./event-types.service";
 
 @ApiTags("public")
 @Controller("api/v1/public")
+@UseGuards(ThrottlerGuard)
 export class PublicEventTypesController {
   constructor(
     private readonly eventTypes: EventTypesService,
@@ -26,18 +28,21 @@ export class PublicEventTypesController {
 
   @Get(":username")
   @ApiOperation({ summary: "Public read of host profile and active event types" })
+  @Throttle({ default: { limit: 60, ttl: 60000 } })
   getHostProfile(@Param(zodPipe(publicHostParamsSchema)) params: PublicHostParams) {
     return this.eventTypes.getPublicHostProfile(params.username);
   }
 
   @Get(":username/:eventSlug")
   @ApiOperation({ summary: "Public read of an active event type" })
+  @Throttle({ default: { limit: 60, ttl: 60000 } })
   get(@Param(zodPipe(publicEventTypeParamsSchema)) params: PublicEventTypeParams) {
     return this.eventTypes.getPublic(params.username, params.eventSlug);
   }
 
   @Get(":username/:eventSlug/slots")
   @ApiOperation({ summary: "Calculate available booking slots for an active event type" })
+  @Throttle({ default: { limit: 60, ttl: 60000 } })
   async getSlots(
     @Param(zodPipe(publicEventTypeParamsSchema)) params: PublicEventTypeParams,
     @Query(zodPipe(getPublicSlotsQuerySchema)) query: GetPublicSlotsQuery

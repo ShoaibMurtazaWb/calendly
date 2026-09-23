@@ -21,6 +21,78 @@ function ianaTimeZones(): Set<string> {
   return new Set(Intl.supportedValuesOf("timeZone"));
 }
 
+export const LocationType = {
+  IN_PERSON: "IN_PERSON",
+  HOST_CALLS_ATTENDEE: "HOST_CALLS_ATTENDEE",
+  ATTENDEE_CALLS_HOST: "ATTENDEE_CALLS_HOST",
+  CUSTOM_LINK: "CUSTOM_LINK",
+  STATIC_VIDEO: "STATIC_VIDEO",
+} as const;
+
+export type LocationType = (typeof LocationType)[keyof typeof LocationType];
+
+export const inPersonLocationSchema = z.object({
+  address: z
+    .string()
+    .trim()
+    .min(3, "Address must be at least 3 characters")
+    .max(300, "Address cannot exceed 300 characters"),
+  displayPublicAddress: z.boolean().default(false),
+  extraNotes: z.string().trim().max(500, "Extra notes cannot exceed 500 characters").optional(),
+});
+
+export const hostCallsAttendeeLocationSchema = z.object({
+  extraNotes: z.string().trim().max(500, "Extra notes cannot exceed 500 characters").optional(),
+});
+
+export const attendeeCallsHostLocationSchema = z.object({
+  hostPhoneNumber: z
+    .string()
+    .trim()
+    .min(7, "Host phone number is too short")
+    .max(30, "Host phone number is too long"),
+  extraNotes: z.string().trim().max(500, "Extra notes cannot exceed 500 characters").optional(),
+});
+
+export const urlLocationSchema = z.object({
+  url: z
+    .string()
+    .trim()
+    .url("Must be a valid URL")
+    .max(500, "URL cannot exceed 500 characters")
+    .refine((u) => u.startsWith("https://") || u.startsWith("http://"), {
+      message: "Meeting URL must start with http:// or https://",
+    }),
+  extraNotes: z.string().trim().max(500, "Extra notes cannot exceed 500 characters").optional(),
+});
+
+export const eventTypeLocationConfigSchema = z.discriminatedUnion("type", [
+  z.object({ type: z.literal("IN_PERSON"), data: inPersonLocationSchema }),
+  z.object({
+    type: z.literal("HOST_CALLS_ATTENDEE"),
+    data: hostCallsAttendeeLocationSchema.default({}),
+  }),
+  z.object({ type: z.literal("ATTENDEE_CALLS_HOST"), data: attendeeCallsHostLocationSchema }),
+  z.object({ type: z.literal("CUSTOM_LINK"), data: urlLocationSchema }),
+  z.object({ type: z.literal("STATIC_VIDEO"), data: urlLocationSchema }),
+]);
+
+export type EventTypeLocationConfig = z.infer<typeof eventTypeLocationConfigSchema>;
+
+export const publicLocationMetadataSchema = z.object({
+  type: z.enum([
+    "IN_PERSON",
+    "HOST_CALLS_ATTENDEE",
+    "ATTENDEE_CALLS_HOST",
+    "CUSTOM_LINK",
+    "STATIC_VIDEO",
+  ]),
+  publicAddress: z.string().optional(),
+  extraNotes: z.string().optional(),
+});
+
+export type PublicLocationMetadata = z.infer<typeof publicLocationMetadataSchema>;
+
 export const emailSchema = z
   .string()
   .trim()
@@ -90,6 +162,110 @@ export const loginBodySchema = z.object({
   password: z.string().min(1, "Password is required").max(1024),
 });
 
+export const CustomQuestionTypeEnum = z.enum(["TEXT", "TEXTAREA", "SELECT", "CHECKBOX"]);
+export type CustomQuestionType = z.infer<typeof CustomQuestionTypeEnum>;
+
+// Inbound schemas (IDs optional for newly created questions/options)
+export const inboundSelectOptionSchema = z.object({
+  id: z.string().trim().min(1).max(50).optional(),
+  label: z.string().trim().min(1, "Option label is required").max(100),
+});
+export type InboundSelectOption = z.infer<typeof inboundSelectOptionSchema>;
+
+export const inboundTextQuestionSchema = z.object({
+  id: z.string().trim().min(1).max(50).optional(),
+  type: z.literal("TEXT"),
+  label: z.string().trim().min(1, "Question label is required").max(255),
+  required: z.boolean().default(false),
+  placeholder: z.string().trim().max(100).optional(),
+});
+
+export const inboundTextareaQuestionSchema = z.object({
+  id: z.string().trim().min(1).max(50).optional(),
+  type: z.literal("TEXTAREA"),
+  label: z.string().trim().min(1, "Question label is required").max(255),
+  required: z.boolean().default(false),
+  placeholder: z.string().trim().max(100).optional(),
+});
+
+export const inboundSelectQuestionSchema = z.object({
+  id: z.string().trim().min(1).max(50).optional(),
+  type: z.literal("SELECT"),
+  label: z.string().trim().min(1, "Question label is required").max(255),
+  required: z.boolean().default(false),
+  options: z
+    .array(inboundSelectOptionSchema)
+    .min(2, "Select questions require at least 2 options")
+    .max(25),
+});
+
+export const inboundCheckboxQuestionSchema = z.object({
+  id: z.string().trim().min(1).max(50).optional(),
+  type: z.literal("CHECKBOX"),
+  label: z.string().trim().min(1, "Question label is required").max(255),
+  required: z.boolean().default(false),
+});
+
+export const inboundCustomQuestionSchema = z.discriminatedUnion("type", [
+  inboundTextQuestionSchema,
+  inboundTextareaQuestionSchema,
+  inboundSelectQuestionSchema,
+  inboundCheckboxQuestionSchema,
+]);
+export type InboundCustomQuestion = z.infer<typeof inboundCustomQuestionSchema>;
+
+export const inboundCustomQuestionsListSchema = z
+  .array(inboundCustomQuestionSchema)
+  .max(20, "Maximum of 20 custom questions allowed");
+
+// Domain / Persisted / Output schemas (IDs strictly mandatory)
+export const selectOptionSchema = z.object({
+  id: z.string().min(1).max(50),
+  label: z.string().min(1).max(100),
+});
+export type SelectOption = z.infer<typeof selectOptionSchema>;
+
+export const textQuestionSchema = z.object({
+  id: z.string().min(1).max(50),
+  type: z.literal("TEXT"),
+  label: z.string().min(1).max(255),
+  required: z.boolean(),
+  placeholder: z.string().optional(),
+});
+
+export const textareaQuestionSchema = z.object({
+  id: z.string().min(1).max(50),
+  type: z.literal("TEXTAREA"),
+  label: z.string().min(1).max(255),
+  required: z.boolean(),
+  placeholder: z.string().optional(),
+});
+
+export const selectQuestionSchema = z.object({
+  id: z.string().min(1).max(50),
+  type: z.literal("SELECT"),
+  label: z.string().min(1).max(255),
+  required: z.boolean(),
+  options: z.array(selectOptionSchema).min(2).max(25),
+});
+
+export const checkboxQuestionSchema = z.object({
+  id: z.string().min(1).max(50),
+  type: z.literal("CHECKBOX"),
+  label: z.string().min(1).max(255),
+  required: z.boolean(),
+});
+
+export const customQuestionSchema = z.discriminatedUnion("type", [
+  textQuestionSchema,
+  textareaQuestionSchema,
+  selectQuestionSchema,
+  checkboxQuestionSchema,
+]);
+export type CustomQuestion = z.infer<typeof customQuestionSchema>;
+
+export const customQuestionsListSchema = z.array(customQuestionSchema).max(20);
+
 export const createEventTypeBodySchema = z.object({
   title: z.string().trim().min(1, "Title is required").max(TITLE_MAX_LENGTH),
   slug: slugSchema,
@@ -98,6 +274,8 @@ export const createEventTypeBodySchema = z.object({
   beforeBufferMinutes: z.coerce.number().int().min(0).max(120).default(0),
   afterBufferMinutes: z.coerce.number().int().min(0).max(120).default(0),
   minimumNoticeMinutes: z.coerce.number().int().min(0).max(10080).default(60),
+  location: eventTypeLocationConfigSchema,
+  customQuestions: inboundCustomQuestionsListSchema.optional(),
 });
 
 export const updateEventTypeBodySchema = z
@@ -109,6 +287,8 @@ export const updateEventTypeBodySchema = z
     beforeBufferMinutes: z.coerce.number().int().min(0).max(120).optional(),
     afterBufferMinutes: z.coerce.number().int().min(0).max(120).optional(),
     minimumNoticeMinutes: z.coerce.number().int().min(0).max(10080).optional(),
+    location: eventTypeLocationConfigSchema.optional(),
+    customQuestions: inboundCustomQuestionsListSchema.optional(),
   })
   .refine((value) => Object.keys(value).length > 0, {
     message: "Provide at least one field to update",
@@ -133,3 +313,4 @@ export type CreateEventTypeBody = z.infer<typeof createEventTypeBodySchema>;
 export type UpdateEventTypeBody = z.infer<typeof updateEventTypeBodySchema>;
 export type ListEventTypesQuery = z.infer<typeof listEventTypesQuerySchema>;
 export type PublicEventTypeParams = z.infer<typeof publicEventTypeParamsSchema>;
+

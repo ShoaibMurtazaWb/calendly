@@ -37,6 +37,10 @@ describe("public event type HTTP", () => {
         slug: "discovery",
         description: "Introductory chat",
         durationMinutes: 30,
+        location: {
+          type: "STATIC_VIDEO",
+          data: { url: "https://meet.google.com/abc-defg-hij" },
+        },
       });
     expect(ev1.status).toBe(201);
 
@@ -48,6 +52,10 @@ describe("public event type HTTP", () => {
         slug: "archived-sync",
         description: "Old link",
         durationMinutes: 15,
+        location: {
+          type: "STATIC_VIDEO",
+          data: { url: "https://meet.google.com/abc-defg-hij" },
+        },
       });
     expect(ev2.status).toBe(201);
 
@@ -95,6 +103,10 @@ describe("public event type HTTP", () => {
         slug: "office-hours",
         description: "Ask questions",
         durationMinutes: 20,
+        location: {
+          type: "STATIC_VIDEO",
+          data: { url: "https://meet.google.com/abc-defg-hij" },
+        },
       });
     expect(created.status).toBe(201);
 

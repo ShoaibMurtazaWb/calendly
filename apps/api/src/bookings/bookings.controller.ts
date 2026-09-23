@@ -3,8 +3,10 @@ import { ApiCookieAuth, ApiOperation, ApiTags } from "@nestjs/swagger";
 import {
   cancelBookingBodySchema,
   listBookingsQuerySchema,
+  rescheduleBookingBodySchema,
   type CancelBookingBody,
   type ListBookingsQuery,
+  type RescheduleBookingBody,
 } from "@sched/api-contract";
 import { CurrentUserId } from "../auth/current-user.decorator";
 import { SessionAuthGuard } from "../auth/session-auth.guard";
@@ -39,6 +41,16 @@ export class BookingsController {
     @Param(zodPipe(bookingIdParamSchema)) params: { id: string },
     @Body(zodPipe(cancelBookingBodySchema)) body: CancelBookingBody
   ) {
-    return this.bookings.cancelByHost(userId, params.id, body.reason);
+    return this.bookings.cancelByHost(userId, params.id, body.expectedSequence, body.reason);
+  }
+
+  @Patch(":id/reschedule")
+  @ApiOperation({ summary: "Reschedule a booking as the host" })
+  reschedule(
+    @CurrentUserId() userId: string,
+    @Param(zodPipe(bookingIdParamSchema)) params: { id: string },
+    @Body(zodPipe(rescheduleBookingBodySchema)) body: RescheduleBookingBody
+  ) {
+    return this.bookings.rescheduleByHost(userId, params.id, body);
   }
 }

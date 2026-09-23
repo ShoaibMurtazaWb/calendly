@@ -37,20 +37,31 @@ model Session {
   @@map("sessions")
 }
 
+enum LocationType {
+  IN_PERSON
+  HOST_CALLS_ATTENDEE
+  ATTENDEE_CALLS_HOST
+  CUSTOM_LINK
+  STATIC_VIDEO
+}
+
 model EventType {
-  id                   String    @id @default(uuid()) @db.Uuid
-  userId               String    @map("user_id") @db.Uuid
-  user                 User      @relation(fields: [userId], references: [id], onDelete: Restrict)
+  id                   String        @id @default(uuid()) @db.Uuid
+  userId               String        @map("user_id") @db.Uuid
+  user                 User          @relation(fields: [userId], references: [id], onDelete: Restrict)
   title                String
   slug                 String
-  description          String    @default("")
-  durationMinutes      Int       @map("duration_minutes")
-  beforeBufferMinutes  Int       @default(0) @map("before_buffer_minutes")
-  afterBufferMinutes   Int       @default(0) @map("after_buffer_minutes")
-  minimumNoticeMinutes Int       @default(60) @map("minimum_notice_minutes")
-  archivedAt           DateTime? @map("archived_at") @db.Timestamptz(6)
-  createdAt            DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
-  updatedAt            DateTime  @updatedAt @map("updated_at") @db.Timestamptz(6)
+  description          String        @default("")
+  durationMinutes      Int           @map("duration_minutes")
+  beforeBufferMinutes  Int           @default(0) @map("before_buffer_minutes")
+  afterBufferMinutes   Int           @default(0) @map("after_buffer_minutes")
+  minimumNoticeMinutes Int           @default(60) @map("minimum_notice_minutes")
+  locationType         LocationType? @map("location_type")
+  locationData         Json?         @map("location_data")
+  customQuestions      Json?         @map("custom_questions")
+  archivedAt           DateTime?     @map("archived_at") @db.Timestamptz(6)
+  createdAt            DateTime      @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt            DateTime      @updatedAt @map("updated_at") @db.Timestamptz(6)
   bookings             Booking[]
 
   @@unique([userId, slug])
@@ -101,29 +112,9 @@ model ScheduleOverride {
   @@map("schedule_overrides")
 }
 
-model Booking {
-  id                 String    @id @default(uuid()) @db.Uuid
-  eventTypeId        String    @map("event_type_id") @db.Uuid
-  eventType          EventType @relation(fields: [eventTypeId], references: [id], onDelete: Restrict)
-  hostId             String    @map("host_id") @db.Uuid
-  host               User      @relation(fields: [hostId], references: [id], onDelete: Restrict)
-  startTime          DateTime  @map("start_time") @db.Timestamptz(6)
-  endTime            DateTime  @map("end_time") @db.Timestamptz(6)
-  status             String    @default("CONFIRMED") // "CONFIRMED" | "CANCELLED"
-  attendeeName       String    @map("attendee_name")
-  attendeeEmail      String    @map("attendee_email") @db.Citext
-  attendeeTimeZone   String    @map("attendee_timezone")
-  attendeeNotes      String    @default("") @map("attendee_notes")
-  cancellationReason String?   @map("cancellation_reason")
-  cancelledAt        DateTime? @map("cancelled_at") @db.Timestamptz(6)
-  cancelledBy        String?   @map("cancelled_by") // "HOST" | "ATTENDEE"
-  createdAt          DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
-  updatedAt          DateTime          @updatedAt @map("updated_at") @db.Timestamptz(6)
-  notificationJobs   NotificationJob[]
-
-  @@index([hostId, startTime, status])
-  @@index([eventTypeId, startTime, status])
-  @@map("bookings")
+enum BookingActor {
+  HOST
+  ATTENDEE
 }
 
 enum NotificationType {
@@ -131,6 +122,8 @@ enum NotificationType {
   BOOKING_CONFIRMED_HOST
   BOOKING_CANCELLED_ATTENDEE
   BOOKING_CANCELLED_HOST
+  BOOKING_RESCHEDULED_ATTENDEE
+  BOOKING_RESCHEDULED_HOST
 }
 
 enum NotificationStatus {
@@ -138,6 +131,62 @@ enum NotificationStatus {
   PROCESSING
   SENT
   FAILED
+}
+
+model Booking {
+  id                 String                     @id @default(uuid()) @db.Uuid
+  eventTypeId        String                     @map("event_type_id") @db.Uuid
+  eventType          EventType                  @relation(fields: [eventTypeId], references: [id], onDelete: Restrict)
+  hostId             String                     @map("host_id") @db.Uuid
+  host               User                       @relation(fields: [hostId], references: [id], onDelete: Restrict)
+  startTime          DateTime                   @map("start_time") @db.Timestamptz(6)
+  endTime            DateTime                   @map("end_time") @db.Timestamptz(6)
+  status             String                     @default("CONFIRMED") // "CONFIRMED" | "CANCELLED"
+  tokenVersion       Int                        @default(1) @map("token_version")
+  attendeeName       String                     @map("attendee_name")
+  attendeeEmail      String                     @map("attendee_email") @db.Citext
+  attendeeTimeZone   String                     @map("attendee_timezone")
+  attendeePhoneNumber String?                   @map("attendee_phone_number")
+  attendeeNotes      String                     @default("") @map("attendee_notes")
+  locationType       LocationType?              @map("location_type")
+  locationData       Json?                      @map("location_data")
+  customResponses    Json?                      @map("custom_responses")
+  cancellationReason String?                    @map("cancellation_reason")
+  cancelledAt        DateTime?                  @map("cancelled_at") @db.Timestamptz(6)
+  cancelledBy        BookingActor?              @map("cancelled_by")
+  sequence           Int                        @default(0)
+  rescheduleCount    Int                        @default(0) @map("reschedule_count")
+  rescheduledAt      DateTime?                  @map("rescheduled_at") @db.Timestamptz(6)
+  rescheduledBy      BookingActor?              @map("rescheduled_by")
+  rescheduleReason   String?                    @map("reschedule_reason")
+  previousStartTime  DateTime?                  @map("previous_start_time") @db.Timestamptz(6)
+  previousEndTime    DateTime?                  @map("previous_end_time") @db.Timestamptz(6)
+  createdAt          DateTime                   @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt          DateTime                   @updatedAt @map("updated_at") @db.Timestamptz(6)
+  rescheduleHistory  BookingRescheduleHistory[]
+  notificationJobs   NotificationJob[]
+
+  @@index([hostId, startTime, status])
+  @@index([eventTypeId, startTime, status])
+  @@map("bookings")
+}
+
+model BookingRescheduleHistory {
+  id                String       @id @default(uuid()) @db.Uuid
+  bookingId         String       @map("booking_id") @db.Uuid
+  booking           Booking      @relation(fields: [bookingId], references: [id], onDelete: Restrict)
+  sequence          Int
+  previousStartTime DateTime     @map("previous_start_time") @db.Timestamptz(6)
+  previousEndTime   DateTime     @map("previous_end_time") @db.Timestamptz(6)
+  newStartTime      DateTime     @map("new_start_time") @db.Timestamptz(6)
+  newEndTime        DateTime     @map("new_end_time") @db.Timestamptz(6)
+  rescheduledBy     BookingActor @map("rescheduled_by")
+  reason            String?
+  createdAt         DateTime     @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  @@index([bookingId, sequence])
+  @@index([bookingId, createdAt])
+  @@map("booking_reschedule_history")
 }
 
 model NotificationJob {
@@ -162,4 +211,3 @@ model NotificationJob {
   @@index([bookingId])
   @@map("notification_jobs")
 }
-

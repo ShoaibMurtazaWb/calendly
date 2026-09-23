@@ -1,4 +1,7 @@
 import type { EventType, User } from "@prisma/client";
+import type { CustomQuestion, EventTypeLocationConfig, PublicLocationMetadata } from "@sched/api-contract";
+import { parseStoredCustomQuestions } from "../shared/utils/custom-questions-parser";
+import { parseEventTypeLocation, toPublicLocationMetadata } from "../shared/utils/location-parser";
 
 export type OwnerEventTypeResponse = {
   id: string;
@@ -9,6 +12,8 @@ export type OwnerEventTypeResponse = {
   beforeBufferMinutes: number;
   afterBufferMinutes: number;
   minimumNoticeMinutes: number;
+  location: EventTypeLocationConfig | null;
+  customQuestions: CustomQuestion[];
   archivedAt: string | null;
   createdAt: string;
   updatedAt: string;
@@ -23,6 +28,8 @@ export type PublicEventTypeResponse = {
   beforeBufferMinutes: number;
   afterBufferMinutes: number;
   minimumNoticeMinutes: number;
+  location: PublicLocationMetadata | null;
+  customQuestions: CustomQuestion[];
   host: {
     name: string;
     username: string;
@@ -40,6 +47,8 @@ export function toOwnerEventType(row: EventType): OwnerEventTypeResponse {
     beforeBufferMinutes: row.beforeBufferMinutes,
     afterBufferMinutes: row.afterBufferMinutes,
     minimumNoticeMinutes: row.minimumNoticeMinutes,
+    location: parseEventTypeLocation(row.locationType, row.locationData),
+    customQuestions: parseStoredCustomQuestions(row.customQuestions),
     archivedAt: row.archivedAt ? row.archivedAt.toISOString() : null,
     createdAt: row.createdAt.toISOString(),
     updatedAt: row.updatedAt.toISOString(),
@@ -56,6 +65,8 @@ export function toPublicEventType(row: EventType, host: User): PublicEventTypeRe
     beforeBufferMinutes: row.beforeBufferMinutes,
     afterBufferMinutes: row.afterBufferMinutes,
     minimumNoticeMinutes: row.minimumNoticeMinutes,
+    location: toPublicLocationMetadata(row.locationType, row.locationData),
+    customQuestions: parseStoredCustomQuestions(row.customQuestions),
     host: {
       name: host.name,
       username: host.username,

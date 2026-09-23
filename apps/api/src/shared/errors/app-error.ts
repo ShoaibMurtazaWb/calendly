@@ -14,6 +14,12 @@ export class AppError extends Error {
   }
 }
 
+export class BadRequestError extends AppError {
+  constructor(code: string, message: string, details: ErrorDetails = {}) {
+    super(code, message, 400, details);
+  }
+}
+
 export class ValidationError extends AppError {
   constructor(details: ErrorDetails, message = "Request validation failed") {
     super("VALIDATION_ERROR", message, 400, details);

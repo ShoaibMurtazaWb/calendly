@@ -101,7 +101,7 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
 
   async function logout() {
     await api("/auth/logout", { method: "POST" });
-    window.location.replace("/login");
+    window.location.replace("/");
   }
 
   const navItems = useMemo(
@@ -199,7 +199,7 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
             {/* Left Brand + Nav Tabs */}
             <div className="flex items-center gap-4 sm:gap-6 shrink-0">
               {/* Brand Logo */}
-              <Link href="/dashboard" className="flex items-center gap-2.5 group shrink-0">
+              <Link href="/" className="flex items-center gap-2.5 group shrink-0" title="Go to Home">
                 <Logo className="h-7 w-7 shrink-0 transition-transform duration-150 group-hover:scale-105" />
                 <span className="font-semibold tracking-tight text-[var(--text-primary)] text-base">Sched</span>
               </Link>

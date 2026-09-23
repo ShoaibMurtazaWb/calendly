@@ -63,9 +63,18 @@ export function RegisterForm() {
   const [error, setError] = useState<string | null>(null);
   const [fields, setFields] = useState<Record<string, string>>({});
   const [pending, setPending] = useState(false);
+  const [isCheckingAuth, setIsCheckingAuth] = useState(true);
 
-  // Auto-detect user's local timezone on mount
+  // Check if user is already authenticated & auto-detect timezone
   useEffect(() => {
+    api("/auth/me")
+      .then(() => {
+        window.location.replace("/dashboard");
+      })
+      .catch(() => {
+        setIsCheckingAuth(false);
+      });
+
     try {
       if (typeof Intl !== "undefined" && typeof Intl.supportedValuesOf === "function") {
         const supported = Intl.supportedValuesOf("timeZone");
@@ -124,17 +133,28 @@ export function RegisterForm() {
     }
   }
 
+  if (isCheckingAuth) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-[var(--bg-canvas)]">
+        <div className="flex flex-col items-center gap-3 text-sm text-[var(--text-secondary)] font-medium">
+          <Spinner size="default" />
+          <span>Verifying session…</span>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="flex min-h-screen items-center justify-center bg-[var(--bg-canvas)] p-4 sm:p-6 py-12">
       <Card className="w-full max-w-lg rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-surface)] p-6 sm:p-8 shadow-xs">
         {/* Brand Header */}
-        <div className="flex items-center gap-2.5 mb-6">
-          <Logo className="h-8 w-8 shrink-0 shadow-2xs" />
+        <Link href="/" className="flex items-center gap-2.5 mb-6 group transition-opacity hover:opacity-90">
+          <Logo className="h-8 w-8 shrink-0 shadow-2xs group-hover:scale-105 transition-transform duration-150" />
           <div>
             <span className="font-semibold tracking-tight text-[var(--text-primary)] text-base leading-tight">Sched</span>
             <p className="text-[11px] text-[var(--text-muted)] font-mono">Infrastructure for High-Precision Booking</p>
           </div>
-        </div>
+        </Link>
 
         <div className="pb-4 border-b border-[var(--border-subtle)]">
           <CardTitle className="text-xl font-bold tracking-tight text-[var(--text-primary)]">

@@ -9,22 +9,29 @@ export type CurrentUser = {
   createdAt: string;
 };
 
+import type { CustomQuestion, EventTypeLocationConfig, PublicLocationMetadata } from "@sched/api-contract";
+
 export type EventType = {
   id: string;
   title: string;
   slug: string;
   description: string;
   durationMinutes: number;
+  location?: EventTypeLocationConfig | null;
+  customQuestions?: CustomQuestion[];
   archivedAt: string | null;
   createdAt: string;
   updatedAt: string;
 };
 
 export type PublicEventType = {
+  id: string;
   title: string;
   slug: string;
   description: string;
   durationMinutes: number;
+  location?: PublicLocationMetadata | null;
+  customQuestions?: CustomQuestion[];
   host: {
     name: string;
     username: string;

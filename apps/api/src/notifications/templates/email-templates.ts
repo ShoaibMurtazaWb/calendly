@@ -1,3 +1,5 @@
+import { escapeHtml } from "../../shared/utils/html-escape";
+
 export interface SnapshotPayload {
   bookingId: string;
   eventTypeId: string;
@@ -12,12 +14,28 @@ export interface SnapshotPayload {
   attendeeName: string;
   attendeeEmail: string;
   attendeeTimeZone: string;
+  attendeePhoneNumber?: string | null;
   attendeeNotes?: string;
+  locationType?: string | null;
+  locationData?: Record<string, unknown> | null;
+  customResponses?: Array<{
+    questionId: string;
+    label: string;
+    type: string;
+    value: string | boolean;
+    selectedOptionLabel?: string | null;
+  }> | null;
   startUtc: string;
   endUtc: string;
   status: string;
+  sequence: number;
+  tokenVersion: number;
   cancellationReason?: string | null;
   cancelledBy?: string | null;
+  previousStartUtc?: string | null;
+  previousEndUtc?: string | null;
+  rescheduleReason?: string | null;
+  rescheduledBy?: string | null;
 }
 
 export function formatZonedDateTime(
@@ -62,6 +80,120 @@ export function formatZonedRange(
   };
 }
 
+function renderLocationHtml(snapshot: SnapshotPayload, recipient: "ATTENDEE" | "HOST"): string {
+  if (!snapshot.locationType || !snapshot.locationData) {
+    return "";
+  }
+
+  const data = snapshot.locationData;
+  const safeNotes = typeof data.extraNotes === "string" && data.extraNotes ? `<br><small style="color: #64748b;">${escapeHtml(data.extraNotes)}</small>` : "";
+
+  switch (snapshot.locationType) {
+    case "IN_PERSON": {
+      const address = typeof data.address === "string" ? escapeHtml(data.address) : "In-Person Venue";
+      return `<div class="details-row"><span class="details-label">Location:</span><span class="details-value">📍 ${address}${safeNotes}</span></div>`;
+    }
+    case "HOST_CALLS_ATTENDEE": {
+      const phone = snapshot.attendeePhoneNumber ? escapeHtml(snapshot.attendeePhoneNumber) : "Phone Call";
+      if (recipient === "HOST") {
+        return `<div class="details-row"><span class="details-label">Dial-in:</span><span class="details-value">📞 You will call attendee at: <strong>${phone}</strong>${safeNotes}</span></div>`;
+      } else {
+        return `<div class="details-row"><span class="details-label">Dial-in:</span><span class="details-value">📞 Host will call you at: <strong>${phone}</strong>${safeNotes}</span></div>`;
+      }
+    }
+    case "ATTENDEE_CALLS_HOST": {
+      const hostPhone = typeof data.hostPhoneNumber === "string" ? escapeHtml(data.hostPhoneNumber) : "Host Phone";
+      if (recipient === "ATTENDEE") {
+        return `<div class="details-row"><span class="details-label">Dial-in:</span><span class="details-value">📞 Call host at: <strong>${hostPhone}</strong>${safeNotes}</span></div>`;
+      } else {
+        return `<div class="details-row"><span class="details-label">Dial-in:</span><span class="details-value">📞 Attendee will call you at: <strong>${hostPhone}</strong>${safeNotes}</span></div>`;
+      }
+    }
+    case "CUSTOM_LINK":
+    case "STATIC_VIDEO": {
+      const url = typeof data.url === "string" ? data.url : "";
+      const safeUrl = escapeHtml(url);
+      return `<div class="details-row"><span class="details-label">Meeting Link:</span><span class="details-value"><a href="${safeUrl}" style="color: #2563eb; text-decoration: underline;" target="_blank" rel="noopener noreferrer">${safeUrl}</a>${safeNotes}</span></div>`;
+    }
+    default:
+      return "";
+  }
+}
+
+function renderLocationText(snapshot: SnapshotPayload, recipient: "ATTENDEE" | "HOST"): string {
+  if (!snapshot.locationType || !snapshot.locationData) {
+    return "";
+  }
+
+  const data = snapshot.locationData;
+  const extraNotes = typeof data.extraNotes === "string" && data.extraNotes ? ` (${data.extraNotes})` : "";
+
+  switch (snapshot.locationType) {
+    case "IN_PERSON": {
+      return `Location: 📍 ${data.address || "In-Person Venue"}${extraNotes}\n`;
+    }
+    case "HOST_CALLS_ATTENDEE": {
+      const phone = snapshot.attendeePhoneNumber || "phone";
+      return recipient === "HOST"
+        ? `Location: 📞 You will call attendee at: ${phone}${extraNotes}\n`
+        : `Location: 📞 Host will call you at: ${phone}${extraNotes}\n`;
+    }
+    case "ATTENDEE_CALLS_HOST": {
+      const hostPhone = data.hostPhoneNumber || "host phone";
+      return recipient === "ATTENDEE"
+        ? `Location: 📞 Call host at: ${hostPhone}${extraNotes}\n`
+        : `Location: 📞 Attendee will call you at: ${hostPhone}${extraNotes}\n`;
+    }
+    case "CUSTOM_LINK":
+    case "STATIC_VIDEO": {
+      return `Meeting Link: ${data.url || ""}${extraNotes}\n`;
+    }
+    default:
+      return "";
+  }
+}
+
+function renderCustomResponsesHtml(snapshot: SnapshotPayload): string {
+  if (!snapshot.customResponses || snapshot.customResponses.length === 0) {
+    return "";
+  }
+
+  return snapshot.customResponses
+    .map((r) => {
+      const safeLabel = escapeHtml(r.label);
+      let displayValue = "";
+      if (r.type === "CHECKBOX") {
+        displayValue = r.value ? "✓ Yes" : "No";
+      } else if (r.type === "SELECT") {
+        displayValue = r.selectedOptionLabel ? escapeHtml(r.selectedOptionLabel) : escapeHtml(String(r.value));
+      } else {
+        displayValue = escapeHtml(String(r.value));
+      }
+      return `<div class="details-row"><span class="details-label">${safeLabel}:</span><span class="details-value">${displayValue}</span></div>`;
+    })
+    .join("");
+}
+
+function renderCustomResponsesText(snapshot: SnapshotPayload): string {
+  if (!snapshot.customResponses || snapshot.customResponses.length === 0) {
+    return "";
+  }
+
+  return snapshot.customResponses
+    .map((r) => {
+      let displayValue = "";
+      if (r.type === "CHECKBOX") {
+        displayValue = r.value ? "Yes" : "No";
+      } else if (r.type === "SELECT") {
+        displayValue = r.selectedOptionLabel ? r.selectedOptionLabel : String(r.value);
+      } else {
+        displayValue = String(r.value);
+      }
+      return `${r.label}: ${displayValue}\n`;
+    })
+    .join("");
+}
+
 function baseHtml(content: string): string {
   return `<!DOCTYPE html>
 <html>
@@ -75,6 +207,7 @@ function baseHtml(content: string): string {
     .card { background-color: #ffffff; border-radius: 12px; border: 1px solid #e2e8f0; padding: 32px; box-shadow: 0 1px 3px rgba(0,0,0,0.05); }
     .badge { display: inline-block; padding: 4px 10px; border-radius: 9999px; font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; }
     .badge-success { background-color: #ecfdf5; color: #059669; border: 1px solid #a7f3d0; }
+    .badge-info { background-color: #eff6ff; color: #2563eb; border: 1px solid #bfdbfe; }
     .badge-danger { background-color: #fef2f2; color: #dc2626; border: 1px solid #fecaca; }
     h1 { font-size: 20px; font-weight: 700; margin: 16px 0 8px 0; color: #0f172a; }
     p { font-size: 14px; line-height: 1.6; color: #475569; margin: 0 0 16px 0; }
@@ -85,6 +218,7 @@ function baseHtml(content: string): string {
     .details-value { color: #0f172a; font-weight: 600; text-align: right; }
     .btn { display: inline-block; background-color: #0f172a; color: #ffffff !important; text-decoration: none; padding: 10px 20px; border-radius: 8px; font-size: 13px; font-weight: 600; text-align: center; margin-top: 12px; }
     .footer { text-align: center; margin-top: 24px; font-size: 12px; color: #94a3b8; }
+    .strikethrough { text-decoration: line-through; color: #94a3b8; margin-right: 8px; }
   </style>
 </head>
 <body>
@@ -102,7 +236,7 @@ function baseHtml(content: string): string {
 
 export function renderBookingConfirmedAttendee(
   snapshot: SnapshotPayload,
-  appUrl: string
+  manageUrl: string
 ): { subject: string; html: string; text: string } {
   const { dateStr, timeRangeStr } = formatZonedRange(
     snapshot.startUtc,
@@ -110,37 +244,45 @@ export function renderBookingConfirmedAttendee(
     snapshot.attendeeTimeZone
   );
 
-  const bookingUrl = `${appUrl}/public/bookings/${snapshot.bookingId}`;
-  const cancelUrl = `${appUrl}/public/bookings/${snapshot.bookingId}`;
-
   const subject = `Confirmed: ${snapshot.eventTitle} with ${snapshot.hostName}`;
+
+  const safeEventTitle = escapeHtml(snapshot.eventTitle);
+  const safeHostName = escapeHtml(snapshot.hostName);
+  const safeHostEmail = escapeHtml(snapshot.hostEmail);
+  const safeAttendeeNotes = snapshot.attendeeNotes ? escapeHtml(snapshot.attendeeNotes) : "";
+  const locationHtml = renderLocationHtml(snapshot, "ATTENDEE");
+  const locationText = renderLocationText(snapshot, "ATTENDEE");
+  const customResponsesHtml = renderCustomResponsesHtml(snapshot);
+  const customResponsesText = renderCustomResponsesText(snapshot);
 
   const html = baseHtml(`
     <div style="text-align: center; margin-bottom: 20px;">
       <span class="badge badge-success">Confirmed</span>
       <h1>You're scheduled!</h1>
-      <p>A calendar invitation has been attached to this email for your session with <strong>${snapshot.hostName}</strong>.</p>
+      <p>A calendar invitation has been attached to this email for your session with <strong>${safeHostName}</strong>.</p>
     </div>
 
     <div class="details-box">
-      <div class="details-row"><span class="details-label">Event:</span><span class="details-value">${snapshot.eventTitle}</span></div>
+      <div class="details-row"><span class="details-label">Event:</span><span class="details-value">${safeEventTitle}</span></div>
       <div class="details-row"><span class="details-label">Date:</span><span class="details-value">${dateStr}</span></div>
       <div class="details-row"><span class="details-label">Time:</span><span class="details-value">${timeRangeStr}</span></div>
       <div class="details-row"><span class="details-label">Duration:</span><span class="details-value">${snapshot.durationMinutes} mins</span></div>
-      <div class="details-row"><span class="details-label">Host:</span><span class="details-value">${snapshot.hostName} (${snapshot.hostEmail})</span></div>
+      <div class="details-row"><span class="details-label">Host:</span><span class="details-value">${safeHostName} (${safeHostEmail})</span></div>
+      ${locationHtml}
+      ${customResponsesHtml}
       ${
-        snapshot.attendeeNotes
-          ? `<div class="details-row"><span class="details-label">Your Notes:</span><span class="details-value">${snapshot.attendeeNotes}</span></div>`
+        safeAttendeeNotes
+          ? `<div class="details-row"><span class="details-label">Your Notes:</span><span class="details-value">${safeAttendeeNotes}</span></div>`
           : ""
       }
     </div>
 
     <div style="text-align: center; margin-top: 24px;">
-      <a href="${bookingUrl}" class="btn">View Booking Details</a>
+      <a href="${manageUrl}" class="btn">View Booking Details</a>
     </div>
 
     <p style="font-size: 12px; color: #94a3b8; text-align: center; margin-top: 20px;">
-      Need to make changes? <a href="${cancelUrl}" style="color: #ef4444; text-decoration: underline;">Cancel or reschedule booking</a>
+      Need to make changes? <a href="${manageUrl}" style="color: #ef4444; text-decoration: underline;">Cancel or reschedule booking</a>
     </p>
   `);
 
@@ -152,9 +294,8 @@ Date: ${dateStr}
 Time: ${timeRangeStr}
 Duration: ${snapshot.durationMinutes} minutes
 Host: ${snapshot.hostName} (${snapshot.hostEmail})
-${snapshot.attendeeNotes ? `Your Notes: ${snapshot.attendeeNotes}\n` : ""}
-View Booking: ${bookingUrl}
-Cancel or Manage: ${cancelUrl}
+${locationText}${customResponsesText}${snapshot.attendeeNotes ? `Your Notes: ${snapshot.attendeeNotes}\n` : ""}
+Manage / Reschedule: ${manageUrl}
 `;
 
   return { subject, html, text };
@@ -173,43 +314,203 @@ export function renderBookingConfirmedHost(
   const dashboardUrl = `${appUrl}/dashboard/bookings`;
   const subject = `New Booking: ${snapshot.attendeeName} - ${snapshot.eventTitle}`;
 
+  const safeEventTitle = escapeHtml(snapshot.eventTitle);
+  const safeAttendeeName = escapeHtml(snapshot.attendeeName);
+  const safeAttendeeEmail = escapeHtml(snapshot.attendeeEmail);
+  const safeAttendeeNotes = snapshot.attendeeNotes ? escapeHtml(snapshot.attendeeNotes) : "";
+  const locationHtml = renderLocationHtml(snapshot, "HOST");
+  const locationText = renderLocationText(snapshot, "HOST");
+  const customResponsesHtml = renderCustomResponsesHtml(snapshot);
+  const customResponsesText = renderCustomResponsesText(snapshot);
+
   const html = baseHtml(`
     <div style="text-align: center; margin-bottom: 20px;">
-      <span class="badge badge-success">New Booking</span>
-      <h1>New meeting scheduled!</h1>
-      <p><strong>${snapshot.attendeeName}</strong> has booked a slot on your calendar.</p>
+      <span class="badge badge-info">New Booking</span>
+      <h1>New Session Scheduled</h1>
+      <p><strong>${safeAttendeeName}</strong> has scheduled a new meeting with you.</p>
     </div>
 
     <div class="details-box">
-      <div class="details-row"><span class="details-label">Event:</span><span class="details-value">${snapshot.eventTitle}</span></div>
-      <div class="details-row"><span class="details-label">Attendee:</span><span class="details-value">${snapshot.attendeeName} (${snapshot.attendeeEmail})</span></div>
+      <div class="details-row"><span class="details-label">Event:</span><span class="details-value">${safeEventTitle}</span></div>
+      <div class="details-row"><span class="details-label">Attendee:</span><span class="details-value">${safeAttendeeName} (${safeAttendeeEmail})</span></div>
       <div class="details-row"><span class="details-label">Date:</span><span class="details-value">${dateStr}</span></div>
       <div class="details-row"><span class="details-label">Time:</span><span class="details-value">${timeRangeStr}</span></div>
       <div class="details-row"><span class="details-label">Duration:</span><span class="details-value">${snapshot.durationMinutes} mins</span></div>
-      <div class="details-row"><span class="details-label">Attendee Timezone:</span><span class="details-value">${snapshot.attendeeTimeZone}</span></div>
+      ${locationHtml}
+      ${customResponsesHtml}
       ${
-        snapshot.attendeeNotes
-          ? `<div class="details-row"><span class="details-label">Attendee Notes:</span><span class="details-value">${snapshot.attendeeNotes}</span></div>`
+        safeAttendeeNotes
+          ? `<div class="details-row"><span class="details-label">Attendee Notes:</span><span class="details-value">${safeAttendeeNotes}</span></div>`
           : ""
       }
     </div>
 
     <div style="text-align: center; margin-top: 24px;">
-      <a href="${dashboardUrl}" class="btn">Open Host Dashboard</a>
+      <a href="${dashboardUrl}" class="btn">View in Dashboard</a>
     </div>
   `);
 
   const text = `NEW BOOKING: ${snapshot.attendeeName} - ${snapshot.eventTitle}
 
-A new meeting has been scheduled on your calendar!
+A new meeting has been booked on your schedule.
 
 Attendee: ${snapshot.attendeeName} (${snapshot.attendeeEmail})
 Date: ${dateStr}
 Time: ${timeRangeStr}
 Duration: ${snapshot.durationMinutes} minutes
-Attendee Timezone: ${snapshot.attendeeTimeZone}
-${snapshot.attendeeNotes ? `Notes: ${snapshot.attendeeNotes}\n` : ""}
-Host Dashboard: ${dashboardUrl}
+${locationText}${customResponsesText}${snapshot.attendeeNotes ? `Attendee Notes: ${snapshot.attendeeNotes}\n` : ""}
+Dashboard: ${dashboardUrl}
+`;
+
+  return { subject, html, text };
+}
+
+export function renderBookingRescheduledAttendee(
+  snapshot: SnapshotPayload,
+  manageUrl: string
+): { subject: string; html: string; text: string } {
+  const { dateStr: newDateStr, timeRangeStr: newTimeRangeStr } = formatZonedRange(
+    snapshot.startUtc,
+    snapshot.endUtc,
+    snapshot.attendeeTimeZone
+  );
+
+  let previousTimeStr = "";
+  if (snapshot.previousStartUtc && snapshot.previousEndUtc) {
+    const prev = formatZonedRange(
+      snapshot.previousStartUtc,
+      snapshot.previousEndUtc,
+      snapshot.attendeeTimeZone
+    );
+    previousTimeStr = `${prev.dateStr}, ${prev.timeRangeStr}`;
+  }
+
+  const subject = `Rescheduled: ${snapshot.eventTitle} with ${snapshot.hostName}`;
+
+  const safeEventTitle = escapeHtml(snapshot.eventTitle);
+  const safeHostName = escapeHtml(snapshot.hostName);
+  const safeHostEmail = escapeHtml(snapshot.hostEmail);
+  const safeReason = snapshot.rescheduleReason ? escapeHtml(snapshot.rescheduleReason) : "";
+  const locationHtml = renderLocationHtml(snapshot, "ATTENDEE");
+  const locationText = renderLocationText(snapshot, "ATTENDEE");
+
+  const html = baseHtml(`
+    <div style="text-align: center; margin-bottom: 20px;">
+      <span class="badge badge-info">Rescheduled</span>
+      <h1>Meeting Rescheduled</h1>
+      <p>Your meeting with <strong>${safeHostName}</strong> has been rescheduled to a new time. An updated calendar invitation is attached.</p>
+    </div>
+
+    <div class="details-box">
+      <div class="details-row"><span class="details-label">Event:</span><span class="details-value">${safeEventTitle}</span></div>
+      <div class="details-row"><span class="details-label">New Date:</span><span class="details-value">${newDateStr}</span></div>
+      <div class="details-row"><span class="details-label">New Time:</span><span class="details-value" style="color: #2563eb;">${newTimeRangeStr}</span></div>
+      ${
+        previousTimeStr
+          ? `<div class="details-row"><span class="details-label">Previous Time:</span><span class="details-value strikethrough">${previousTimeStr}</span></div>`
+          : ""
+      }
+      <div class="details-row"><span class="details-label">Host:</span><span class="details-value">${safeHostName} (${safeHostEmail})</span></div>
+      ${locationHtml}
+      ${
+        safeReason
+          ? `<div class="details-row"><span class="details-label">Reason:</span><span class="details-value">"${safeReason}"</span></div>`
+          : ""
+      }
+    </div>
+
+    <div style="text-align: center; margin-top: 24px;">
+      <a href="${manageUrl}" class="btn">View Updated Details</a>
+    </div>
+
+    <p style="font-size: 12px; color: #94a3b8; text-align: center; margin-top: 20px;">
+      Need to make changes? <a href="${manageUrl}" style="color: #ef4444; text-decoration: underline;">Cancel or reschedule booking</a>
+    </p>
+  `);
+
+  const text = `RESCHEDULED: ${snapshot.eventTitle} with ${snapshot.hostName}
+
+Your meeting has been moved to a new time.
+
+New Date: ${newDateStr}
+New Time: ${newTimeRangeStr}
+${previousTimeStr ? `Previous Time: ${previousTimeStr}\n` : ""}Host: ${snapshot.hostName} (${snapshot.hostEmail})
+${locationText}${snapshot.rescheduleReason ? `Reason: "${snapshot.rescheduleReason}"\n` : ""}
+Manage / Reschedule: ${manageUrl}
+`;
+
+  return { subject, html, text };
+}
+
+export function renderBookingRescheduledHost(
+  snapshot: SnapshotPayload,
+  appUrl: string
+): { subject: string; html: string; text: string } {
+  const { dateStr: newDateStr, timeRangeStr: newTimeRangeStr } = formatZonedRange(
+    snapshot.startUtc,
+    snapshot.endUtc,
+    snapshot.hostTimeZone
+  );
+
+  let previousTimeStr = "";
+  if (snapshot.previousStartUtc && snapshot.previousEndUtc) {
+    const prev = formatZonedRange(
+      snapshot.previousStartUtc,
+      snapshot.previousEndUtc,
+      snapshot.hostTimeZone
+    );
+    previousTimeStr = `${prev.dateStr}, ${prev.timeRangeStr}`;
+  }
+
+  const dashboardUrl = `${appUrl}/dashboard/bookings`;
+  const subject = `Booking Rescheduled: ${snapshot.attendeeName} - ${snapshot.eventTitle}`;
+
+  const safeEventTitle = escapeHtml(snapshot.eventTitle);
+  const safeAttendeeName = escapeHtml(snapshot.attendeeName);
+  const safeAttendeeEmail = escapeHtml(snapshot.attendeeEmail);
+  const safeReason = snapshot.rescheduleReason ? escapeHtml(snapshot.rescheduleReason) : "";
+  const locationHtml = renderLocationHtml(snapshot, "HOST");
+  const locationText = renderLocationText(snapshot, "HOST");
+
+  const html = baseHtml(`
+    <div style="text-align: center; margin-bottom: 20px;">
+      <span class="badge badge-info">Rescheduled</span>
+      <h1>Booking Rescheduled</h1>
+      <p>The session with <strong>${safeAttendeeName}</strong> has been updated to a new time on your schedule.</p>
+    </div>
+
+    <div class="details-box">
+      <div class="details-row"><span class="details-label">Event:</span><span class="details-value">${safeEventTitle}</span></div>
+      <div class="details-row"><span class="details-label">Attendee:</span><span class="details-value">${safeAttendeeName} (${safeAttendeeEmail})</span></div>
+      <div class="details-row"><span class="details-label">New Date:</span><span class="details-value">${newDateStr}</span></div>
+      <div class="details-row"><span class="details-label">New Time:</span><span class="details-value" style="color: #2563eb;">${newTimeRangeStr}</span></div>
+      ${
+        previousTimeStr
+          ? `<div class="details-row"><span class="details-label">Previous Time:</span><span class="details-value strikethrough">${previousTimeStr}</span></div>`
+          : ""
+      }
+      ${locationHtml}
+      ${
+        safeReason
+          ? `<div class="details-row"><span class="details-label">Reason:</span><span class="details-value">"${safeReason}"</span></div>`
+          : ""
+      }
+    </div>
+
+    <div style="text-align: center; margin-top: 24px;">
+      <a href="${dashboardUrl}" class="btn">View in Dashboard</a>
+    </div>
+  `);
+
+  const text = `BOOKING RESCHEDULED: ${snapshot.attendeeName} - ${snapshot.eventTitle}
+
+The scheduled meeting has been moved to a new time.
+
+Attendee: ${snapshot.attendeeName} (${snapshot.attendeeEmail})
+New Date: ${newDateStr}
+New Time: ${newTimeRangeStr}
+${previousTimeStr ? `Previous Time: ${previousTimeStr}\n` : ""}${locationText}${snapshot.rescheduleReason ? `Reason: "${snapshot.rescheduleReason}"\n` : ""}
+Dashboard: ${dashboardUrl}
 `;
 
   return { subject, html, text };
@@ -225,23 +526,27 @@ export function renderBookingCancelledAttendee(
     snapshot.attendeeTimeZone
   );
 
-  const rebookUrl = `${appUrl}/public/${snapshot.hostUsername}`;
+  const rebookUrl = `${appUrl}/public/${snapshot.hostUsername}/${snapshot.eventSlug}`;
   const subject = `Cancelled: ${snapshot.eventTitle} with ${snapshot.hostName}`;
+
+  const safeEventTitle = escapeHtml(snapshot.eventTitle);
+  const safeHostName = escapeHtml(snapshot.hostName);
+  const safeReason = snapshot.cancellationReason ? escapeHtml(snapshot.cancellationReason) : "";
 
   const html = baseHtml(`
     <div style="text-align: center; margin-bottom: 20px;">
       <span class="badge badge-danger">Cancelled</span>
       <h1>Meeting Cancelled</h1>
-      <p>Your upcoming session with <strong>${snapshot.hostName}</strong> has been cancelled by the host.</p>
+      <p>Your session with <strong>${safeHostName}</strong> has been cancelled.</p>
     </div>
 
     <div class="details-box">
-      <div class="details-row"><span class="details-label">Event:</span><span class="details-value">${snapshot.eventTitle}</span></div>
+      <div class="details-row"><span class="details-label">Event:</span><span class="details-value">${safeEventTitle}</span></div>
       <div class="details-row"><span class="details-label">Scheduled Date:</span><span class="details-value">${dateStr}</span></div>
       <div class="details-row"><span class="details-label">Scheduled Time:</span><span class="details-value">${timeRangeStr}</span></div>
       ${
-        snapshot.cancellationReason
-          ? `<div class="details-row"><span class="details-label">Host Reason:</span><span class="details-value" style="color: #dc2626;">"${snapshot.cancellationReason}"</span></div>`
+        safeReason
+          ? `<div class="details-row"><span class="details-label">Host Reason:</span><span class="details-value" style="color: #dc2626;">"${safeReason}"</span></div>`
           : ""
       }
     </div>
@@ -277,21 +582,26 @@ export function renderBookingCancelledHost(
   const dashboardUrl = `${appUrl}/dashboard/bookings`;
   const subject = `Booking Cancelled: ${snapshot.attendeeName} - ${snapshot.eventTitle}`;
 
+  const safeEventTitle = escapeHtml(snapshot.eventTitle);
+  const safeAttendeeName = escapeHtml(snapshot.attendeeName);
+  const safeAttendeeEmail = escapeHtml(snapshot.attendeeEmail);
+  const safeReason = snapshot.cancellationReason ? escapeHtml(snapshot.cancellationReason) : "";
+
   const html = baseHtml(`
     <div style="text-align: center; margin-bottom: 20px;">
       <span class="badge badge-danger">Cancelled</span>
       <h1>Attendee Cancelled</h1>
-      <p><strong>${snapshot.attendeeName}</strong> has cancelled their scheduled booking. The slot has been released back into your availability.</p>
+      <p><strong>${safeAttendeeName}</strong> has cancelled their scheduled booking. The slot has been released back into your availability.</p>
     </div>
 
     <div class="details-box">
-      <div class="details-row"><span class="details-label">Event:</span><span class="details-value">${snapshot.eventTitle}</span></div>
-      <div class="details-row"><span class="details-label">Attendee:</span><span class="details-value">${snapshot.attendeeName} (${snapshot.attendeeEmail})</span></div>
+      <div class="details-row"><span class="details-label">Event:</span><span class="details-value">${safeEventTitle}</span></div>
+      <div class="details-row"><span class="details-label">Attendee:</span><span class="details-value">${safeAttendeeName} (${safeAttendeeEmail})</span></div>
       <div class="details-row"><span class="details-label">Scheduled Date:</span><span class="details-value">${dateStr}</span></div>
       <div class="details-row"><span class="details-label">Scheduled Time:</span><span class="details-value">${timeRangeStr}</span></div>
       ${
-        snapshot.cancellationReason
-          ? `<div class="details-row"><span class="details-label">Attendee Reason:</span><span class="details-value" style="color: #dc2626;">"${snapshot.cancellationReason}"</span></div>`
+        safeReason
+          ? `<div class="details-row"><span class="details-label">Attendee Reason:</span><span class="details-value" style="color: #dc2626;">"${safeReason}"</span></div>`
           : ""
       }
     </div>

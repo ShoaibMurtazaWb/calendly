@@ -40,6 +40,10 @@ describe("event types HTTP", () => {
         slug: "intro-call",
         description: "A first meeting",
         durationMinutes: 30,
+        location: {
+          type: "STATIC_VIDEO",
+          data: { url: "https://meet.google.com/abc-defg-hij" },
+        },
       });
     expect(created.status).toBe(201);
     expect(created.body.slug).toBe("intro-call");
@@ -47,7 +51,16 @@ describe("event types HTTP", () => {
     const clash = await request(app.getHttpServer())
       .post("/api/v1/event-types")
       .set("Cookie", cookies)
-      .send({ title: "Other", slug: "intro-call", description: "", durationMinutes: 15 });
+      .send({
+        title: "Other",
+        slug: "intro-call",
+        description: "",
+        durationMinutes: 15,
+        location: {
+          type: "STATIC_VIDEO",
+          data: { url: "https://meet.google.com/abc-defg-hij" },
+        },
+      });
     expect(clash.status).toBe(409);
     expect(clash.body.error.code).toBe("EVENT_TYPE_SLUG_CONFLICT");
 
@@ -103,7 +116,16 @@ describe("event types HTTP", () => {
     const created = await request(app.getHttpServer())
       .post("/api/v1/event-types")
       .set("Cookie", owner.cookies)
-      .send({ title: "Private", slug: "private", description: "", durationMinutes: 15 });
+      .send({
+        title: "Private",
+        slug: "private",
+        description: "",
+        durationMinutes: 15,
+        location: {
+          type: "STATIC_VIDEO",
+          data: { url: "https://meet.google.com/abc-defg-hij" },
+        },
+      });
 
     const get = await request(app.getHttpServer())
       .get(`/api/v1/event-types/${created.body.id}`)

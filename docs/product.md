@@ -1,38 +1,38 @@
-# Product — v0.1.0
+# Product Specification — Sched
 
-Scheduling SaaS for hosts who publish event types and, later, accept bookings. Week 1 ships identity, event-type management, and a public read-only event-type page. It does **not** compute availability or create meetings.
+Sched is an operational, high-precision calendar scheduling SaaS platform engineered to eliminate meeting friction for hosts and attendees across timezones.
 
-## Who it is for
+## Core Capabilities
 
-A single host who wants a public profile (`/public/:username/:eventSlug`) and a private dashboard to manage event types.
+- **Identity & Authentication**: Sign up with username handle, email, password, and IANA timezone. Secure session-based authentication with `SameSite=Lax` cookies.
+- **Event Types Management**: Create, edit, configure durations (15m, 30m, 45m, 60m), notice limits, buffer times, and archive/unarchive event types.
+- **Availability & Multi-Interval Split Shifts**: Configurable weekly schedule with split shifts per day (e.g. 09:00–12:00 and 13:00–17:00), day toggles, and date overrides.
+- **Timezone-Aware Booking Engine**: Real-time slot calculation against host schedule and existing bookings, projected seamlessly into the attendee's local timezone.
+- **Zero Double-Booking Guarantee**: PostgreSQL GiST exclusion constraint (`no_overlapping_confirmed_bookings`) guarantees mathematical conflict prevention under high concurrency.
+- **Self-Service Booking & Cancellation**: Public booking confirmation, RFC 5545 `.ics` calendar generation, and mutual cancellation flows (host & attendee) with slot release.
+- **Transactional Email Notifications**: Asynchronous email delivery via PostgreSQL transactional outbox (`SKIP LOCKED` worker), with automated confirmation and cancellation emails.
 
-## v0.1 capabilities
+## Invariants (Product & Business Rules)
 
-- Register with name, unique username, email, password, and IANA timezone
-- Log in, log out, and load the current user
-- Create, list, view, update, and archive event types
-- Public, unauthenticated read of an **active** event type
+- **Usernames**: Lowercase alphanumeric slug, globally unique, immutable after registration.
+- **Emails**: Unique login identifier (case-insensitive via `citext`).
+- **Event Slugs**: Unique per host, not globally.
+- **Event Archiving**: Soft-removal path; archived event types are hidden from public discovery and default dashboard views.
+- **Privacy**: Host email is never exposed on public booking pages.
+- **HTML Sanitization**: Untrusted attendee notes and reasons are escaped before rendering in email HTML templates.
+- **Time Representation**: All persistent storage is in UTC (`timestamptz`); client-side presentation handles IANA timezones and DST transitions.
 
-## v0.1 non-goals
+## User-Visible URLs (Web App)
 
-Availability, booking, calendars, email, payments, teams, webhooks, username changes, password reset, email verification, and account deletion.
-
-## Invariants (product)
-
-- Username is a public handle: lowercase slug, unique, immutable after signup
-- Email is the login identifier (case-insensitive unique)
-- Event-type slugs are unique per host, not globally
-- Archive is the only removal path; archived types are hidden from the public page and the default dashboard list
-- The public page never exposes the host email
-
-## User-visible URLs (web)
-
-| Path | Audience |
-|---|---|
-| `/register`, `/login` | Anonymous |
-| `/dashboard` | Authenticated host |
-| `/dashboard/event-types/new` | Authenticated host |
-| `/dashboard/event-types/:id/edit` | Authenticated host |
-| `/public/:username/:eventSlug` | Anyone |
-
-API contracts live under `/api/v1` (see [architecture.md](./architecture.md)).
+| Path | Audience | Purpose |
+|---|---|---|
+| `/` | Public / Dynamic | Landing page with personalized dashboard CTAs for logged-in hosts |
+| `/login`, `/register` | Anonymous | Authentication forms with automatic redirection for active sessions |
+| `/dashboard` | Authenticated Host | Event types overview and management |
+| `/dashboard/event-types/new` | Authenticated Host | Create new event type |
+| `/dashboard/event-types/:id/edit` | Authenticated Host | Edit / archive event type |
+| `/dashboard/availability` | Authenticated Host | Weekly hours, split shifts, and date overrides editor |
+| `/dashboard/bookings` | Authenticated Host | Host bookings manager (Upcoming, Past, Cancelled) |
+| `/public/:username` | Public | Host public directory of active event types |
+| `/public/:username/:eventSlug` | Public | Interactive calendar date & time slot booking page |
+| `/public/bookings/:id` | Public | Booking confirmation & attendee cancellation portal |

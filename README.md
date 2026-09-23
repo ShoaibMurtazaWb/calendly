@@ -1,15 +1,16 @@
-# Sched (v0.1.0)
+# Sched
 
-Production-oriented scheduling SaaS foundation: accounts, event types, and public read-only event-type pages. Availability and booking are **not** in this version.
+High-precision scheduling SaaS platform with timezone-aware slot calculation, split shifts, concurrency-safe booking commitments, and transactional notification workflows.
 
-See [docs/product.md](docs/product.md) and [docs/architecture.md](docs/architecture.md).
+See [docs/product.md](docs/product.md), [docs/architecture.md](docs/architecture.md), and [docs/design.md](docs/design.md).
 
 ## Stack
 
-- Web: Next.js, React, TypeScript, Tailwind CSS, shadcn/ui
-- API: NestJS, Prisma, PostgreSQL
-- Monorepo: pnpm + Turborepo
-- Local DB: Docker Compose
+- **Frontend**: Next.js 15 (App Router), React 19, TypeScript, Tailwind CSS, Radix UI, Lucide Icons
+- **Backend**: NestJS, Prisma ORM (v6), PostgreSQL 16 (`citext`, `btree_gist`)
+- **Background Worker**: Transactional Outbox processor (`SKIP LOCKED`)
+- **Monorepo**: pnpm workspaces + Turborepo
+- **Local Database**: Docker Compose PostgreSQL
 
 ## Prerequisites
 
@@ -17,35 +18,46 @@ See [docs/product.md](docs/product.md) and [docs/architecture.md](docs/architect
 - pnpm 10+
 - Docker
 
-## Local development
+## Local Development Setup
 
 ```bash
+# 1. Environment configuration
 cp .env.example apps/api/.env
+
+# 2. Start PostgreSQL container
 docker compose up -d postgres
+
+# 3. Install dependencies
 pnpm install
-pnpm --filter @sched/api prisma:migrate
+
+# 4. Run database migrations
+pnpm --filter @sched/api prisma:migrate:deploy
+
+# 5. Start dev servers (Next.js :3000, NestJS :3001)
 pnpm dev
 ```
 
-- Web: http://localhost:3000
-- API: http://localhost:3001/api/v1
-- OpenAPI (non-production): http://localhost:3001/api/docs
+- Web App: `http://localhost:3000`
+- API Base: `http://localhost:3001/api/v1`
+- OpenAPI Swagger: `http://localhost:3001/api/docs`
 
-The web app proxies `/api/v1/*` to the API so session cookies stay same-origin.
+The web application proxies `/api/v1/*` to the API to maintain `SameSite=Lax` session cookie security.
 
-## Scripts
+## Quality Gates & Scripts
 
 | Command | Purpose |
 |---|---|
-| `pnpm dev` | API + web |
-| `pnpm lint` | ESLint |
-| `pnpm typecheck` | `tsc --noEmit` |
-| `pnpm --filter @sched/api test` | API unit + integration tests |
-| `pnpm build` | Production builds |
+| `pnpm dev` | Run API + Web development servers |
+| `pnpm lint` | Run ESLint across all packages |
+| `pnpm typecheck` | Strict TypeScript type checking across monorepo |
+| `pnpm test` | Run Jest unit, HTTP integration, outbox & concurrency test suites |
+| `pnpm build` | Build production bundles for API, Web, and contracts |
+| `pnpm turbo lint typecheck build test` | Execute full CI verification pipeline |
 
-## Security notes
+## Key Invariants & Concurrency Safety
 
-- Passwords are hashed with Argon2id
-- Session tokens are stored hashed (SHA-256)
-- In-memory login/register throttle (10/min/IP) does **not** span multiple API processes
-- Set `COOKIE_SECURE=true` behind HTTPS; set `TRUST_PROXY` only when terminating TLS in front of Nest
+- **Zero Double-Bookings**: PostgreSQL GiST exclusion constraint (`no_overlapping_confirmed_bookings`) enforces booking non-overlap at the database engine level.
+- **Transactional Outbox**: Notifications are committed in the same database transaction as booking mutations and claimed atomically using `FOR UPDATE SKIP LOCKED`.
+- **Timezone Precision**: Stored strictly in UTC (`timestamptz`); client-side presentation handles IANA timezones and DST transitions.
+- **HTML Sanitization**: User-supplied values are escaped at template rendering boundaries without mutating stored domain values.
+- **Rate Limiting**: Public endpoints are rate-limited via `@nestjs/throttler` (in-memory per instance). Set `TRUST_PROXY=true` when running behind a reverse proxy.

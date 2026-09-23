@@ -12,10 +12,12 @@ import {
   ShieldCheck,
   Zap,
   Layers,
+  ExternalLink,
 } from "lucide-react";
 import { Logo } from "@/components/logo";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { api, type CurrentUser } from "@/lib/api";
 
 const DEMO_EVENTS = [
   {
@@ -116,12 +118,20 @@ const STEPS = [
 ];
 
 export default function HomePage() {
+  const [user, setUser] = useState<CurrentUser | null>(null);
   const [selectedEvent, setSelectedEvent] = useState<(typeof DEMO_EVENTS)[number]>(DEMO_EVENTS[0]!);
   const [selectedSlot, setSelectedSlot] = useState<string | null>("10:30 AM");
   const [bookedState, setBookedState] = useState(false);
   const [currentTime, setCurrentTime] = useState<string>("");
 
   useEffect(() => {
+    // Check if current user is logged in
+    api<CurrentUser>("/auth/me")
+      .then(setUser)
+      .catch(() => {
+        setUser(null);
+      });
+
     const updateTime = () => {
       const now = new Date();
       setCurrentTime(
@@ -189,15 +199,41 @@ export default function HomePage() {
           </nav>
 
           <div className="flex items-center gap-3">
-            <Button asChild variant="outline" size="sm">
-              <Link href="/login">Sign in</Link>
-            </Button>
-            <Button asChild size="sm">
-              <Link href="/register">
-                <span>Get started</span>
-                <ArrowRight className="h-3.5 w-3.5" />
-              </Link>
-            </Button>
+            {user ? (
+              <div className="flex items-center gap-2.5">
+                <Button asChild variant="ghost" size="sm" className="hidden sm:inline-flex text-xs text-[var(--text-secondary)] hover:text-[var(--text-primary)] gap-1.5">
+                  <Link href={`/public/${user.username}`} target="_blank">
+                    <span>Public Profile</span>
+                    <ExternalLink className="h-3 w-3 text-[var(--text-muted)]" />
+                  </Link>
+                </Button>
+                <Button asChild size="sm" className="gap-1.5">
+                  <Link href="/dashboard">
+                    <span>Dashboard</span>
+                    <ArrowRight className="h-3.5 w-3.5" />
+                  </Link>
+                </Button>
+                <Link
+                  href="/dashboard"
+                  className="flex h-7 w-7 items-center justify-center rounded-full bg-neutral-900 text-white text-[11px] font-bold shadow-2xs select-none hover:scale-105 transition-transform"
+                  title={`${user.name} (@${user.username})`}
+                >
+                  {user.name.charAt(0).toUpperCase()}
+                </Link>
+              </div>
+            ) : (
+              <>
+                <Button asChild variant="outline" size="sm">
+                  <Link href="/login">Sign in</Link>
+                </Button>
+                <Button asChild size="sm">
+                  <Link href="/register">
+                    <span>Get started</span>
+                    <ArrowRight className="h-3.5 w-3.5" />
+                  </Link>
+                </Button>
+              </>
+            )}
           </div>
         </div>
       </header>
@@ -221,15 +257,34 @@ export default function HomePage() {
           </p>
 
           <div className="mt-8 flex flex-col items-center justify-center gap-3 sm:flex-row">
-            <Button asChild size="lg" className="w-full sm:w-auto">
-              <Link href="/register">
-                <span>Create account free</span>
-                <ArrowRight className="h-4 w-4" />
-              </Link>
-            </Button>
-            <Button asChild variant="outline" size="lg" className="w-full sm:w-auto">
-              <a href="#interactive-demo">View live demo</a>
-            </Button>
+            {user ? (
+              <>
+                <Button asChild size="lg" className="w-full sm:w-auto">
+                  <Link href="/dashboard">
+                    <span>Go to Dashboard</span>
+                    <ArrowRight className="h-4 w-4" />
+                  </Link>
+                </Button>
+                <Button asChild variant="outline" size="lg" className="w-full sm:w-auto">
+                  <Link href={`/public/${user.username}`} target="_blank">
+                    <span>View your public profile (@{user.username})</span>
+                    <ExternalLink className="h-3.5 w-3.5 ml-1.5" />
+                  </Link>
+                </Button>
+              </>
+            ) : (
+              <>
+                <Button asChild size="lg" className="w-full sm:w-auto">
+                  <Link href="/register">
+                    <span>Create account free</span>
+                    <ArrowRight className="h-4 w-4" />
+                  </Link>
+                </Button>
+                <Button asChild variant="outline" size="lg" className="w-full sm:w-auto">
+                  <a href="#interactive-demo">View live demo</a>
+                </Button>
+              </>
+            )}
           </div>
 
           <div className="mt-10 flex flex-wrap items-center justify-center gap-6 text-xs text-[var(--text-muted)]">
@@ -466,26 +521,56 @@ export default function HomePage() {
       <section className="py-14 border-t border-[var(--border-subtle)] bg-[var(--bg-surface)]">
         <div className="mx-auto max-w-4xl px-6">
           <div className="rounded-2xl border border-neutral-800 bg-neutral-900 p-8 sm:p-10 text-center text-white shadow-sm">
-            <h2 className="text-2xl font-bold sm:text-3xl">Ready to streamline your scheduling?</h2>
-            <p className="mx-auto mt-2 max-w-lg text-xs sm:text-sm text-neutral-400">
-              Create your custom booking page, manage availability, and let attendees book slots directly.
-            </p>
-            <div className="mt-6 flex flex-col items-center justify-center gap-3 sm:flex-row">
-              <Button
-                asChild
-                size="lg"
-                className="w-full sm:w-auto bg-white text-neutral-900 hover:bg-neutral-100 font-semibold"
-              >
-                <Link href="/register">Create your page free</Link>
-              </Button>
-              <Button
-                asChild
-                size="lg"
-                className="w-full sm:w-auto border border-neutral-700 bg-neutral-800 text-neutral-200 hover:bg-neutral-700 hover:text-white"
-              >
-                <Link href="/login">Sign in to Dashboard</Link>
-              </Button>
-            </div>
+            {user ? (
+              <>
+                <h2 className="text-2xl font-bold sm:text-3xl">Ready to manage your schedule, {user.name}?</h2>
+                <p className="mx-auto mt-2 max-w-lg text-xs sm:text-sm text-neutral-400">
+                  Jump back into your dashboard to configure event types, review bookings, or update working hours.
+                </p>
+                <div className="mt-6 flex flex-col items-center justify-center gap-3 sm:flex-row">
+                  <Button
+                    asChild
+                    size="lg"
+                    className="w-full sm:w-auto bg-white text-neutral-900 hover:bg-neutral-100 font-semibold"
+                  >
+                    <Link href="/dashboard">Open Host Dashboard</Link>
+                  </Button>
+                  <Button
+                    asChild
+                    size="lg"
+                    className="w-full sm:w-auto border border-neutral-700 bg-neutral-800 text-neutral-200 hover:bg-neutral-700 hover:text-white"
+                  >
+                    <Link href={`/public/${user.username}`} target="_blank">
+                      <span>View public page</span>
+                      <ExternalLink className="h-3.5 w-3.5 ml-1.5" />
+                    </Link>
+                  </Button>
+                </div>
+              </>
+            ) : (
+              <>
+                <h2 className="text-2xl font-bold sm:text-3xl">Ready to streamline your scheduling?</h2>
+                <p className="mx-auto mt-2 max-w-lg text-xs sm:text-sm text-neutral-400">
+                  Create your custom booking page, manage availability, and let attendees book slots directly.
+                </p>
+                <div className="mt-6 flex flex-col items-center justify-center gap-3 sm:flex-row">
+                  <Button
+                    asChild
+                    size="lg"
+                    className="w-full sm:w-auto bg-white text-neutral-900 hover:bg-neutral-100 font-semibold"
+                  >
+                    <Link href="/register">Create your page free</Link>
+                  </Button>
+                  <Button
+                    asChild
+                    size="lg"
+                    className="w-full sm:w-auto border border-neutral-700 bg-neutral-800 text-neutral-200 hover:bg-neutral-700 hover:text-white"
+                  >
+                    <Link href="/login">Sign in to Dashboard</Link>
+                  </Button>
+                </div>
+              </>
+            )}
           </div>
         </div>
       </section>

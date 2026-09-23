@@ -3,8 +3,25 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
-import { ArrowLeft, Clock, Link2 } from "lucide-react";
-import { createEventTypeBodySchema, updateEventTypeBodySchema } from "@sched/api-contract";
+import {
+  ArrowLeft,
+  Clock,
+  Link2,
+  MapPin,
+  Video,
+  PhoneCall,
+  PhoneForwarded,
+  Globe,
+  AlertCircle,
+  Plus,
+  Trash2,
+} from "lucide-react";
+import {
+  createEventTypeBodySchema,
+  updateEventTypeBodySchema,
+  type EventTypeLocationConfig,
+  type LocationType,
+} from "@sched/api-contract";
 import { DashboardShell } from "@/components/dashboard-shell";
 import { Button } from "@/components/ui/button";
 import { Card, CardTitle, CardDescription } from "@/components/ui/card";
@@ -38,6 +55,7 @@ export function EventTypeForm({ eventTypeId }: EventTypeFormProps) {
   const [fields, setFields] = useState<Record<string, string>>({});
   const [pending, setPending] = useState(false);
   const [loadingInitial, setLoadingInitial] = useState(Boolean(eventTypeId));
+  const [isLegacyMissingLocation, setIsLegacyMissingLocation] = useState(false);
 
   // Controlled form values
   const [title, setTitle] = useState("");
@@ -45,6 +63,31 @@ export function EventTypeForm({ eventTypeId }: EventTypeFormProps) {
   const [duration, setDuration] = useState<number>(30);
   const [description, setDescription] = useState("");
   const [isSlugTouched, setIsSlugTouched] = useState(false);
+
+  // Location state
+  const [locationType, setLocationType] = useState<LocationType>("STATIC_VIDEO");
+  const [inPersonAddress, setInPersonAddress] = useState("");
+  const [displayPublicAddress, setDisplayPublicAddress] = useState(false);
+  const [inPersonNotes, setInPersonNotes] = useState("");
+  const [videoUrl, setVideoUrl] = useState("");
+  const [videoNotes, setVideoNotes] = useState("");
+  const [customLinkUrl, setCustomLinkUrl] = useState("");
+  const [customLinkNotes, setCustomLinkNotes] = useState("");
+  const [hostCallsAttendeeNotes, setHostCallsAttendeeNotes] = useState("");
+  const [attendeeCallsHostPhone, setAttendeeCallsHostPhone] = useState("");
+  const [attendeeCallsHostNotes, setAttendeeCallsHostNotes] = useState("");
+
+  // Custom Questions state
+  const [customQuestions, setCustomQuestions] = useState<
+    Array<{
+      id?: string;
+      type: "TEXT" | "TEXTAREA" | "SELECT" | "CHECKBOX";
+      label: string;
+      required: boolean;
+      placeholder?: string;
+      options?: Array<{ id?: string; label: string }>;
+    }>
+  >([]);
 
   useEffect(() => {
     api<CurrentUser>("/auth/me").then(setUser).catch(() => {});
@@ -62,6 +105,33 @@ export function EventTypeForm({ eventTypeId }: EventTypeFormProps) {
         setDuration(data.durationMinutes);
         setDescription(data.description || "");
         setIsSlugTouched(true);
+
+        if (data.customQuestions && Array.isArray(data.customQuestions)) {
+          setCustomQuestions(data.customQuestions);
+        }
+
+        if (data.location) {
+          setLocationType(data.location.type as LocationType);
+          const locData = data.location.data as Record<string, unknown>;
+          if (data.location.type === "IN_PERSON") {
+            setInPersonAddress(String(locData.address || ""));
+            setDisplayPublicAddress(Boolean(locData.displayPublicAddress));
+            setInPersonNotes(String(locData.extraNotes || ""));
+          } else if (data.location.type === "STATIC_VIDEO") {
+            setVideoUrl(String(locData.url || ""));
+            setVideoNotes(String(locData.extraNotes || ""));
+          } else if (data.location.type === "CUSTOM_LINK") {
+            setCustomLinkUrl(String(locData.url || ""));
+            setCustomLinkNotes(String(locData.extraNotes || ""));
+          } else if (data.location.type === "HOST_CALLS_ATTENDEE") {
+            setHostCallsAttendeeNotes(String(locData.extraNotes || ""));
+          } else if (data.location.type === "ATTENDEE_CALLS_HOST") {
+            setAttendeeCallsHostPhone(String(locData.hostPhoneNumber || ""));
+            setAttendeeCallsHostNotes(String(locData.extraNotes || ""));
+          }
+        } else {
+          setIsLegacyMissingLocation(true);
+        }
       })
       .catch(() => setError("Event type not found."))
       .finally(() => setLoadingInitial(false));
@@ -74,16 +144,165 @@ export function EventTypeForm({ eventTypeId }: EventTypeFormProps) {
     }
   }
 
+  function handleAddQuestion(type: "TEXT" | "TEXTAREA" | "SELECT" | "CHECKBOX") {
+    if (type === "SELECT") {
+      setCustomQuestions((prev) => [
+        ...prev,
+        {
+          type: "SELECT",
+          label: "",
+          required: false,
+          options: [
+            { label: "Option 1" },
+            { label: "Option 2" },
+          ],
+        },
+      ]);
+    } else if (type === "CHECKBOX") {
+      setCustomQuestions((prev) => [
+        ...prev,
+        {
+          type: "CHECKBOX",
+          label: "I agree to the terms and requirements",
+          required: false,
+        },
+      ]);
+    } else {
+      setCustomQuestions((prev) => [
+        ...prev,
+        {
+          type,
+          label: "",
+          required: false,
+          placeholder: "",
+        },
+      ]);
+    }
+  }
+
+  function handleRemoveQuestion(index: number) {
+    setCustomQuestions((prev) => prev.filter((_, i) => i !== index));
+  }
+
+  function handleUpdateQuestion(
+    index: number,
+    patch: Partial<{
+      label: string;
+      required: boolean;
+      placeholder?: string;
+      options?: Array<{ id?: string; label: string }>;
+    }>
+  ) {
+    setCustomQuestions((prev) =>
+      prev.map((q, i) => (i === index ? { ...q, ...patch } : q))
+    );
+  }
+
+  function handleAddOption(questionIndex: number) {
+    setCustomQuestions((prev) =>
+      prev.map((q, i) => {
+        if (i !== questionIndex) return q;
+        const currentOpts = q.options || [];
+        return {
+          ...q,
+          options: [...currentOpts, { label: `Option ${currentOpts.length + 1}` }],
+        };
+      })
+    );
+  }
+
+  function handleRemoveOption(questionIndex: number, optionIndex: number) {
+    setCustomQuestions((prev) =>
+      prev.map((q, i) => {
+        if (i !== questionIndex) return q;
+        const currentOpts = q.options || [];
+        if (currentOpts.length <= 2) {
+          toast.error("Select question must have at least 2 options.");
+          return q;
+        }
+        return {
+          ...q,
+          options: currentOpts.filter((_, optIdx) => optIdx !== optionIndex),
+        };
+      })
+    );
+  }
+
+  function handleUpdateOption(questionIndex: number, optionIndex: number, label: string) {
+    setCustomQuestions((prev) =>
+      prev.map((q, i) => {
+        if (i !== questionIndex) return q;
+        const currentOpts = q.options || [];
+        return {
+          ...q,
+          options: currentOpts.map((opt, optIdx) =>
+            optIdx === optionIndex ? { ...opt, label } : opt
+          ),
+        };
+      })
+    );
+  }
+
+  function buildLocationConfig(): EventTypeLocationConfig {
+    switch (locationType) {
+      case "IN_PERSON":
+        return {
+          type: "IN_PERSON",
+          data: {
+            address: inPersonAddress,
+            displayPublicAddress,
+            extraNotes: inPersonNotes || undefined,
+          },
+        };
+      case "HOST_CALLS_ATTENDEE":
+        return {
+          type: "HOST_CALLS_ATTENDEE",
+          data: {
+            extraNotes: hostCallsAttendeeNotes || undefined,
+          },
+        };
+      case "ATTENDEE_CALLS_HOST":
+        return {
+          type: "ATTENDEE_CALLS_HOST",
+          data: {
+            hostPhoneNumber: attendeeCallsHostPhone,
+            extraNotes: attendeeCallsHostNotes || undefined,
+          },
+        };
+      case "CUSTOM_LINK":
+        return {
+          type: "CUSTOM_LINK",
+          data: {
+            url: customLinkUrl,
+            extraNotes: customLinkNotes || undefined,
+          },
+        };
+      case "STATIC_VIDEO":
+      default:
+        return {
+          type: "STATIC_VIDEO",
+          data: {
+            url: videoUrl,
+            extraNotes: videoNotes || undefined,
+          },
+        };
+    }
+  }
+
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setError(null);
     setFields({});
+
+    const locationConfig = buildLocationConfig();
 
     const raw = {
       title,
       slug,
       description,
       durationMinutes: duration,
+      location: locationConfig,
+      customQuestions: customQuestions.length > 0 ? customQuestions : undefined,
     };
 
     const parsed = eventTypeId
@@ -93,8 +312,8 @@ export function EventTypeForm({ eventTypeId }: EventTypeFormProps) {
     if (!parsed.success) {
       const next: Record<string, string> = {};
       for (const issue of parsed.error.issues) {
-        const key = String(issue.path[0] ?? "form");
-        if (!next[key]) next[key] = issue.message;
+        const pathKey = issue.path.join(".");
+        if (!next[pathKey]) next[pathKey] = issue.message;
       }
       setFields(next);
       return;
@@ -153,6 +372,19 @@ export function EventTypeForm({ eventTypeId }: EventTypeFormProps) {
           Back to Event Types
         </Link>
 
+        {/* Legacy Missing Location Alert */}
+        {isLegacyMissingLocation && (
+          <div className="mb-4 rounded-xl border border-amber-200 bg-amber-50 p-4 text-xs text-amber-900 dark:border-amber-900/40 dark:bg-amber-950/20 dark:text-amber-300 flex items-start gap-2.5">
+            <AlertCircle className="h-4 w-4 shrink-0 text-amber-600 mt-0.5" />
+            <div className="space-y-1">
+              <p className="font-semibold">Location Required</p>
+              <p className="text-[11px] text-amber-800 dark:text-amber-400">
+                This legacy event type has no location configured. Please configure a meeting location below before saving changes.
+              </p>
+            </div>
+          </div>
+        )}
+
         {/* Form Card */}
         <Card className="rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-surface)] p-6 sm:p-8 shadow-xs">
           <div className="pb-5 border-b border-[var(--border-subtle)]">
@@ -160,11 +392,11 @@ export function EventTypeForm({ eventTypeId }: EventTypeFormProps) {
               {eventTypeId ? "Edit Event Type" : "Create New Event Type"}
             </CardTitle>
             <CardDescription className="mt-1 text-xs text-[var(--text-muted)]">
-              Configure duration, booking slug, and attendee details.
+              Configure duration, booking slug, location details, and attendee guidelines.
             </CardDescription>
           </div>
 
-          <form className="mt-6 space-y-5" onSubmit={handleSubmit}>
+          <form className="mt-6 space-y-6" onSubmit={handleSubmit}>
             {/* Title Field */}
             <div className="space-y-1.5">
               <Label htmlFor="title">Event Title</Label>
@@ -209,8 +441,228 @@ export function EventTypeForm({ eventTypeId }: EventTypeFormProps) {
               )}
             </div>
 
+            {/* Location Selection Section */}
+            <div className="space-y-3 pt-2 border-t border-[var(--border-subtle)]">
+              <div>
+                <Label>Location & Conferencing</Label>
+                <p className="text-xs text-[var(--text-muted)] mt-0.5">
+                  Choose how you and your attendee will connect for this meeting.
+                </p>
+              </div>
+
+              {/* Location Type Option Cards */}
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                {[
+                  {
+                    id: "STATIC_VIDEO" as LocationType,
+                    label: "Video Meeting",
+                    desc: "Zoom, Google Meet link",
+                    icon: Video,
+                  },
+                  {
+                    id: "IN_PERSON" as LocationType,
+                    label: "In-Person",
+                    desc: "Physical address / venue",
+                    icon: MapPin,
+                  },
+                  {
+                    id: "HOST_CALLS_ATTENDEE" as LocationType,
+                    label: "Host Calls Attendee",
+                    desc: "Attendee provides phone",
+                    icon: PhoneCall,
+                  },
+                  {
+                    id: "ATTENDEE_CALLS_HOST" as LocationType,
+                    label: "Attendee Calls Host",
+                    desc: "You provide your phone",
+                    icon: PhoneForwarded,
+                  },
+                  {
+                    id: "CUSTOM_LINK" as LocationType,
+                    label: "Custom Web Link",
+                    desc: "Custom meeting room URL",
+                    icon: Globe,
+                  },
+                ].map((item) => {
+                  const Icon = item.icon;
+                  const isSelected = locationType === item.id;
+                  return (
+                    <button
+                      key={item.id}
+                      type="button"
+                      onClick={() => setLocationType(item.id)}
+                      className={`flex flex-col items-start text-left p-3 rounded-xl border text-xs transition-colors cursor-pointer ${
+                        isSelected
+                          ? "border-neutral-900 bg-neutral-900/5 dark:border-white dark:bg-white/10 text-[var(--text-primary)] font-semibold ring-1 ring-neutral-900 dark:ring-white"
+                          : "border-[var(--border-subtle)] bg-[var(--bg-surface)] text-[var(--text-secondary)] hover:border-neutral-400"
+                      }`}
+                    >
+                      <Icon className="h-4 w-4 mb-1.5 text-neutral-800 dark:text-neutral-200" />
+                      <span className="font-semibold text-[var(--text-primary)]">{item.label}</span>
+                      <span className="text-[10px] text-[var(--text-muted)] mt-0.5 leading-tight">{item.desc}</span>
+                    </button>
+                  );
+                })}
+              </div>
+
+              {/* Conditional Sub-forms per Location Type */}
+              <div className="rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-subtle)]/60 p-4 space-y-3 mt-2">
+                {locationType === "IN_PERSON" && (
+                  <>
+                    <div className="space-y-1">
+                      <Label htmlFor="inPersonAddress">Venue / Street Address</Label>
+                      <Input
+                        id="inPersonAddress"
+                        value={inPersonAddress}
+                        onChange={(e) => setInPersonAddress(e.target.value)}
+                        placeholder="e.g. 100 Montgomery St, Suite 400, San Francisco, CA"
+                        required
+                      />
+                      {fields["location.data.address"] && (
+                        <p className="text-xs text-[var(--status-danger-text)] font-medium">
+                          {fields["location.data.address"]}
+                        </p>
+                      )}
+                    </div>
+                    <div className="flex items-center gap-2 pt-1">
+                      <input
+                        type="checkbox"
+                        id="displayPublicAddress"
+                        checked={displayPublicAddress}
+                        onChange={(e) => setDisplayPublicAddress(e.target.checked)}
+                        className="h-4 w-4 rounded border-gray-300 text-neutral-900 focus:ring-neutral-900"
+                      />
+                      <label htmlFor="displayPublicAddress" className="text-xs text-[var(--text-secondary)] cursor-pointer">
+                        Display exact venue address publicly before booking (otherwise shown only after confirmation)
+                      </label>
+                    </div>
+                    <div className="space-y-1 pt-1">
+                      <Label htmlFor="inPersonNotes">Arrival / Parking Instructions (Optional)</Label>
+                      <Input
+                        id="inPersonNotes"
+                        value={inPersonNotes}
+                        onChange={(e) => setInPersonNotes(e.target.value)}
+                        placeholder="e.g. Buzz suite #400 at the front lobby."
+                      />
+                    </div>
+                  </>
+                )}
+
+                {locationType === "STATIC_VIDEO" && (
+                  <>
+                    <div className="space-y-1">
+                      <Label htmlFor="videoUrl">Static Video Meeting URL</Label>
+                      <Input
+                        id="videoUrl"
+                        value={videoUrl}
+                        onChange={(e) => setVideoUrl(e.target.value)}
+                        placeholder="https://meet.google.com/abc-defg-hij or personal Zoom link"
+                        required
+                      />
+                      {fields["location.data.url"] && (
+                        <p className="text-xs text-[var(--status-danger-text)] font-medium">
+                          {fields["location.data.url"]}
+                        </p>
+                      )}
+                      <p className="text-[11px] text-[var(--text-muted)]">
+                        Private link: only revealed to attendees in their confirmation email and calendar invite.
+                      </p>
+                    </div>
+                    <div className="space-y-1 pt-1">
+                      <Label htmlFor="videoNotes">Passcode / Meeting Notes (Optional)</Label>
+                      <Input
+                        id="videoNotes"
+                        value={videoNotes}
+                        onChange={(e) => setVideoNotes(e.target.value)}
+                        placeholder="e.g. Passcode: 123456"
+                      />
+                    </div>
+                  </>
+                )}
+
+                {locationType === "CUSTOM_LINK" && (
+                  <>
+                    <div className="space-y-1">
+                      <Label htmlFor="customLinkUrl">Custom Meeting URL</Label>
+                      <Input
+                        id="customLinkUrl"
+                        value={customLinkUrl}
+                        onChange={(e) => setCustomLinkUrl(e.target.value)}
+                        placeholder="https://app.customroom.com/your-room"
+                        required
+                      />
+                      {fields["location.data.url"] && (
+                        <p className="text-xs text-[var(--status-danger-text)] font-medium">
+                          {fields["location.data.url"]}
+                        </p>
+                      )}
+                    </div>
+                    <div className="space-y-1 pt-1">
+                      <Label htmlFor="customLinkNotes">Instructions (Optional)</Label>
+                      <Input
+                        id="customLinkNotes"
+                        value={customLinkNotes}
+                        onChange={(e) => setCustomLinkNotes(e.target.value)}
+                        placeholder="e.g. Please join 2 minutes early for audio setup."
+                      />
+                    </div>
+                  </>
+                )}
+
+                {locationType === "HOST_CALLS_ATTENDEE" && (
+                  <div className="space-y-2 text-xs text-[var(--text-secondary)]">
+                    <p className="font-semibold text-[var(--text-primary)]">You will call the attendee</p>
+                    <p className="text-[11px] text-[var(--text-muted)] leading-relaxed">
+                      At booking time, the attendee will be asked to provide their phone number. You will receive their number in your booking alert and calendar invite.
+                    </p>
+                    <div className="space-y-1 pt-1">
+                      <Label htmlFor="hostCallsAttendeeNotes">Notes for Attendee (Optional)</Label>
+                      <Input
+                        id="hostCallsAttendeeNotes"
+                        value={hostCallsAttendeeNotes}
+                        onChange={(e) => setHostCallsAttendeeNotes(e.target.value)}
+                        placeholder="e.g. I will dial you directly at the scheduled time."
+                      />
+                    </div>
+                  </div>
+                )}
+
+                {locationType === "ATTENDEE_CALLS_HOST" && (
+                  <>
+                    <div className="space-y-1">
+                      <Label htmlFor="attendeeCallsHostPhone">Your Phone Number</Label>
+                      <Input
+                        id="attendeeCallsHostPhone"
+                        value={attendeeCallsHostPhone}
+                        onChange={(e) => setAttendeeCallsHostPhone(e.target.value)}
+                        placeholder="+1 (555) 123-4567"
+                        required
+                      />
+                      {fields["location.data.hostPhoneNumber"] && (
+                        <p className="text-xs text-[var(--status-danger-text)] font-medium">
+                          {fields["location.data.hostPhoneNumber"]}
+                        </p>
+                      )}
+                      <p className="text-[11px] text-[var(--text-muted)]">
+                        Private number: shown only to confirmed attendees after booking.
+                      </p>
+                    </div>
+                    <div className="space-y-1 pt-1">
+                      <Label htmlFor="attendeeCallsHostNotes">Dial-in Notes (Optional)</Label>
+                      <Input
+                        id="attendeeCallsHostNotes"
+                        value={attendeeCallsHostNotes}
+                        onChange={(e) => setAttendeeCallsHostNotes(e.target.value)}
+                        placeholder="e.g. Please ask for my extension #104."
+                      />
+                    </div>
+                  </>
+                )}
+              </div>
+            </div>
+
             {/* Duration Field with Presets */}
-            <div className="space-y-2">
+            <div className="space-y-2 pt-2 border-t border-[var(--border-subtle)]">
               <div className="flex items-center justify-between">
                 <Label htmlFor="durationMinutes">Duration</Label>
                 <span className="text-xs text-[var(--text-muted)] tabular-nums font-sans">
@@ -227,7 +679,7 @@ export function EventTypeForm({ eventTypeId }: EventTypeFormProps) {
                     onClick={() => setDuration(preset)}
                     className={`flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-medium tabular-nums font-sans transition-[background-color,border-color,color] duration-150 ease-out cursor-pointer ${
                       duration === preset
-                        ? "bg-neutral-900 text-white shadow-2xs border border-transparent"
+                        ? "bg-neutral-900 text-white shadow-2xs border border-transparent dark:bg-white dark:text-neutral-900"
                         : "bg-[var(--bg-subtle)] text-[var(--text-secondary)] border border-[var(--border-subtle)] hover:bg-[var(--bg-muted)] hover:text-[var(--text-primary)]"
                     }`}
                   >
@@ -254,6 +706,177 @@ export function EventTypeForm({ eventTypeId }: EventTypeFormProps) {
                 <p className="text-xs text-[var(--status-danger-text)] font-medium">
                   {fields.durationMinutes}
                 </p>
+              )}
+            </div>
+
+            {/* Custom Booking Questions Section */}
+            <div className="space-y-4 pt-4 border-t border-[var(--border-subtle)]">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h3 className="text-sm font-semibold text-[var(--text-primary)]">Custom Booking Questions</h3>
+                  <p className="text-xs text-[var(--text-muted)]">
+                    Ask attendees for extra details or confirmations when booking this meeting.
+                  </p>
+                </div>
+                <div className="flex items-center gap-1.5">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    className="h-8 text-xs gap-1"
+                    onClick={() => handleAddQuestion("TEXT")}
+                  >
+                    <Plus className="h-3 w-3" />
+                    <span>Text</span>
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    className="h-8 text-xs gap-1"
+                    onClick={() => handleAddQuestion("TEXTAREA")}
+                  >
+                    <Plus className="h-3 w-3" />
+                    <span>Textarea</span>
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    className="h-8 text-xs gap-1"
+                    onClick={() => handleAddQuestion("SELECT")}
+                  >
+                    <Plus className="h-3 w-3" />
+                    <span>Dropdown</span>
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    className="h-8 text-xs gap-1"
+                    onClick={() => handleAddQuestion("CHECKBOX")}
+                  >
+                    <Plus className="h-3 w-3" />
+                    <span>Checkbox</span>
+                  </Button>
+                </div>
+              </div>
+
+              {customQuestions.length === 0 ? (
+                <div className="rounded-xl border border-dashed border-[var(--border-strong)] p-4 text-center text-xs text-[var(--text-muted)] bg-[var(--bg-canvas)]">
+                  No custom questions configured. Attendees will only be asked for Name, Email, Timezone, and Notes.
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  {customQuestions.map((q, qIndex) => (
+                    <div
+                      key={q.id || `temp_q_${qIndex}`}
+                      className="rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-surface)] p-3.5 space-y-3 shadow-2xs"
+                    >
+                      <div className="flex items-center justify-between gap-2">
+                        <div className="flex items-center gap-2">
+                          <span className="text-[10px] font-mono uppercase font-bold tracking-wider px-2 py-0.5 rounded-md bg-[var(--bg-subtle)] text-[var(--text-secondary)] border border-[var(--border-subtle)]">
+                            {q.type}
+                          </span>
+                          <span className="text-xs font-semibold text-[var(--text-primary)]">
+                            Question #{qIndex + 1}
+                          </span>
+                        </div>
+                        <div className="flex items-center gap-3">
+                          <label className="flex items-center gap-1.5 text-xs text-[var(--text-secondary)] cursor-pointer select-none">
+                            <input
+                              type="checkbox"
+                              checked={q.required}
+                              onChange={(e) =>
+                                handleUpdateQuestion(qIndex, { required: e.target.checked })
+                              }
+                              className="rounded border-neutral-300 text-neutral-900 focus:ring-neutral-900 h-3.5 w-3.5"
+                            />
+                            <span>Required</span>
+                          </label>
+                          <button
+                            type="button"
+                            onClick={() => handleRemoveQuestion(qIndex)}
+                            className="text-[var(--text-muted)] hover:text-red-600 transition-colors p-1"
+                            title="Remove Question"
+                          >
+                            <Trash2 className="h-3.5 w-3.5" />
+                          </button>
+                        </div>
+                      </div>
+
+                      <div className="space-y-2">
+                        <div>
+                          <Label className="text-xs">Question Prompt / Label</Label>
+                          <Input
+                            value={q.label}
+                            onChange={(e) => handleUpdateQuestion(qIndex, { label: e.target.value })}
+                            placeholder={
+                              q.type === "CHECKBOX"
+                                ? "e.g. I agree to bring my laptop and materials"
+                                : "e.g. What specific topic would you like to cover?"
+                            }
+                            className="h-8 text-xs mt-1"
+                            required
+                          />
+                        </div>
+
+                        {(q.type === "TEXT" || q.type === "TEXTAREA") && (
+                          <div>
+                            <Label className="text-xs">Placeholder (optional)</Label>
+                            <Input
+                              value={q.placeholder || ""}
+                              onChange={(e) =>
+                                handleUpdateQuestion(qIndex, { placeholder: e.target.value })
+                              }
+                              placeholder="e.g. Briefly describe..."
+                              className="h-8 text-xs mt-1"
+                            />
+                          </div>
+                        )}
+
+                        {q.type === "SELECT" && (
+                          <div className="space-y-2 pt-1">
+                            <div className="flex items-center justify-between">
+                              <Label className="text-xs font-semibold">Dropdown Options (min 2)</Label>
+                              <button
+                                type="button"
+                                onClick={() => handleAddOption(qIndex)}
+                                className="text-xs text-blue-600 hover:text-blue-700 font-medium flex items-center gap-1"
+                              >
+                                <Plus className="h-3 w-3" />
+                                <span>Add Option</span>
+                              </button>
+                            </div>
+                            <div className="space-y-1.5 pl-2 border-l-2 border-[var(--border-subtle)]">
+                              {(q.options || []).map((opt, optIndex) => (
+                                <div key={opt.id || `opt_${optIndex}`} className="flex items-center gap-2">
+                                  <Input
+                                    value={opt.label}
+                                    onChange={(e) =>
+                                      handleUpdateOption(qIndex, optIndex, e.target.value)
+                                    }
+                                    placeholder={`Option ${optIndex + 1}`}
+                                    className="h-7 text-xs flex-1"
+                                    required
+                                  />
+                                  <button
+                                    type="button"
+                                    onClick={() => handleRemoveOption(qIndex, optIndex)}
+                                    disabled={(q.options?.length || 0) <= 2}
+                                    className="text-[var(--text-muted)] hover:text-red-600 disabled:opacity-30 disabled:hover:text-[var(--text-muted)] p-1"
+                                  >
+                                    <Trash2 className="h-3 w-3" />
+                                  </button>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
               )}
             </div>
 

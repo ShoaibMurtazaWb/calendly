@@ -56,6 +56,26 @@ export class HttpErrorFilter implements ExceptionFilter {
       return;
     }
 
+    if (
+      exception &&
+      typeof exception === "object" &&
+      ("code" in exception && (exception as { code: string }).code === "23P01" ||
+       "message" in exception && (
+         String((exception as { message: string }).message).includes("23P01") ||
+         String((exception as { message: string }).message).includes("no_overlapping_confirmed_bookings") ||
+         String((exception as { message: string }).message).includes("exclusion constraint")
+       ))
+    ) {
+      response.status(HttpStatus.CONFLICT).json({
+        error: {
+          code: "SLOT_ALREADY_BOOKED",
+          message: "This time slot has already been booked by someone else.",
+          details: {},
+        },
+      });
+      return;
+    }
+
     if (exception instanceof HttpException) {
       const status = exception.getStatus();
       const payload = exception.getResponse();
