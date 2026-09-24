@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useTransition, Suspense } from "react";
+import { useEffect, useState, useMemo, useTransition, Suspense } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import {
   CheckCircle2,
@@ -11,7 +11,10 @@ import {
   Trash2,
   Check,
   ShieldCheck,
-  Zap,
+  Clock,
+  Mail,
+  Calendar as CalendarIcon,
+  X,
 } from "lucide-react";
 import { DashboardShell } from "@/components/dashboard-shell";
 import { GoogleCalendarLogo } from "@/components/google-calendar-logo";
@@ -25,18 +28,57 @@ import type {
   CalendarItem,
 } from "@sched/api-contract";
 
+function formatPermissionLabel(accessRole: CalendarItem["accessRole"]): string {
+  switch (accessRole) {
+    case "owner":
+      return "Owner access";
+    case "writer":
+      return "Can edit events";
+    case "writerWithoutPrivateAccess":
+      return "Can edit events (limited)";
+    case "reader":
+      return "Read-only access";
+    case "freeBusyReader":
+      return "Free/busy access only";
+    default:
+      return accessRole;
+  }
+}
+
+function formatLastSyncedTime(dateStr?: string | null): string {
+  if (!dateStr) return "Never";
+  try {
+    const d = new Date(dateStr);
+    return new Intl.DateTimeFormat(undefined, {
+      month: "short",
+      day: "numeric",
+      hour: "numeric",
+      minute: "2-digit",
+    }).format(d);
+  } catch {
+    return dateStr;
+  }
+}
+
 function IntegrationsContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
 
   const [integration, setIntegration] = useState<CalendarIntegrationResponse | null>(null);
   const [calendars, setCalendars] = useState<CalendarItem[]>([]);
+
+  // Form State
   const [selectedCalendarId, setSelectedCalendarId] = useState<string>("primary");
   const [conflictCalendarIds, setConflictCalendarIds] = useState<string[]>(["primary"]);
+
+  // Committed/Saved State for change detection
+  const [savedSelectedCalendarId, setSavedSelectedCalendarId] = useState<string>("primary");
+  const [savedConflictCalendarIds, setSavedConflictCalendarIds] = useState<string[]>(["primary"]);
 
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [isDisconnecting, setIsDisconnecting] = useState(false);
+  const [showDisconnectModal, setShowDisconnectModal] = useState(false);
   const [isConnecting, setIsConnecting] = useState(false);
   const [feedback, setFeedback] = useState<{ type: "success" | "error"; message: string } | null>(
     null
@@ -57,7 +99,6 @@ function IntegrationsContent() {
             ? data.conflictCalendarIds
             : ["primary"];
 
-        // Fetch user's calendars
         try {
           const calList = await api<CalendarListResponse>("/integrations/google/calendars");
           setCalendars(calList.calendars);
@@ -77,6 +118,8 @@ function IntegrationsContent() {
 
         setSelectedCalendarId(initialSelectedId);
         setConflictCalendarIds(initialConflictIds);
+        setSavedSelectedCalendarId(initialSelectedId);
+        setSavedConflictCalendarIds(initialConflictIds);
       }
     } catch (err) {
       console.error("Failed to load Google Calendar integration", err);
@@ -85,7 +128,7 @@ function IntegrationsContent() {
     }
   }
 
-  // Handle OAuth Return Callback or Status Query Params
+  // Handle Return Callback or Status Query Params
   useEffect(() => {
     const connected = searchParams.get("connected");
     const error = searchParams.get("error");
@@ -93,7 +136,7 @@ function IntegrationsContent() {
     if (connected === "google") {
       setFeedback({
         type: "success",
-        message: "Successfully connected Google Calendar!",
+        message: "Google Calendar connected successfully! Your calendar is now synchronized.",
       });
       startTransition(() => {
         router.replace("/dashboard/integrations");
@@ -111,7 +154,7 @@ function IntegrationsContent() {
     void loadIntegration();
   }, [searchParams]);
 
-  // Connect / Reconnect Google Calendar: Browser navigation to authenticated backend GET endpoint
+  // Connect / Reconnect Google Calendar
   function handleConnect() {
     setIsConnecting(true);
     setFeedback(null);
@@ -135,6 +178,8 @@ function IntegrationsContent() {
       });
 
       setIntegration(updated);
+      setSavedSelectedCalendarId(selectedCalendarId);
+      setSavedConflictCalendarIds(conflictCalendarIds);
       setFeedback({
         type: "success",
         message: "Calendar preferences saved successfully.",
@@ -151,15 +196,7 @@ function IntegrationsContent() {
   }
 
   // Disconnect Google Calendar
-  async function handleDisconnect() {
-    if (
-      !window.confirm(
-        "Are you sure you want to disconnect Google Calendar? Future bookings will no longer sync automatically."
-      )
-    ) {
-      return;
-    }
-
+  async function handleConfirmDisconnect() {
     try {
       setIsDisconnecting(true);
       setFeedback(null);
@@ -169,9 +206,10 @@ function IntegrationsContent() {
 
       setIntegration(res);
       setCalendars([]);
+      setShowDisconnectModal(false);
       setFeedback({
         type: "success",
-        message: "Google Calendar disconnected.",
+        message: "Google Calendar has been disconnected.",
       });
     } catch (err) {
       setFeedback({
@@ -193,6 +231,15 @@ function IntegrationsContent() {
   const isConnected = integration?.status === "CONNECTED";
   const isRevoked = integration?.status === "REVOKED";
 
+  // Change Detection
+  const hasChanges = useMemo(() => {
+    if (!isConnected) return false;
+    if (selectedCalendarId !== savedSelectedCalendarId) return true;
+    if (conflictCalendarIds.length !== savedConflictCalendarIds.length) return true;
+    const currentSet = new Set(conflictCalendarIds);
+    return savedConflictCalendarIds.some((id) => !currentSet.has(id));
+  }, [isConnected, selectedCalendarId, savedSelectedCalendarId, conflictCalendarIds, savedConflictCalendarIds]);
+
   return (
     <div className="mx-auto max-w-4xl py-6 px-4 sm:px-6">
       {/* Page Header */}
@@ -202,14 +249,14 @@ function IntegrationsContent() {
         </h1>
         <p className="mt-1 text-sm text-[var(--text-secondary)]">
           Connect your Google Calendar to synchronize busy times, prevent double-bookings, and
-          automatically create host events.
+          automatically schedule host events.
         </p>
       </div>
 
       {/* Feedback Banner */}
       {feedback && (
         <div
-          className={`mb-6 flex items-start gap-3 rounded-lg border p-4 text-sm ${
+          className={`mb-6 flex items-start gap-3 rounded-xl border p-4 text-sm shadow-xs transition-all ${
             feedback.type === "success"
               ? "border-[var(--status-success-border)] bg-[var(--status-success-bg)] text-[var(--status-success-text)]"
               : "border-[var(--status-danger-border)] bg-[var(--status-danger-bg)] text-[var(--status-danger-text)]"
@@ -224,9 +271,10 @@ function IntegrationsContent() {
           <button
             type="button"
             onClick={() => setFeedback(null)}
-            className="text-xs font-semibold opacity-70 hover:opacity-100"
+            className="text-xs font-semibold opacity-70 hover:opacity-100 p-0.5"
+            aria-label="Dismiss feedback"
           >
-            Dismiss
+            <X className="h-4 w-4" />
           </button>
         </div>
       )}
@@ -234,14 +282,16 @@ function IntegrationsContent() {
       {/* Revoked Notice */}
       {isRevoked && (
         <div className="mb-6 rounded-xl border border-amber-500/30 bg-amber-500/10 p-5 text-amber-900 dark:text-amber-200">
-          <div className="flex items-start gap-3">
-            <AlertTriangle className="h-5 w-5 shrink-0 text-amber-500 mt-0.5" />
+          <div className="flex items-start gap-3.5">
+            <AlertTriangle className="h-5 w-5 shrink-0 text-amber-600 dark:text-amber-400 mt-0.5" />
             <div className="flex-1 text-sm">
-              <p className="font-semibold">Google Calendar Access Revoked or Expired</p>
-              <p className="mt-1 text-xs opacity-90 leading-relaxed">
-                Sched can no longer check busy times or synchronize events with your Google account (
-                <span className="font-mono">{integration?.accountEmail}</span>). Please re-authorize
-                access to resume calendar synchronization.
+              <p className="font-semibold text-amber-950 dark:text-amber-100">
+                Google Calendar Access Revoked or Expired
+              </p>
+              <p className="mt-1 text-xs opacity-90 leading-relaxed text-amber-900 dark:text-amber-200">
+                Sched can no longer verify availability or synchronize events with your Google account (
+                <span className="font-mono font-medium">{integration?.accountEmail}</span>). Please re-authorize
+                to restore live calendar synchronization.
               </p>
               <div className="mt-4">
                 <Button
@@ -260,32 +310,41 @@ function IntegrationsContent() {
       )}
 
       {isLoading ? (
-        <div className="flex items-center justify-center py-16">
+        <div className="flex min-h-[300px] flex-col items-center justify-center rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-surface)] p-12">
           <Spinner size="default" />
-          <span className="ml-3 text-sm text-[var(--text-secondary)]">Loading integrations…</span>
+          <span className="mt-3 text-sm text-[var(--text-secondary)] font-medium">
+            Loading integration status…
+          </span>
         </div>
       ) : (
         <div className="space-y-6">
-          {/* Google Calendar Card */}
-          <div className="rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-surface)] p-6 shadow-sm">
+          {/* Main Google Calendar Card */}
+          <div className="rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-surface)] p-6 shadow-xs">
+            {/* Header / Identity Row */}
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-6 border-b border-[var(--border-subtle)]">
               <div className="flex items-start gap-4">
-                <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-[var(--bg-canvas)] border border-[var(--border-subtle)] shadow-xs">
+                <div className="flex h-12 w-12 items-center justify-center rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-canvas)] shadow-2xs">
                   <GoogleCalendarLogo className="h-7 w-7" />
                 </div>
                 <div>
-                  <div className="flex items-center gap-2">
-                    <h2 className="text-lg font-semibold text-[var(--text-primary)]">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <h2 className="text-base font-semibold text-[var(--text-primary)]">
                       Google Calendar
                     </h2>
                     {isConnected && (
-                      <span className="inline-flex items-center gap-1 rounded-full bg-emerald-500/10 px-2.5 py-0.5 text-xs font-semibold text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">
-                        <Check className="h-3 w-3" /> Connected
+                      <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-500/10 px-2.5 py-0.5 text-xs font-semibold text-emerald-700 dark:text-emerald-400 border border-emerald-500/20">
+                        <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                        Connected
                       </span>
                     )}
                     {isRevoked && (
-                      <span className="inline-flex items-center gap-1 rounded-full bg-amber-500/10 px-2.5 py-0.5 text-xs font-semibold text-amber-600 dark:text-amber-400 border border-amber-500/20">
+                      <span className="inline-flex items-center gap-1 rounded-full bg-amber-500/10 px-2.5 py-0.5 text-xs font-semibold text-amber-700 dark:text-amber-400 border border-amber-500/20">
                         <AlertTriangle className="h-3 w-3" /> Re-auth Required
+                      </span>
+                    )}
+                    {!isConnected && !isRevoked && (
+                      <span className="inline-flex items-center rounded-full bg-[var(--bg-subtle)] px-2.5 py-0.5 text-xs font-medium text-[var(--text-muted)] border border-[var(--border-subtle)]">
+                        Not Connected
                       </span>
                     )}
                   </div>
@@ -319,140 +378,251 @@ function IntegrationsContent() {
                 ) : (
                   <Button
                     variant="outline"
-                    onClick={handleDisconnect}
-                    disabled={isDisconnecting}
-                    className="text-[var(--status-danger-text)] hover:bg-[var(--status-danger-bg)] border-[var(--status-danger-border)]"
+                    onClick={() => setShowDisconnectModal(true)}
+                    className="text-[var(--status-danger-text)] hover:bg-[var(--status-danger-bg)] border-[var(--status-danger-border)] text-xs h-9"
                   >
-                    {isDisconnecting ? (
-                      <Spinner size="sm" className="mr-2" />
-                    ) : (
-                      <Trash2 className="h-4 w-4 mr-1.5" />
-                    )}
+                    <Trash2 className="h-3.5 w-3.5 mr-1.5" />
                     Disconnect
                   </Button>
                 )}
               </div>
             </div>
 
-            {/* Connected Configuration Form */}
+            {/* Rich Connected Status Section */}
             {isConnected && (
-              <form onSubmit={handleSavePreferences} className="mt-6 space-y-6">
-                {/* Write/Destination Calendar */}
-                <div>
-                  <label
-                    htmlFor="destinationCalendar"
-                    className="block text-sm font-medium text-[var(--text-primary)]"
-                  >
-                    Destination Calendar (Add new bookings to)
-                  </label>
-                  <p className="text-xs text-[var(--text-secondary)] mt-0.5 mb-2">
-                    Events for confirmed Sched bookings will be created on this calendar.
-                  </p>
-                  <select
-                    id="destinationCalendar"
-                    value={selectedCalendarId}
-                    onChange={(e) => setSelectedCalendarId(e.target.value)}
-                    className="w-full max-w-md rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-canvas)] px-3 py-2 text-sm text-[var(--text-primary)] focus:outline-none focus:ring-2 focus:ring-[var(--brand-primary)]"
-                  >
-                    {calendars.length === 0 ? (
-                      <option value="primary">Primary Calendar (Default)</option>
-                    ) : (
-                      calendars
-                        .filter((cal) => cal.writable)
-                        .map((cal) => (
-                          <option key={cal.id} value={cal.id}>
-                            {cal.name} {cal.isPrimary ? "(Primary)" : ""}
-                          </option>
-                        ))
-                    )}
-                  </select>
-                </div>
-
-                {/* Conflict/FreeBusy Calendars */}
-                <div>
-                  <label className="block text-sm font-medium text-[var(--text-primary)]">
-                    Check for Conflicts
-                  </label>
-                  <p className="text-xs text-[var(--text-secondary)] mt-0.5 mb-3">
-                    Select the calendars you want Sched to check for busy times. Slots overlapping
-                    with events on these calendars will be marked unavailable.
-                  </p>
-
-                  <div className="space-y-2 rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-canvas)]/50 p-4 max-w-md">
-                    {calendars.length === 0 ? (
-                      <div className="flex items-center gap-2 text-xs text-[var(--text-secondary)]">
-                        <Check className="h-4 w-4 text-emerald-500" />
-                        <span>Primary Calendar (Checked by default)</span>
+              <div className="pt-5 pb-2">
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-canvas)]/60 p-3.5">
+                  <div className="flex items-center gap-2.5 text-xs">
+                    <Mail className="h-4 w-4 text-[var(--text-muted)] shrink-0" />
+                    <div className="truncate">
+                      <div className="text-[var(--text-muted)] font-medium text-[11px]">Account</div>
+                      <div className="text-[var(--text-primary)] font-semibold truncate">
+                        {integration?.accountEmail || "Primary Account"}
                       </div>
-                    ) : (
-                      calendars.map((cal) => {
-                        const isChecked = conflictCalendarIds.includes(cal.id);
-                        return (
-                          <label
-                            key={cal.id}
-                            className="flex items-center gap-3 text-sm text-[var(--text-primary)] cursor-pointer hover:opacity-90"
-                          >
-                            <input
-                              type="checkbox"
-                              checked={isChecked}
-                              onChange={() => toggleConflictCalendar(cal.id)}
-                              className="h-4 w-4 rounded border-[var(--border-subtle)] text-[var(--brand-primary)] focus:ring-[var(--brand-primary)]"
-                            />
-                            <span className="flex-1 font-normal">
-                              {cal.name} {cal.isPrimary ? "(Primary)" : ""}
-                            </span>
-                            <span className="text-xs text-[var(--text-tertiary)] uppercase font-mono">
-                              {cal.accessRole}
-                            </span>
-                          </label>
-                        );
-                      })
-                    )}
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-2.5 text-xs">
+                    <CalendarIcon className="h-4 w-4 text-[var(--text-muted)] shrink-0" />
+                    <div className="truncate">
+                      <div className="text-[var(--text-muted)] font-medium text-[11px]">Sync Health</div>
+                      <div className="text-emerald-700 dark:text-emerald-400 font-semibold flex items-center gap-1">
+                        <Check className="h-3 w-3" /> Active & Syncing
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-2.5 text-xs">
+                    <Clock className="h-4 w-4 text-[var(--text-muted)] shrink-0" />
+                    <div className="truncate">
+                      <div className="text-[var(--text-muted)] font-medium text-[11px]">Last Updated</div>
+                      <div className="text-[var(--text-secondary)] font-medium">
+                        {formatLastSyncedTime(integration?.updatedAt)}
+                      </div>
+                    </div>
                   </div>
                 </div>
 
-                {/* Actions */}
-                <div className="pt-2 flex items-center gap-3">
-                  <Button type="submit" disabled={isSaving}>
-                    {isSaving ? <Spinner size="sm" className="mr-2" /> : <Check className="h-4 w-4 mr-1.5" />}
-                    Save Calendar Settings
-                  </Button>
-                </div>
-              </form>
+                {/* Calendar Configuration Form */}
+                <form onSubmit={handleSavePreferences} className="mt-6 space-y-6">
+                  {/* Booking / Destination Calendar */}
+                  <div>
+                    <label
+                      htmlFor="destinationCalendar"
+                      className="block text-sm font-semibold text-[var(--text-primary)]"
+                    >
+                      Booking Calendar
+                    </label>
+                    <p className="text-xs text-[var(--text-secondary)] mt-0.5 mb-2.5">
+                      New confirmed bookings will be added here.
+                    </p>
+                    <select
+                      id="destinationCalendar"
+                      value={selectedCalendarId}
+                      onChange={(e) => setSelectedCalendarId(e.target.value)}
+                      className="w-full max-w-md rounded-lg border border-[var(--border-strong)] bg-[var(--bg-surface)] px-3 py-2 text-sm text-[var(--text-primary)] shadow-2xs focus:outline-none focus:ring-2 focus:ring-[var(--brand-primary)]"
+                    >
+                      {calendars.length === 0 ? (
+                        <option value="primary">Primary Calendar (Default)</option>
+                      ) : (
+                        calendars
+                          .filter((cal) => cal.writable)
+                          .map((cal) => (
+                            <option key={cal.id} value={cal.id}>
+                              {cal.name} {cal.isPrimary ? "(Primary)" : ""}
+                            </option>
+                          ))
+                      )}
+                    </select>
+                  </div>
+
+                  {/* Conflict / FreeBusy Calendars */}
+                  <div>
+                    <label className="block text-sm font-semibold text-[var(--text-primary)]">
+                      Check for Conflicts
+                    </label>
+                    <p className="text-xs text-[var(--text-secondary)] mt-0.5 mb-3">
+                      Select the calendars you want Sched to check for busy times. Slots overlapping
+                      with events on these calendars will be marked unavailable.
+                    </p>
+
+                    <div className="space-y-1.5 rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-canvas)]/40 p-3 max-w-lg">
+                      {calendars.length === 0 ? (
+                        <div className="flex items-center gap-2 p-2 text-xs text-[var(--text-secondary)]">
+                          <Check className="h-4 w-4 text-emerald-600" />
+                          <span>Primary Calendar (Checked by default)</span>
+                        </div>
+                      ) : (
+                        calendars.map((cal) => {
+                          const isChecked = conflictCalendarIds.includes(cal.id);
+                          return (
+                            <label
+                              key={cal.id}
+                              className="flex items-center justify-between gap-3 rounded-lg p-2.5 text-sm transition-colors hover:bg-[var(--bg-surface)] cursor-pointer"
+                            >
+                              <div className="flex items-center gap-3">
+                                <input
+                                  type="checkbox"
+                                  checked={isChecked}
+                                  onChange={() => toggleConflictCalendar(cal.id)}
+                                  className="h-4 w-4 rounded border-[var(--border-strong)] text-[var(--brand-primary)] focus:ring-[var(--brand-primary)] cursor-pointer"
+                                />
+                                <span className="font-medium text-[var(--text-primary)] text-xs sm:text-sm">
+                                  {cal.name} {cal.isPrimary ? "(Primary)" : ""}
+                                </span>
+                              </div>
+                              <span className="text-[11px] font-medium text-[var(--text-muted)] bg-[var(--bg-subtle)] px-2 py-0.5 rounded-md border border-[var(--border-subtle)] shrink-0">
+                                {formatPermissionLabel(cal.accessRole)}
+                              </span>
+                            </label>
+                          );
+                        })
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Save Button with Clean Change Detection */}
+                  <div className="pt-2 flex items-center gap-3">
+                    <Button
+                      type="submit"
+                      disabled={!hasChanges || isSaving}
+                      className={!hasChanges ? "opacity-60 cursor-not-allowed" : ""}
+                    >
+                      {isSaving ? (
+                        <>
+                          <Spinner size="sm" className="mr-2" />
+                          Saving changes…
+                        </>
+                      ) : (
+                        <>
+                          <Check className="h-4 w-4 mr-1.5" />
+                          Save Calendar Settings
+                        </>
+                      )}
+                    </Button>
+                    {!hasChanges && !isSaving && (
+                      <span className="text-xs text-[var(--text-muted)]">No unsaved changes</span>
+                    )}
+                  </div>
+                </form>
+              </div>
             )}
           </div>
 
-          {/* Architecture Information Card */}
-          <div className="rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-surface)]/60 p-6">
+          {/* Operational Status & Capabilities Panel */}
+          <div className="rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-surface)] p-6 shadow-2xs">
             <h3 className="text-sm font-semibold text-[var(--text-primary)] flex items-center gap-2">
-              <ShieldCheck className="h-4 w-4 text-[var(--brand-primary)]" />
-              Security & Reliability Guarantees
+              <ShieldCheck className="h-4 w-4 text-[var(--text-primary)]" />
+              Integration Status
             </h3>
-            <ul className="mt-3 space-y-2 text-xs text-[var(--text-secondary)] leading-relaxed">
-              <li className="flex items-start gap-2">
-                <Zap className="h-3.5 w-3.5 text-amber-500 shrink-0 mt-0.5" />
-                <span>
-                  <strong>Decoupled Outbox Sync:</strong> Google Calendar event creation runs
-                  asynchronously in a background worker. Booking confirmations succeed instantly
-                  and never depend on Google API availability.
-                </span>
-              </li>
-              <li className="flex items-start gap-2">
-                <Zap className="h-3.5 w-3.5 text-blue-500 shrink-0 mt-0.5" />
-                <span>
-                  <strong>Zero Double-Bookings:</strong> Final booking confirmation executes a
-                  pre-transaction Google FreeBusy check, backed by PostgreSQL atomic exclusion
-                  constraints.
-                </span>
-              </li>
-              <li className="flex items-start gap-2">
-                <Zap className="h-3.5 w-3.5 text-emerald-500 shrink-0 mt-0.5" />
-                <span>
-                  <strong>Encrypted Vault:</strong> Refresh and access tokens are secured using
-                  authenticated AES-256-GCM encryption with session-bound PKCE state.
-                </span>
-              </li>
-            </ul>
+            <div className="mt-4 grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs text-[var(--text-secondary)]">
+              <div className="flex items-start gap-2.5 rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-canvas)]/50 p-3">
+                <CheckCircle2 className="h-4 w-4 text-emerald-600 shrink-0 mt-0.5" />
+                <div>
+                  <div className="font-semibold text-[var(--text-primary)]">Calendar Connected</div>
+                  <div className="text-[11px] text-[var(--text-muted)] mt-0.5">
+                    Authenticated via Google OAuth 2.0 (PKCE)
+                  </div>
+                </div>
+              </div>
+
+              <div className="flex items-start gap-2.5 rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-canvas)]/50 p-3">
+                <CheckCircle2 className="h-4 w-4 text-emerald-600 shrink-0 mt-0.5" />
+                <div>
+                  <div className="font-semibold text-[var(--text-primary)]">Busy-Time Checking</div>
+                  <div className="text-[11px] text-[var(--text-muted)] mt-0.5">
+                    Real-time FreeBusy querying with timeout fallback
+                  </div>
+                </div>
+              </div>
+
+              <div className="flex items-start gap-2.5 rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-canvas)]/50 p-3">
+                <CheckCircle2 className="h-4 w-4 text-emerald-600 shrink-0 mt-0.5" />
+                <div>
+                  <div className="font-semibold text-[var(--text-primary)]">Booking Synchronization</div>
+                  <div className="text-[11px] text-[var(--text-muted)] mt-0.5">
+                    Asynchronous outbox with idempotent sequence reconciliation
+                  </div>
+                </div>
+              </div>
+
+              <div className="flex items-start gap-2.5 rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-canvas)]/50 p-3">
+                <CheckCircle2 className="h-4 w-4 text-emerald-600 shrink-0 mt-0.5" />
+                <div>
+                  <div className="font-semibold text-[var(--text-primary)]">Credentials Encrypted</div>
+                  <div className="text-[11px] text-[var(--text-muted)] mt-0.5">
+                    Tokens secured with AES-256-GCM authenticated vault
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Disconnect Confirmation Modal */}
+      {showDisconnectModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-xs animate-in fade-in duration-150">
+          <div className="w-full max-w-md rounded-2xl border border-[var(--border-subtle)] bg-[var(--bg-surface)] p-6 shadow-2xl">
+            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-[var(--status-danger-bg)] text-[var(--status-danger-text)] mb-4">
+              <Trash2 className="h-5 w-5" />
+            </div>
+
+            <h3 className="text-base font-bold text-[var(--text-primary)]">
+              Disconnect Google Calendar?
+            </h3>
+            <p className="mt-2 text-xs leading-relaxed text-[var(--text-secondary)]">
+              Disconnecting Google Calendar stops availability checking and event synchronization. Existing bookings are not deleted.
+            </p>
+
+            <div className="mt-6 flex flex-col-reverse sm:flex-row items-center justify-end gap-2.5">
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => setShowDisconnectModal(false)}
+                disabled={isDisconnecting}
+                className="w-full sm:w-auto"
+              >
+                Cancel
+              </Button>
+              <Button
+                type="button"
+                size="sm"
+                onClick={handleConfirmDisconnect}
+                disabled={isDisconnecting}
+                className="w-full sm:w-auto bg-[var(--status-danger-text)] hover:opacity-90 text-white"
+              >
+                {isDisconnecting ? (
+                  <>
+                    <Spinner size="sm" className="mr-2" />
+                    Disconnecting…
+                  </>
+                ) : (
+                  "Disconnect Calendar"
+                )}
+              </Button>
+            </div>
           </div>
         </div>
       )}

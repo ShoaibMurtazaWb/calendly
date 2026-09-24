@@ -6,68 +6,72 @@ interface GoogleCalendarLogoProps {
 }
 
 /**
- * Official Google Calendar brand icon with 4-color styling and date sheet motif.
+ * Official Google Workspace Calendar vector mark following Google Brand Guidelines.
  */
 export function GoogleCalendarLogo({ className = "h-8 w-8", size }: GoogleCalendarLogoProps) {
   return (
     <svg
-      viewBox="0 0 48 48"
+      viewBox="0 0 192 192"
       className={className}
       style={size ? { width: size, height: size } : undefined}
       fill="none"
       xmlns="http://www.w3.org/2000/svg"
+      role="img"
+      aria-label="Google Calendar"
     >
-      {/* Background container / Blue top & sides */}
+      {/* Base White Canvas */}
+      <rect x="32" y="32" width="128" height="128" rx="20" fill="#FFFFFF" />
+
+      {/* Top-Right Red Corner & Top Banner */}
       <path
-        d="M38 44H10C7.79086 44 6 42.2091 6 40V10C6 7.79086 7.79086 6 10 6H38C40.2091 6 42 7.79086 42 10V40C42 42.2091 40.2091 44 38 44Z"
-        fill="#FFFFFF"
-      />
-      {/* Top Header Blue */}
-      <path
-        d="M38 6H10C7.79086 6 6 7.79086 6 10V16H42V10C42 7.79086 40.2091 6 38 6Z"
-        fill="#4285F4"
-      />
-      {/* Red corner accent */}
-      <path
-        d="M42 10C42 7.79086 40.2091 6 38 6H33V16H42V10Z"
+        d="M140 32H120V68H160V52C160 40.9543 151.046 32 140 32Z"
         fill="#EA4335"
       />
-      {/* Yellow left accent */}
+
+      {/* Top-Left Yellow Corner */}
       <path
-        d="M6 16H15V6H10C7.79086 6 6 7.79086 6 10V16Z"
-        fill="#FBBC05"
+        d="M52 32C40.9543 32 32 40.9543 32 52V68H72V32H52Z"
+        fill="#FBBC04"
       />
-      {/* Green bottom right corner */}
+
+      {/* Bottom-Right Green Corner */}
       <path
-        d="M42 33H33V44H38C40.2091 44 42 42.2091 42 40V33Z"
+        d="M140 160C151.046 160 160 151.046 160 140V124H120V160H140Z"
         fill="#34A853"
       />
-      {/* Outer border for depth */}
-      <rect
-        x="6"
-        y="6"
-        width="36"
-        height="38"
-        rx="4"
-        stroke="#E0E0E0"
-        strokeWidth="1.5"
-        fill="none"
-      />
-      {/* Calendar date representation: numeral "31" or date grid */}
+
+      {/* Bottom-Left & Outer Border Blue Accent */}
       <path
-        d="M17 25C17 23.3431 18.3431 22 20 22C21.6569 22 23 23.3431 23 25C23 26.6569 21.6569 28 20 28M20 28C21.6569 28 23 29.3431 23 31C23 32.6569 21.6569 34 20 34C18.3431 34 17 32.6569 17 31M20 28H18"
-        stroke="#4285F4"
-        strokeWidth="2.5"
-        strokeLinecap="round"
-        strokeLinejoin="round"
+        d="M32 140C32 151.046 40.9543 160 52 160H120V124H32V140Z"
+        fill="#4285F4"
       />
       <path
-        d="M28 23V34M28 23L25.5 25"
-        stroke="#4285F4"
-        strokeWidth="2.5"
-        strokeLinecap="round"
-        strokeLinejoin="round"
+        d="M72 32H120V68H72V32Z"
+        fill="#1A73E8"
       />
+      <path
+        d="M32 68H72V124H32V68Z"
+        fill="#1A73E8"
+      />
+      <path
+        d="M120 68H160V124H120V68Z"
+        fill="#1A73E8"
+      />
+
+      {/* Inner White Calendar Pad */}
+      <rect x="46" y="46" width="100" height="100" rx="10" fill="#FFFFFF" />
+
+      {/* Date "31" Vector Path in Google Blue */}
+      <g fill="#1A73E8">
+        {/* Numeral "3" */}
+        <path
+          d="M66 73H86V83.5H76V89.5H86V100H66V109H91C94.866 109 98 105.866 98 102V93C98 89.9 96.1 87.2 93.3 86.3C95.5 85.2 97 82.8 97 80V73C97 69.134 93.866 66 90 66H66V73Z"
+        />
+        {/* Numeral "1" */}
+        <path
+          d="M109 76.5L118.5 67.5H127V109H116V78.5L109 84.5V76.5Z"
+        />
+      </g>
     </svg>
   );
 }
