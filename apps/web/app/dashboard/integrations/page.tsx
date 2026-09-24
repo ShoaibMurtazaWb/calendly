@@ -16,7 +16,6 @@ import {
   Calendar as CalendarIcon,
   X,
 } from "lucide-react";
-import { DashboardShell } from "@/components/dashboard-shell";
 import { GoogleCalendarLogo } from "@/components/google-calendar-logo";
 import { Button } from "@/components/ui/button";
 import { Spinner } from "@/components/ui/spinner";
@@ -632,16 +631,14 @@ function IntegrationsContent() {
 
 export default function IntegrationsPage() {
   return (
-    <DashboardShell>
-      <Suspense
-        fallback={
-          <div className="flex min-h-[400px] items-center justify-center">
-            <Spinner size="default" />
-          </div>
-        }
-      >
-        <IntegrationsContent />
-      </Suspense>
-    </DashboardShell>
+    <Suspense
+      fallback={
+        <div className="flex min-h-[400px] items-center justify-center">
+          <Spinner size="default" />
+        </div>
+      }
+    >
+      <IntegrationsContent />
+    </Suspense>
   );
 }

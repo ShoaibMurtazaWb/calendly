@@ -17,7 +17,6 @@ import {
   ExternalLink,
   Trash2,
 } from "lucide-react";
-import { DashboardShell } from "@/components/dashboard-shell";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -143,7 +142,7 @@ export function EventTypeList() {
   }, [currentList, searchQuery]);
 
   return (
-    <DashboardShell>
+    <div className="space-y-6">
       {/* Page Header Area */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-6 border-b border-[var(--border-subtle)]">
         <div>
@@ -476,6 +475,6 @@ export function EventTypeList() {
           </Button>
         </div>
       )}
-    </DashboardShell>
+    </div>
   );
 }

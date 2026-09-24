@@ -3,7 +3,6 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import {
-  Calendar,
   Clock,
   User,
   Mail,
@@ -19,16 +18,19 @@ import {
   PhoneCall,
   PhoneForwarded,
   Trash2,
+  CalendarClock,
+  CalendarX,
+  Copy,
+  Check,
 } from "lucide-react";
 
-import { DashboardShell } from "@/components/dashboard-shell";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Spinner } from "@/components/ui/spinner";
 import { toast } from "@/components/ui/toast";
-import { api } from "@/lib/api";
+import { api, type CurrentUser } from "@/lib/api";
 import { ApiError } from "@/lib/api-error";
 import type { BookingResponse, TimeSlot } from "@sched/api-contract";
 
@@ -72,20 +74,36 @@ export default function BookingsPage() {
   const [rescheduleReason, setRescheduleReason] = useState("");
   const [isRescheduling, setIsRescheduling] = useState(false);
 
+  const [currentUser, setCurrentUser] = useState<CurrentUser | null>(null);
+  const [isCopiedLink, setIsCopiedLink] = useState(false);
+
   const loadAllBookings = async () => {
     setIsLoading(true);
     try {
-      const [upcoming, past, cancelled] = await Promise.all([
+      const [upcoming, past, cancelled, me] = await Promise.all([
         api<BookingResponse[]>("/bookings?status=upcoming"),
         api<BookingResponse[]>("/bookings?status=past"),
         api<BookingResponse[]>("/bookings?status=cancelled"),
+        api<CurrentUser>("/auth/me").catch(() => null),
       ]);
       setDataByStatus({ upcoming, past, cancelled });
+      if (me) {
+        setCurrentUser(me);
+      }
     } catch {
       toast.error("Failed to load bookings", "Could not fetch your meeting schedule.");
     } finally {
       setIsLoading(false);
     }
+  };
+
+  const handleCopyBookingLink = () => {
+    const origin = typeof window !== "undefined" ? window.location.origin : "http://localhost:3000";
+    const url = currentUser?.username ? `${origin}/public/${currentUser.username}` : `${origin}/dashboard`;
+    void navigator.clipboard.writeText(url);
+    setIsCopiedLink(true);
+    toast.success("Booking link copied to clipboard", url);
+    setTimeout(() => setIsCopiedLink(false), 2000);
   };
 
   useEffect(() => {
@@ -226,8 +244,7 @@ export default function BookingsPage() {
   }).format(rescheduleMonth);
 
   return (
-    <DashboardShell>
-      <div className="space-y-6">
+    <div className="space-y-6">
         {/* Page Header */}
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 pb-4 border-b border-[var(--border-subtle)]">
           <div>
@@ -296,19 +313,53 @@ export default function BookingsPage() {
             <Skeleton className="h-28 w-full rounded-xl" />
           </div>
         ) : bookings.length === 0 ? (
-          <div className="rounded-2xl border border-dashed border-[var(--border-subtle)] bg-[var(--bg-surface)] p-12 text-center">
-            <div className="mx-auto flex h-11 w-11 items-center justify-center rounded-full bg-[var(--bg-subtle)] text-[var(--text-muted)] mb-3">
-              <Calendar className="h-5 w-5" />
+          <Card className="rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-surface)] p-8 sm:p-10 text-center shadow-2xs">
+            <div className="mx-auto flex h-10 w-10 items-center justify-center rounded-full bg-[var(--bg-subtle)] border border-[var(--border-subtle)] text-[var(--text-muted)] mb-3">
+              {tab === "upcoming" && <CalendarClock className="h-5 w-5" />}
+              {tab === "past" && <History className="h-5 w-5" />}
+              {tab === "cancelled" && <CalendarX className="h-5 w-5" />}
             </div>
             <h3 className="text-sm font-semibold text-[var(--text-primary)]">
-              No {tab} bookings found
+              {tab === "upcoming" && "No upcoming bookings"}
+              {tab === "past" && "No past meetings yet"}
+              {tab === "cancelled" && "No cancelled meetings"}
             </h3>
             <p className="mt-1 text-xs text-[var(--text-secondary)] max-w-sm mx-auto leading-relaxed">
-              {tab === "upcoming"
-                ? "Share your public booking link with clients and teammates to fill your schedule."
-                : `You currently have no ${tab} sessions in your history.`}
+              {tab === "upcoming" &&
+                "Your schedule is clear. Share your booking page to start receiving meetings."}
+              {tab === "past" &&
+                "Completed meetings will appear here after they happen."}
+              {tab === "cancelled" &&
+                "Cancelled bookings will appear here when a meeting is cancelled."}
             </p>
-          </div>
+            {tab === "upcoming" && (
+              <div className="mt-4 flex flex-wrap items-center justify-center gap-2">
+                <Button
+                  type="button"
+                  size="sm"
+                  onClick={handleCopyBookingLink}
+                  className="gap-1.5"
+                >
+                  {isCopiedLink ? (
+                    <>
+                      <Check className="h-3.5 w-3.5 text-emerald-400" />
+                      <span>Copied!</span>
+                    </>
+                  ) : (
+                    <>
+                      <Copy className="h-3.5 w-3.5" />
+                      <span>Share Schedule</span>
+                    </>
+                  )}
+                </Button>
+                <Button asChild variant="outline" size="sm">
+                  <Link href="/dashboard">
+                    <span>View Event Types</span>
+                  </Link>
+                </Button>
+              </div>
+            )}
+          </Card>
         ) : (
           <div className="space-y-3">
             {bookings.map((b) => {
@@ -885,6 +936,5 @@ export default function BookingsPage() {
           </div>
         )}
       </div>
-    </DashboardShell>
   );
 }

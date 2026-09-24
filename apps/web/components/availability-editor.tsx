@@ -8,7 +8,6 @@ import {
   Calendar as CalendarIcon,
   Check,
 } from "lucide-react";
-import { DashboardShell } from "@/components/dashboard-shell";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -251,20 +250,17 @@ export function AvailabilityEditor() {
 
   if (isLoading) {
     return (
-      <DashboardShell>
-        <div className="mx-auto max-w-4xl space-y-6 pb-16">
-          <Skeleton className="h-8 w-48 rounded-md" />
-          <Skeleton className="h-40 rounded-xl border border-[var(--border-subtle)]" />
-          <Skeleton className="h-96 rounded-xl border border-[var(--border-subtle)]" />
-        </div>
-      </DashboardShell>
+      <div className="mx-auto max-w-4xl space-y-6 pb-16">
+        <Skeleton className="h-8 w-48 rounded-md" />
+        <Skeleton className="h-40 rounded-xl border border-[var(--border-subtle)]" />
+        <Skeleton className="h-96 rounded-xl border border-[var(--border-subtle)]" />
+      </div>
     );
   }
 
   return (
-    <DashboardShell>
-      <div className="mx-auto max-w-4xl space-y-8 pb-24">
-        {/* Header Title Section */}
+    <div className="mx-auto max-w-4xl space-y-8 pb-24">
+      {/* Header Title Section */}
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 border-b border-[var(--border-subtle)] pb-5">
           <div>
             <h1 className="text-2xl font-bold tracking-tight text-[var(--text-primary)]">Availability</h1>
@@ -606,6 +602,5 @@ export function AvailabilityEditor() {
           </div>
         )}
       </div>
-    </DashboardShell>
   );
 }

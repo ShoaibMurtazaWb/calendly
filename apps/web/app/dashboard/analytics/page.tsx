@@ -10,7 +10,6 @@ import {
   Activity,
   Layers,
 } from "lucide-react";
-import { DashboardShell } from "@/components/dashboard-shell";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -22,10 +21,12 @@ export default function AnalyticsPage() {
   const [range, setRange] = useState<AnalyticsRange>("30d");
   const [data, setData] = useState<HostAnalyticsResponse | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [isAnimated, setIsAnimated] = useState(false);
 
   useEffect(() => {
     async function loadAnalytics() {
       setIsLoading(true);
+      setIsAnimated(false);
       try {
         const response = await api<HostAnalyticsResponse>(`/analytics/overview?range=${range}`);
         setData(response);
@@ -38,6 +39,17 @@ export default function AnalyticsPage() {
 
     void loadAnalytics();
   }, [range]);
+
+  useEffect(() => {
+    if (!isLoading && data) {
+      const timer = setTimeout(() => {
+        setIsAnimated(true);
+      }, 50);
+      return () => clearTimeout(timer);
+    } else {
+      setIsAnimated(false);
+    }
+  }, [isLoading, data]);
 
   const formatMinutes = (totalMinutes: number) => {
     if (totalMinutes < 60) {
@@ -56,8 +68,7 @@ export default function AnalyticsPage() {
   };
 
   return (
-    <DashboardShell>
-      <div className="space-y-6">
+    <div className="space-y-6">
         {/* Page Header with Timeframe Range Selector */}
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 pb-4 border-b border-[var(--border-subtle)]">
           <div>
@@ -234,10 +245,14 @@ export default function AnalyticsPage() {
                           </div>
                         </div>
                         {/* Proportional Progress Bar */}
-                        <div className="h-2 w-full overflow-hidden rounded-full bg-[var(--bg-subtle)] border border-[var(--border-subtle)]">
+                        <div className="h-2.5 w-full overflow-hidden rounded-full bg-[#F4F4F5] border border-[#E4E4E7]">
                           <div
-                            className="h-full rounded-full bg-neutral-900 dark:bg-neutral-100 transition-[width] duration-300 ease-out"
-                            style={{ width: `${Math.min(Math.max(et.percentage, 0), 100)}%` }}
+                            className="h-full rounded-full bg-[#18181B] transition-all duration-700 ease-out"
+                            style={{
+                              width: isAnimated
+                                ? `${Math.min(Math.max(et.percentage, 0), 100)}%`
+                                : "0%",
+                            }}
                           />
                         </div>
                       </div>
@@ -246,7 +261,7 @@ export default function AnalyticsPage() {
                 </div>
 
                 <div className="pt-3 border-t border-[var(--border-subtle)] text-[11px] text-[var(--text-muted)] flex items-center justify-between">
-                  <span>Total share of scheduled sessions</span>
+                  <span>Based on total bookings</span>
                   <span className="tabular-nums font-sans font-medium text-[var(--text-secondary)]">
                     {data.summary.totalBookings} total
                   </span>
@@ -269,12 +284,15 @@ export default function AnalyticsPage() {
                   {/* Vertical Bar Chart Area */}
                   {(() => {
                     const maxCount = Math.max(...data.dayOfWeekHeatmap.map((d) => d.count), 0);
+                    const currentDayOfWeek = new Date().getDay();
+
                     return (
                       <div className="pt-4">
                         {/* Chart Grid Area with Baseline */}
                         <div className="h-36 flex items-end justify-between gap-1.5 sm:gap-3 pb-1 border-b border-[var(--border-subtle)]">
                           {data.dayOfWeekHeatmap.map((day) => {
                             const hasBookings = day.count > 0;
+                            const isToday = day.dayOfWeek === currentDayOfWeek;
                             const heightPercent = maxCount > 0 ? Math.round((day.count / maxCount) * 100) : 0;
 
                             return (
@@ -285,21 +303,29 @@ export default function AnalyticsPage() {
                                 {hasBookings ? (
                                   <>
                                     {/* Hover Count Badge */}
-                                    <span className="opacity-0 group-hover:opacity-100 transition-opacity duration-150 absolute -top-5 text-[10px] tabular-nums font-sans px-1.5 py-0.5 rounded bg-neutral-900 text-white dark:bg-white dark:text-neutral-900 pointer-events-none whitespace-nowrap z-10 shadow-xs">
+                                    <span className="opacity-0 group-hover:opacity-100 transition-opacity duration-150 absolute -top-5 text-[10px] tabular-nums font-sans px-1.5 py-0.5 rounded bg-neutral-900 text-white pointer-events-none whitespace-nowrap z-10 shadow-xs">
                                       {day.count} {day.count === 1 ? "booking" : "bookings"}
                                     </span>
                                     {/* Active Bar */}
                                     <div
-                                      className="w-full max-w-[28px] sm:max-w-[36px] rounded-t-sm bg-neutral-900 dark:bg-neutral-100 transition-[height] duration-300 ease-out group-hover:opacity-80 cursor-default"
-                                      style={{ height: `${Math.max(heightPercent, 8)}%` }}
-                                      title={`${day.dayName}: ${day.count} meetings`}
+                                      className={`w-full max-w-[28px] sm:max-w-[36px] rounded-t-sm transition-all duration-700 ease-out group-hover:opacity-85 cursor-default ${
+                                        isToday ? "bg-[#18181B]" : "bg-[#E5E7EB]"
+                                      }`}
+                                      style={{
+                                        height: isAnimated
+                                          ? `${Math.max(heightPercent, 8)}%`
+                                          : "0%",
+                                      }}
+                                      title={`${day.dayName}: ${day.count} meetings${isToday ? " (Today)" : ""}`}
                                     />
                                   </>
                                 ) : (
                                   /* Inactive Baseline Marker */
                                   <div
-                                    className="w-full max-w-[28px] sm:max-w-[36px] h-[2px] rounded-full bg-[var(--border-strong)] opacity-60"
-                                    title={`${day.dayName}: 0 meetings`}
+                                    className={`w-full max-w-[28px] sm:max-w-[36px] h-1 rounded-sm ${
+                                      isToday ? "bg-[#18181B]" : "bg-[#E5E7EB]"
+                                    }`}
+                                    title={`${day.dayName}: 0 meetings${isToday ? " (Today)" : ""}`}
                                   />
                                 )}
                               </div>
@@ -310,23 +336,23 @@ export default function AnalyticsPage() {
                         {/* X-Axis Labels: Day & Count */}
                         <div className="grid grid-cols-7 gap-1.5 sm:gap-3 pt-2 text-center">
                           {data.dayOfWeekHeatmap.map((day) => {
-                            const hasBookings = day.count > 0;
+                            const isToday = day.dayOfWeek === currentDayOfWeek;
                             return (
                               <div key={day.dayOfWeek} className="flex flex-col items-center">
                                 <span
                                   className={`text-[11px] transition-colors ${
-                                    hasBookings
-                                      ? "font-semibold text-[var(--text-primary)]"
-                                      : "text-[var(--text-muted)]"
+                                    isToday
+                                      ? "font-bold text-[var(--text-primary)]"
+                                      : "font-medium text-[var(--text-muted)]"
                                   }`}
                                 >
                                   {day.dayName.slice(0, 3)}
                                 </span>
                                 <span
                                   className={`text-[10px] tabular-nums font-sans ${
-                                    hasBookings
-                                      ? "font-medium text-[var(--text-secondary)]"
-                                      : "text-[var(--text-disabled)]"
+                                    isToday
+                                      ? "font-bold text-[var(--text-primary)]"
+                                      : "font-medium text-[var(--text-muted)]"
                                   }`}
                                 >
                                   {day.count}
@@ -341,7 +367,7 @@ export default function AnalyticsPage() {
                 </div>
 
                 <div className="pt-3 border-t border-[var(--border-subtle)] text-[11px] text-[var(--text-muted)] flex items-center justify-between">
-                  <span>Frequency across weekly schedule</span>
+                  <span>Bookings by weekday</span>
                   <span className="tabular-nums font-sans font-medium text-[var(--text-secondary)]">
                     {data.dayOfWeekHeatmap.reduce((acc, d) => acc + d.count, 0)} sessions
                   </span>
@@ -351,6 +377,5 @@ export default function AnalyticsPage() {
           </div>
         )}
       </div>
-    </DashboardShell>
   );
 }

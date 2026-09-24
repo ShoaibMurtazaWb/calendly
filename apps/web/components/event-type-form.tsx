@@ -24,7 +24,6 @@ import {
   type EventTypeLocationConfig,
   type LocationType,
 } from "@sched/api-contract";
-import { DashboardShell } from "@/components/dashboard-shell";
 import { Button } from "@/components/ui/button";
 import { Card, CardTitle, CardDescription } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -413,19 +412,16 @@ export function EventTypeForm({ eventTypeId }: EventTypeFormProps) {
 
   if (loadingInitial) {
     return (
-      <DashboardShell>
-        <div className="max-w-2xl mx-auto space-y-6">
-          <Skeleton className="h-4 w-32 rounded-md" />
-          <Skeleton className="h-96 rounded-xl border border-[var(--border-subtle)]" />
-        </div>
-      </DashboardShell>
+      <div className="max-w-2xl mx-auto space-y-6">
+        <Skeleton className="h-4 w-32 rounded-md" />
+        <Skeleton className="h-96 rounded-xl border border-[var(--border-subtle)]" />
+      </div>
     );
   }
 
   return (
-    <DashboardShell>
-      <div className="max-w-2xl mx-auto">
-        {/* Back Link */}
+    <div className="max-w-2xl mx-auto">
+      {/* Back Link */}
         <Link
           href="/dashboard"
           className="inline-flex items-center gap-2 text-xs font-medium text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors duration-150 mb-6 group"
@@ -1071,6 +1067,5 @@ export function EventTypeForm({ eventTypeId }: EventTypeFormProps) {
           </form>
         </Card>
       </div>
-    </DashboardShell>
   );
 }
