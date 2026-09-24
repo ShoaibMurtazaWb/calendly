@@ -11,6 +11,10 @@ if (!process.env.DATABASE_URL) {
   process.env.DATABASE_URL = "postgresql://sched:sched@localhost:5432/sched";
 }
 
+if (!process.env.CALENDAR_ENCRYPTION_KEY) {
+  process.env.CALENDAR_ENCRYPTION_KEY = "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef";
+}
+
 class AllowAllThrottlerGuard implements CanActivate {
   canActivate(): boolean {
     return true;
