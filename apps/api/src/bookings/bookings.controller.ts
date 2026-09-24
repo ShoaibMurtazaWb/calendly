@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Param, Patch, Query, UseGuards } from "@nestjs/common";
+import { Body, Controller, Delete, Get, Param, Patch, Query, UseGuards } from "@nestjs/common";
 import { ApiCookieAuth, ApiOperation, ApiTags } from "@nestjs/swagger";
 import {
   cancelBookingBodySchema,
@@ -52,5 +52,14 @@ export class BookingsController {
     @Body(zodPipe(rescheduleBookingBodySchema)) body: RescheduleBookingBody
   ) {
     return this.bookings.rescheduleByHost(userId, params.id, body);
+  }
+
+  @Delete(":id")
+  @ApiOperation({ summary: "Permanently delete a cancelled booking" })
+  delete(
+    @CurrentUserId() userId: string,
+    @Param(zodPipe(bookingIdParamSchema)) params: { id: string }
+  ) {
+    return this.bookings.deleteByHost(userId, params.id);
   }
 }

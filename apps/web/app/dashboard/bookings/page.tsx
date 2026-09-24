@@ -18,6 +18,7 @@ import {
   Video,
   PhoneCall,
   PhoneForwarded,
+  Trash2,
 } from "lucide-react";
 
 import { DashboardShell } from "@/components/dashboard-shell";
@@ -35,13 +36,25 @@ type TabStatus = "upcoming" | "past" | "cancelled";
 
 export default function BookingsPage() {
   const [tab, setTab] = useState<TabStatus>("upcoming");
-  const [bookings, setBookings] = useState<BookingResponse[]>([]);
+  const [dataByStatus, setDataByStatus] = useState<{
+    upcoming: BookingResponse[];
+    past: BookingResponse[];
+    cancelled: BookingResponse[];
+  }>({
+    upcoming: [],
+    past: [],
+    cancelled: [],
+  });
   const [isLoading, setIsLoading] = useState(true);
 
   // Cancellation Modal state
   const [cancellingId, setCancellingId] = useState<string | null>(null);
   const [cancelModalBooking, setCancelModalBooking] = useState<BookingResponse | null>(null);
   const [cancelReason, setCancelReason] = useState("");
+
+  // Deletion Modal state
+  const [deleteModalBooking, setDeleteModalBooking] = useState<BookingResponse | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   // Reschedule Modal state
   const [rescheduleModalBooking, setRescheduleModalBooking] = useState<BookingResponse | null>(null);
@@ -59,13 +72,16 @@ export default function BookingsPage() {
   const [rescheduleReason, setRescheduleReason] = useState("");
   const [isRescheduling, setIsRescheduling] = useState(false);
 
-  const loadBookings = async (status: TabStatus) => {
+  const loadAllBookings = async () => {
     setIsLoading(true);
     try {
-      const data = await api<BookingResponse[]>(`/bookings?status=${status}`);
-      setBookings(data);
+      const [upcoming, past, cancelled] = await Promise.all([
+        api<BookingResponse[]>("/bookings?status=upcoming"),
+        api<BookingResponse[]>("/bookings?status=past"),
+        api<BookingResponse[]>("/bookings?status=cancelled"),
+      ]);
+      setDataByStatus({ upcoming, past, cancelled });
     } catch {
-      setBookings([]);
       toast.error("Failed to load bookings", "Could not fetch your meeting schedule.");
     } finally {
       setIsLoading(false);
@@ -73,8 +89,10 @@ export default function BookingsPage() {
   };
 
   useEffect(() => {
-    void loadBookings(tab);
-  }, [tab]);
+    void loadAllBookings();
+  }, []);
+
+  const bookings = dataByStatus[tab];
 
   // Fetch slots for host rescheduling modal
   useEffect(() => {
@@ -119,7 +137,7 @@ export default function BookingsPage() {
       );
       setCancelModalBooking(null);
       setCancelReason("");
-      void loadBookings(tab);
+      void loadAllBookings();
     } catch (err) {
       if (err instanceof ApiError) {
         toast.error("Cancellation Failed", err.message);
@@ -151,7 +169,7 @@ export default function BookingsPage() {
       setRescheduleModalBooking(null);
       setSelectedSlot(null);
       setRescheduleReason("");
-      void loadBookings(tab);
+      void loadAllBookings();
     } catch (err) {
       if (err instanceof ApiError) {
         toast.error("Reschedule Failed", err.message);
@@ -160,6 +178,31 @@ export default function BookingsPage() {
       }
     } finally {
       setIsRescheduling(false);
+    }
+  };
+
+  const handleDeleteBooking = async () => {
+    if (!deleteModalBooking) return;
+    setIsDeleting(true);
+    try {
+      await api<{ success: boolean }>(`/bookings/${deleteModalBooking.id}`, {
+        method: "DELETE",
+      });
+
+      toast.success(
+        "Booking Deleted",
+        `Booking with ${deleteModalBooking.attendeeName} was removed from your history.`
+      );
+      setDeleteModalBooking(null);
+      void loadAllBookings();
+    } catch (err) {
+      if (err instanceof ApiError) {
+        toast.error("Deletion Failed", err.message);
+      } else {
+        toast.error("Deletion Failed", "An error occurred while deleting the booking.");
+      }
+    } finally {
+      setIsDeleting(false);
     }
   };
 
@@ -198,56 +241,50 @@ export default function BookingsPage() {
         </div>
 
         {/* Filter Tabs */}
-        <div className="flex items-center gap-2 border-b border-[var(--border-subtle)] pb-1">
+        <div className="flex items-center gap-2 border-b border-[var(--border-subtle)] pb-2">
           <button
             type="button"
             onClick={() => setTab("upcoming")}
-            className={`flex items-center gap-1.5 px-3 py-2 text-xs font-medium rounded-t-lg transition-[color,border-color] duration-150 cursor-pointer border-b-2 ${
+            className={`flex items-center gap-1.5 px-3 py-1.5 text-xs rounded-md transition-colors cursor-pointer ${
               tab === "upcoming"
-                ? "border-neutral-900 text-[var(--text-primary)] font-semibold dark:border-white"
-                : "border-transparent text-[var(--text-muted)] hover:text-[var(--text-primary)]"
+                ? "text-[var(--text-primary)] font-semibold"
+                : "text-[var(--text-muted)] hover:text-[var(--text-primary)] font-medium"
             }`}
           >
             <span>Upcoming</span>
-            {tab === "upcoming" && (
-              <Badge variant="secondary" className="tabular-nums font-sans">
-                {bookings.length}
-              </Badge>
-            )}
+            <Badge variant="secondary" className="tabular-nums font-sans">
+              {dataByStatus.upcoming.length}
+            </Badge>
           </button>
 
           <button
             type="button"
             onClick={() => setTab("past")}
-            className={`flex items-center gap-1.5 px-3 py-2 text-xs font-medium rounded-t-lg transition-[color,border-color] duration-150 cursor-pointer border-b-2 ${
+            className={`flex items-center gap-1.5 px-3 py-1.5 text-xs rounded-md transition-colors cursor-pointer ${
               tab === "past"
-                ? "border-neutral-900 text-[var(--text-primary)] font-semibold dark:border-white"
-                : "border-transparent text-[var(--text-muted)] hover:text-[var(--text-primary)]"
+                ? "text-[var(--text-primary)] font-semibold"
+                : "text-[var(--text-muted)] hover:text-[var(--text-primary)] font-medium"
             }`}
           >
             <span>Past</span>
-            {tab === "past" && (
-              <Badge variant="secondary" className="tabular-nums font-sans">
-                {bookings.length}
-              </Badge>
-            )}
+            <Badge variant="secondary" className="tabular-nums font-sans">
+              {dataByStatus.past.length}
+            </Badge>
           </button>
 
           <button
             type="button"
             onClick={() => setTab("cancelled")}
-            className={`flex items-center gap-1.5 px-3 py-2 text-xs font-medium rounded-t-lg transition-[color,border-color] duration-150 cursor-pointer border-b-2 ${
+            className={`flex items-center gap-1.5 px-3 py-1.5 text-xs rounded-md transition-colors cursor-pointer ${
               tab === "cancelled"
-                ? "border-neutral-900 text-[var(--text-primary)] font-semibold dark:border-white"
-                : "border-transparent text-[var(--text-muted)] hover:text-[var(--text-primary)]"
+                ? "text-[var(--text-primary)] font-semibold"
+                : "text-[var(--text-muted)] hover:text-[var(--text-primary)] font-medium"
             }`}
           >
             <span>Cancelled</span>
-            {tab === "cancelled" && (
-              <Badge variant="secondary" className="tabular-nums font-sans">
-                {bookings.length}
-              </Badge>
-            )}
+            <Badge variant="secondary" className="tabular-nums font-sans">
+              {dataByStatus.cancelled.length}
+            </Badge>
           </button>
         </div>
 
@@ -501,6 +538,44 @@ export default function BookingsPage() {
                           </Button>
                         </>
                       )}
+
+                      {tab === "past" && (
+                        <Button asChild variant="outline" size="sm">
+                          <Link href={`/public/${b.host.username}/${b.eventType.slug}`} target="_blank">
+                            <span>Schedule Follow-up</span>
+                          </Link>
+                        </Button>
+                      )}
+
+                      {tab === "cancelled" && (
+                        <>
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            onClick={() => {
+                              setRescheduleModalBooking(b);
+                              setSelectedSlot(null);
+                              setRescheduleReason("");
+                            }}
+                            className="flex items-center gap-1"
+                          >
+                            <RefreshCw className="h-3 w-3" />
+                            <span>Reschedule</span>
+                          </Button>
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => setDeleteModalBooking(b)}
+                            className="text-rose-600 hover:text-rose-700 hover:bg-rose-50 dark:hover:bg-rose-950/40"
+                            title="Delete booking from history"
+                          >
+                            <Trash2 className="h-3.5 w-3.5 mr-1" />
+                            <span>Delete</span>
+                          </Button>
+                        </>
+                      )}
                     </div>
                   </div>
                 </Card>
@@ -751,6 +826,58 @@ export default function BookingsPage() {
                     </>
                   ) : (
                     <span>Cancel Meeting</span>
+                  )}
+                </Button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Delete Confirmation Modal */}
+        {deleteModalBooking && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-xs p-4">
+            <div className="w-full max-w-md rounded-2xl border border-[var(--border-subtle)] bg-[var(--bg-surface)] p-6 shadow-xl space-y-4 animate-in fade-in-0 zoom-in-95 duration-150">
+              <div className="flex items-center gap-2.5">
+                <div className="flex h-9 w-9 items-center justify-center rounded-full bg-[var(--status-danger-bg)] text-[var(--status-danger-text)]">
+                  <Trash2 className="h-5 w-5" />
+                </div>
+                <div>
+                  <h3 className="text-sm font-semibold text-[var(--text-primary)]">
+                    Delete Cancelled Booking
+                  </h3>
+                  <p className="text-xs text-[var(--text-muted)]">
+                    {deleteModalBooking.eventType.title} with {deleteModalBooking.attendeeName}
+                  </p>
+                </div>
+              </div>
+
+              <p className="text-xs text-[var(--text-secondary)] leading-relaxed">
+                Are you sure you want to permanently remove this cancelled booking from your history? This action cannot be undone.
+              </p>
+
+              <div className="flex items-center justify-end gap-2 pt-2 border-t border-[var(--border-subtle)]">
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setDeleteModalBooking(null)}
+                >
+                  Cancel
+                </Button>
+                <Button
+                  type="button"
+                  variant="destructive"
+                  size="sm"
+                  disabled={isDeleting}
+                  onClick={handleDeleteBooking}
+                >
+                  {isDeleting ? (
+                    <>
+                      <Spinner size="sm" />
+                      <span>Deleting…</span>
+                    </>
+                  ) : (
+                    <span>Delete Booking</span>
                   )}
                 </Button>
               </div>

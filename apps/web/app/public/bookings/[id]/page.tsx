@@ -71,6 +71,7 @@ export default function PublicBookingConfirmationPage({
 
     const urlParams = new URLSearchParams(window.location.search);
     const tokenFromUrl = urlParams.get("token");
+    const actionFromUrl = urlParams.get("action");
     let token = tokenFromUrl;
 
     if (tokenFromUrl) {
@@ -91,6 +92,13 @@ export default function PublicBookingConfirmationPage({
       } catch {
         // Ignore storage errors
       }
+    }
+
+    if (actionFromUrl === "reschedule") {
+      setIsRescheduling(true);
+      setRescheduleStep("date");
+    } else if (actionFromUrl === "cancel") {
+      setIsCancelOpen(true);
     }
 
     setCapabilityToken(token);
@@ -245,6 +253,7 @@ export default function PublicBookingConfirmationPage({
   }
 
   const isCancelled = booking.status === "CANCELLED";
+  const isPast = !isCancelled && new Date(booking.endTime).getTime() < Date.now();
   const isRescheduled = booking.rescheduleCount > 0;
 
   // Formatted date and times
@@ -345,6 +354,21 @@ export default function PublicBookingConfirmationPage({
                       ? `Cancelled by host (${booking.host.name})`
                       : "Cancelled by attendee"}
                     {booking.cancellationReason && ` · "${booking.cancellationReason}"`}
+                  </p>
+                </>
+              ) : isPast ? (
+                <>
+                  <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-[var(--bg-subtle)] text-[var(--text-muted)] mb-3">
+                    <CheckCircle2 className="h-7 w-7" />
+                  </div>
+                  <Badge variant="secondary" className="mb-2">
+                    Completed
+                  </Badge>
+                  <h1 className="text-2xl font-bold tracking-tight text-[var(--text-primary)]">
+                    Meeting Completed
+                  </h1>
+                  <p className="mt-1 text-xs text-[var(--text-secondary)]">
+                    This session with {booking.host.name} took place on {formattedDate}.
                   </p>
                 </>
               ) : (
@@ -542,8 +566,8 @@ export default function PublicBookingConfirmationPage({
                 )}
               </div>
 
-              {/* Calendar Export Actions (if not cancelled) */}
-              {!isCancelled && !isRescheduling && (
+              {/* Calendar Export Actions (if active and not in the past) */}
+              {!isCancelled && !isPast && !isRescheduling && (
                 <div className="space-y-2 pt-2">
                   <p className="font-semibold text-[var(--text-primary)] text-xs">Add to Calendar:</p>
                   <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
@@ -570,7 +594,7 @@ export default function PublicBookingConfirmationPage({
               )}
 
               {/* Interactive Reschedule Flow */}
-              {!isCancelled && isRescheduling && (
+              {isRescheduling && (
                 <div className="rounded-xl border border-neutral-900/20 bg-[var(--bg-canvas)] p-4 space-y-4 animate-in fade-in-0 duration-150">
                   <div className="flex items-center justify-between pb-2 border-b border-[var(--border-subtle)]">
                     <div className="flex items-center gap-2">
@@ -814,8 +838,46 @@ export default function PublicBookingConfirmationPage({
                 </div>
               )}
 
-              {/* Reschedule / Cancellation Action Bar */}
-              {!isCancelled && !isRescheduling && (
+              {/* Reschedule / Cancellation / Follow-up Action Bar */}
+              {isCancelled && !isRescheduling && (
+                <div className="pt-4 border-t border-[var(--border-subtle)] space-y-3">
+                  <div className="flex flex-col sm:flex-row items-center gap-2">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      className="w-full flex items-center justify-center gap-1.5"
+                      onClick={() => {
+                        setIsRescheduling(true);
+                        setRescheduleStep("date");
+                      }}
+                    >
+                      <RefreshCw className="h-3.5 w-3.5" />
+                      <span>Reschedule Meeting</span>
+                    </Button>
+                    <Button asChild size="sm" className="w-full">
+                      <Link href={`/public/${booking.host.username}/${booking.eventType.slug}`}>
+                        Schedule New Meeting
+                      </Link>
+                    </Button>
+                  </div>
+                </div>
+              )}
+
+              {isPast && !isRescheduling && (
+                <div className="pt-4 border-t border-[var(--border-subtle)] space-y-3">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                    <p className="text-xs text-[var(--text-secondary)]">Need to meet again?</p>
+                    <Button asChild size="sm">
+                      <Link href={`/public/${booking.host.username}/${booking.eventType.slug}`}>
+                        Schedule Follow-up
+                      </Link>
+                    </Button>
+                  </div>
+                </div>
+              )}
+
+              {!isCancelled && !isPast && !isRescheduling && (
                 <div className="pt-4 border-t border-[var(--border-subtle)] space-y-3">
                   {isCancelOpen ? (
                     <div className="rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-canvas)] p-4 space-y-3">

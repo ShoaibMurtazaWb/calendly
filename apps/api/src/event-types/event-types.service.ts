@@ -141,6 +141,22 @@ export class EventTypesService {
     return toOwnerEventType(row);
   }
 
+  async delete(userId: string, id: string): Promise<void> {
+    const existing = await this.findOwnedOrThrow(userId, id);
+    const bookingCount = await this.prisma.booking.count({
+      where: { eventTypeId: existing.id },
+    });
+    if (bookingCount > 0) {
+      throw new BadRequestError(
+        "CANNOT_DELETE_WITH_BOOKINGS",
+        "This event type cannot be deleted because it has existing bookings. You can archive it instead to preserve past records and analytics."
+      );
+    }
+    await this.prisma.eventType.delete({
+      where: { id: existing.id },
+    });
+  }
+
   async getPublicHostProfile(username: string): Promise<import("@sched/api-contract").PublicHostProfileResponse> {
     const user = await this.prisma.user.findUnique({
       where: { username },

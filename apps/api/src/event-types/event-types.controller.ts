@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Param, Patch, Post, Query, UseGuards } from "@nestjs/common";
+import { Body, Controller, Delete, Get, Param, Patch, Post, Query, UseGuards } from "@nestjs/common";
 import { ApiCookieAuth, ApiOperation, ApiTags } from "@nestjs/swagger";
 import {
   createEventTypeBodySchema,
@@ -74,5 +74,15 @@ export class EventTypesController {
     @Param(zodPipe(eventTypeIdParamSchema)) params: { id: string },
   ) {
     return this.eventTypes.unarchive(userId, params.id);
+  }
+
+  @Delete(":id")
+  @ApiOperation({ summary: "Permanently delete an event type if it has no bookings" })
+  async delete(
+    @CurrentUserId() userId: string,
+    @Param(zodPipe(eventTypeIdParamSchema)) params: { id: string },
+  ) {
+    await this.eventTypes.delete(userId, params.id);
+    return { success: true };
   }
 }

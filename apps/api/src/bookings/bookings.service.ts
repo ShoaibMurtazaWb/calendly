@@ -84,12 +84,44 @@ export class BookingsService {
     const configuredQuestions = parseStoredCustomQuestions(eventType.customQuestions);
     const customResponses = validateAndBuildCustomResponses(configuredQuestions, dto.customResponses);
 
+    const now = new Date();
+
+    // Check for an existing active confirmed booking for this event type and attendee
+    const existingActiveBooking = await this.prisma.booking.findFirst({
+      where: {
+        eventTypeId: eventType.id,
+        attendeeEmail: { equals: dto.attendeeEmail.trim(), mode: "insensitive" },
+        status: "CONFIRMED",
+        endTime: { gte: now },
+      },
+      orderBy: { startTime: "asc" },
+    });
+
+    if (existingActiveBooking) {
+      const manageToken = this.tokenService.generateToken(
+        existingActiveBooking.id,
+        existingActiveBooking.tokenVersion
+      );
+      const manageUrl = `/public/bookings/${existingActiveBooking.id}?token=${manageToken}`;
+
+      throw new ConflictError(
+        "BOOKING_ALREADY_EXISTS",
+        "You already have a booking for this event.",
+        {
+          booking: {
+            id: existingActiveBooking.id,
+            startTime: existingActiveBooking.startTime.toISOString(),
+            manageUrl,
+          },
+        }
+      );
+    }
+
     const startUtc = new Date(dto.startUtc);
     if (isNaN(startUtc.getTime())) {
       throw new ConflictError("INVALID_DATE", "Invalid start date time.");
     }
 
-    const now = new Date();
     const minNoticeMs = eventType.minimumNoticeMinutes * 60 * 1000;
     if (startUtc.getTime() < now.getTime() + minNoticeMs) {
       throw new ConflictError(
@@ -219,6 +251,7 @@ export class BookingsService {
 
         // Atomically enqueue transactional notification outbox jobs
         await this.notifications.enqueueConfirmationJobsInTx(tx, created);
+        await this.notifications.enqueueReminderJobsInTx(tx, created, now);
 
         // Atomically enqueue transactional calendar sync outbox job
         if (googleIntegration && googleIntegration.status === CalendarIntegrationStatus.CONNECTED) {
@@ -399,10 +432,6 @@ export class BookingsService {
           }
         }
 
-        if (booking.status === "CANCELLED") {
-          throw new ConflictError("BOOKING_CANCELLED", "Cancelled bookings cannot be rescheduled.");
-        }
-
         // 3. Optimistic version check
         if (booking.sequence !== dto.expectedSequence) {
           throw new ConflictError(
@@ -500,12 +529,16 @@ export class BookingsService {
           },
         });
 
-        // 8. Update booking: atomic sequence increment, preserving location snapshot
+        // 8. Update booking: atomic sequence increment, reactivate if cancelled
         const res = await tx.booking.update({
           where: { id: booking.id },
           data: {
             startTime: startUtc,
             endTime: endUtc,
+            status: "CONFIRMED",
+            cancellationReason: null,
+            cancelledAt: null,
+            cancelledBy: null,
             sequence: newSequence,
             rescheduleCount: booking.rescheduleCount + 1,
             rescheduledAt: now,
@@ -520,8 +553,10 @@ export class BookingsService {
           },
         });
 
-        // 9. Enqueue reschedule notification outbox jobs
+        // 9. Manage notification outbox jobs
+        await this.notifications.cancelPendingReminderJobsInTx(tx, booking.id);
         await this.notifications.enqueueRescheduleJobsInTx(tx, res);
+        await this.notifications.enqueueReminderJobsInTx(tx, res, now);
 
         // 10. Enqueue calendar sync outbox job for reschedule
         if (googleIntegration && googleIntegration.status === CalendarIntegrationStatus.CONNECTED) {
@@ -632,7 +667,8 @@ export class BookingsService {
         },
       });
 
-      // Atomically enqueue cancellation notification outbox jobs
+      // Atomically cancel pending reminder jobs and enqueue cancellation notification outbox jobs
+      await this.notifications.cancelPendingReminderJobsInTx(tx, booking.id);
       await this.notifications.enqueueCancellationJobsInTx(tx, res);
 
       // Atomically enqueue calendar sync outbox job for cancellation
@@ -747,6 +783,33 @@ export class BookingsService {
     token: string | undefined
   ): Promise<{ filename: string; content: string }> {
     return this.getBookingIcs(bookingId, token || "");
+  }
+
+  async deleteByHost(hostUserId: string, bookingId: string): Promise<{ success: boolean }> {
+    const booking = await this.prisma.booking.findUnique({
+      where: { id: bookingId },
+    });
+
+    if (!booking || booking.hostId !== hostUserId) {
+      throw new NotFoundError("Booking not found or this link is no longer valid.");
+    }
+
+    if (booking.status !== "CANCELLED") {
+      throw new BadRequestError(
+        "CANNOT_DELETE_ACTIVE_BOOKING",
+        "Only cancelled bookings can be deleted from history."
+      );
+    }
+
+    await this.prisma.$transaction(async (tx) => {
+      await tx.notificationJob.deleteMany({ where: { bookingId } });
+      await tx.calendarSyncJob.deleteMany({ where: { bookingId } });
+      await tx.externalCalendarEvent.deleteMany({ where: { bookingId } });
+      await tx.bookingRescheduleHistory.deleteMany({ where: { bookingId } });
+      await tx.booking.delete({ where: { id: bookingId } });
+    });
+
+    return { success: true };
   }
 
   private mapToResponse(row: {

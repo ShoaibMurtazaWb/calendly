@@ -4,7 +4,25 @@ export type ApiErrorBody = {
     message: string;
     details?: {
       fields?: Record<string, string>;
+      booking?: {
+        id: string;
+        startTime: string;
+        manageUrl: string;
+      };
+      [key: string]: unknown;
     };
+    booking?: {
+      id: string;
+      startTime: string;
+      manageUrl: string;
+    };
+  };
+  code?: string;
+  message?: string;
+  booking?: {
+    id: string;
+    startTime: string;
+    manageUrl: string;
   };
 };
 
@@ -35,4 +53,16 @@ export function isApiErrorBody(value: unknown): value is ApiErrorBody {
 
 export function fieldErrors(error: ApiError): Record<string, string> {
   return error.body.error.details?.fields ?? {};
+}
+
+export function getExistingBookingFromError(error: ApiError): {
+  id: string;
+  startTime: string;
+  manageUrl: string;
+} | undefined {
+  return (
+    error.body.booking ||
+    error.body.error.booking ||
+    error.body.error.details?.booking
+  );
 }

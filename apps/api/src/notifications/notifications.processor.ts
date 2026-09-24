@@ -10,6 +10,7 @@ import {
   renderBookingCancelledHost,
   renderBookingConfirmedAttendee,
   renderBookingConfirmedHost,
+  renderBookingReminderAttendee,
   renderBookingRescheduledAttendee,
   renderBookingRescheduledHost,
   type SnapshotPayload,
@@ -254,6 +255,56 @@ export class NotificationsProcessor implements OnModuleInit, OnModuleDestroy {
       }
       case NotificationType.BOOKING_CANCELLED_HOST: {
         const rendered = renderBookingCancelledHost(snapshot, this.appUrl);
+        subject = rendered.subject;
+        html = rendered.html;
+        text = rendered.text;
+        break;
+      }
+      case NotificationType.BOOKING_REMINDER_24H: {
+        // Pre-check if booking is still confirmed
+        const currentBooking = await this.prisma.booking.findUnique({
+          where: { id: job.bookingId },
+          select: { status: true },
+        });
+        if (!currentBooking || currentBooking.status !== "CONFIRMED") {
+          await this.prisma.notificationJob.update({
+            where: { id: job.id },
+            data: {
+              status: NotificationStatus.CANCELLED,
+              lockedAt: null,
+              lastError: "Skipped: booking is not in CONFIRMED state",
+            },
+          });
+          this.logger.log(`Cancelled reminder job ${job.id}: booking is ${currentBooking?.status || "missing"}`);
+          return;
+        }
+
+        const rendered = renderBookingReminderAttendee(snapshot, manageUrl, "in 24 hours");
+        subject = rendered.subject;
+        html = rendered.html;
+        text = rendered.text;
+        break;
+      }
+      case NotificationType.BOOKING_REMINDER_1H: {
+        // Pre-check if booking is still confirmed
+        const currentBooking = await this.prisma.booking.findUnique({
+          where: { id: job.bookingId },
+          select: { status: true },
+        });
+        if (!currentBooking || currentBooking.status !== "CONFIRMED") {
+          await this.prisma.notificationJob.update({
+            where: { id: job.id },
+            data: {
+              status: NotificationStatus.CANCELLED,
+              lockedAt: null,
+              lastError: "Skipped: booking is not in CONFIRMED state",
+            },
+          });
+          this.logger.log(`Cancelled reminder job ${job.id}: booking is ${currentBooking?.status || "missing"}`);
+          return;
+        }
+
+        const rendered = renderBookingReminderAttendee(snapshot, manageUrl, "in 1 hour");
         subject = rendered.subject;
         html = rendered.html;
         text = rendered.text;

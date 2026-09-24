@@ -29,7 +29,7 @@ import { Spinner } from "@/components/ui/spinner";
 import { toast } from "@/components/ui/toast";
 import { Logo } from "@/components/logo";
 import { api } from "@/lib/api";
-import { ApiError, fieldErrors } from "@/lib/api-error";
+import { ApiError, fieldErrors, getExistingBookingFromError } from "@/lib/api-error";
 import type { BookingResponse, CustomQuestion, PublicLocationMetadata, TimeSlot } from "@sched/api-contract";
 
 interface PublicEventDetails {
@@ -80,6 +80,14 @@ export default function PublicBookingPage({
   const [isLoadingSlots, setIsLoadingSlots] = useState(false);
   const [selectedSlot, setSelectedSlot] = useState<TimeSlot | null>(null);
 
+  // Conflict & duplicate states
+  const [slotConflictMessage, setSlotConflictMessage] = useState<string | null>(null);
+  const [existingBookingDuplicate, setExistingBookingDuplicate] = useState<{
+    id: string;
+    startTime: string;
+    manageUrl: string;
+  } | null>(null);
+
   // Form input state
   const [attendeeName, setAttendeeName] = useState("");
   const [attendeeEmail, setAttendeeEmail] = useState("");
@@ -128,28 +136,27 @@ export default function PublicBookingPage({
     void loadEvent();
   }, [username, eventSlug]);
 
+  const loadSlots = async () => {
+    if (!eventDetails || !selectedDate) return;
+    setIsLoadingSlots(true);
+    try {
+      const data = await api<TimeSlot[]>(
+        `/public/${username}/${eventSlug}/slots?startDate=${selectedDate}&endDate=${selectedDate}&timezone=${encodeURIComponent(
+          attendeeTimezone
+        )}`
+      );
+      setSlots(data);
+    } catch {
+      setSlots([]);
+    } finally {
+      setIsLoadingSlots(false);
+    }
+  };
+
   // Fetch slots whenever selectedDate or attendeeTimezone changes
   useEffect(() => {
-    if (!eventDetails || !selectedDate) return;
-
-    async function fetchSlots() {
-      setIsLoadingSlots(true);
-      setSelectedSlot(null);
-      try {
-        const data = await api<TimeSlot[]>(
-          `/public/${username}/${eventSlug}/slots?startDate=${selectedDate}&endDate=${selectedDate}&timezone=${encodeURIComponent(
-            attendeeTimezone
-          )}`
-        );
-        setSlots(data);
-      } catch {
-        setSlots([]);
-      } finally {
-        setIsLoadingSlots(false);
-      }
-    }
-
-    void fetchSlots();
+    setSelectedSlot(null);
+    void loadSlots();
   }, [eventDetails, selectedDate, attendeeTimezone, username, eventSlug]);
 
   const handlePrevMonth = () => {
@@ -169,6 +176,7 @@ export default function PublicBookingPage({
 
     setIsSubmitting(true);
     setFieldValidationErrors({});
+    setSlotConflictMessage(null);
 
     try {
       const result = await api<BookingResponse>(`/public/${username}/${eventSlug}/book`, {
@@ -188,6 +196,23 @@ export default function PublicBookingPage({
       router.push(`/public/bookings/${result.id}`);
     } catch (err) {
       if (err instanceof ApiError) {
+        const code = err.body?.error?.code || err.body?.code;
+        if (code === "BOOKING_ALREADY_EXISTS") {
+          const existing = getExistingBookingFromError(err);
+          if (existing) {
+            setExistingBookingDuplicate(existing);
+            return;
+          }
+        } else if (code === "SLOT_ALREADY_BOOKED" || code === "SLOT_UNAVAILABLE") {
+          setSelectedSlot(null);
+          setSlotConflictMessage(
+            "This time slot was just booked by someone else. Please select another available time."
+          );
+          setMobileStep("slots");
+          void loadSlots();
+          return;
+        }
+
         setFieldValidationErrors(fieldErrors(err));
         toast.error("Booking Failed", err.message);
       } else {
@@ -494,9 +519,87 @@ export default function PublicBookingPage({
                 </p>
               </div>
 
-              {/* Slots List or Confirmation Form */}
-              {!selectedSlot ? (
-                <div className="space-y-2">
+              {/* Duplicate Booking Detected Dialog or Slots / Form */}
+              {existingBookingDuplicate ? (
+                <div className="space-y-4 rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-subtle)] p-5 animate-in fade-in-0 duration-150">
+                  <div className="space-y-1">
+                    <h3 className="text-sm font-bold text-[var(--text-primary)]">
+                      You already have a booking for this event.
+                    </h3>
+                    <p className="text-xs font-semibold text-[var(--text-primary)] pt-1">
+                      {eventDetails.title}
+                    </p>
+                    <p className="text-xs text-[var(--text-secondary)]">
+                      with {eventDetails.host.name}
+                    </p>
+                    <p className="text-xs text-[var(--text-muted)] font-mono pt-1">
+                      {new Intl.DateTimeFormat("en-US", {
+                        timeZone: attendeeTimezone,
+                        weekday: "long",
+                        month: "long",
+                        day: "numeric",
+                        hour: "numeric",
+                        minute: "2-digit",
+                        hour12: true,
+                      }).format(new Date(existingBookingDuplicate.startTime))}
+                    </p>
+                  </div>
+
+                  <p className="text-xs font-medium text-[var(--text-primary)] pt-2 border-t border-[var(--border-subtle)]">
+                    What would you like to do?
+                  </p>
+
+                  <div className="space-y-2">
+                    <Button asChild className="w-full" size="sm">
+                      <Link href={existingBookingDuplicate.manageUrl}>View Booking</Link>
+                    </Button>
+                    <Button asChild variant="outline" className="w-full" size="sm">
+                      <Link href={`${existingBookingDuplicate.manageUrl}&action=reschedule`}>
+                        Reschedule
+                      </Link>
+                    </Button>
+                    <Button
+                      asChild
+                      variant="ghost"
+                      size="sm"
+                      className="w-full text-rose-600 hover:text-rose-700 hover:bg-rose-50 dark:hover:bg-rose-950/30 text-xs"
+                    >
+                      <Link href={`${existingBookingDuplicate.manageUrl}&action=cancel`}>
+                        Cancel and choose another time
+                      </Link>
+                    </Button>
+                  </div>
+
+                  <div className="pt-2 text-center">
+                    <button
+                      type="button"
+                      onClick={() => setExistingBookingDuplicate(null)}
+                      className="text-[11px] text-[var(--text-muted)] hover:text-[var(--text-primary)] underline cursor-pointer"
+                    >
+                      Use a different email or date
+                    </button>
+                  </div>
+                </div>
+              ) : !selectedSlot ? (
+                <div className="space-y-3">
+                  {slotConflictMessage && (
+                    <div className="rounded-xl border border-amber-300 bg-amber-50 dark:border-amber-900/50 dark:bg-amber-950/30 p-3 text-xs text-amber-900 dark:text-amber-200 space-y-2">
+                      <p className="font-semibold">{slotConflictMessage}</p>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={() => {
+                          setSlotConflictMessage(null);
+                          void loadSlots();
+                        }}
+                        className="w-full text-xs h-8"
+                      >
+                        Choose Another Time
+                      </Button>
+                    </div>
+                  )}
+
                   {isLoadingSlots ? (
                     <div className="space-y-2">
                       <Skeleton className="h-10 w-full rounded-lg" />

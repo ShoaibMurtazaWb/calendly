@@ -134,3 +134,9 @@ export interface PublicEventTypeDetails {
     timezone: string;
   };
 }
+
+export interface ExistingBookingDetails {
+  id: string;
+  startTime: string;
+  manageUrl: string;
+}

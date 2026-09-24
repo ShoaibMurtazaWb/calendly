@@ -191,4 +191,83 @@ export class NotificationsService {
 
     this.logger.log(`Enqueued cancellation outbox job for booking ${booking.id} (sequence ${booking.sequence})`);
   }
+
+  async enqueueReminderJobsInTx(
+    tx: Prisma.TransactionClient,
+    booking: BookingWithDetails,
+    now: Date = new Date()
+  ): Promise<void> {
+    if (booking.status !== "CONFIRMED") return;
+
+    const snapshot = this.buildSnapshot(booking);
+    const startTimeMs = booking.startTime.getTime();
+    const nowMs = now.getTime();
+
+    // 1. 24-Hour Pre-Meeting Reminder
+    const reminder24hTime = new Date(startTimeMs - 24 * 60 * 60 * 1000);
+    if (reminder24hTime.getTime() > nowMs) {
+      await tx.notificationJob.upsert({
+        where: { idempotencyKey: `booking:${booking.id}:reminder-24h:${booking.sequence}:attendee` },
+        update: {},
+        create: {
+          bookingId: booking.id,
+          idempotencyKey: `booking:${booking.id}:reminder-24h:${booking.sequence}:attendee`,
+          type: NotificationType.BOOKING_REMINDER_24H,
+          recipientEmail: booking.attendeeEmail,
+          status: NotificationStatus.PENDING,
+          nextRunAt: reminder24hTime,
+          payload: snapshot as unknown as Prisma.InputJsonValue,
+        },
+      });
+      this.logger.log(
+        `Scheduled 24h reminder for booking ${booking.id} at ${reminder24hTime.toISOString()}`
+      );
+    }
+
+    // 2. 1-Hour Pre-Meeting Reminder
+    const reminder1hTime = new Date(startTimeMs - 60 * 60 * 1000);
+    if (reminder1hTime.getTime() > nowMs) {
+      await tx.notificationJob.upsert({
+        where: { idempotencyKey: `booking:${booking.id}:reminder-1h:${booking.sequence}:attendee` },
+        update: {},
+        create: {
+          bookingId: booking.id,
+          idempotencyKey: `booking:${booking.id}:reminder-1h:${booking.sequence}:attendee`,
+          type: NotificationType.BOOKING_REMINDER_1H,
+          recipientEmail: booking.attendeeEmail,
+          status: NotificationStatus.PENDING,
+          nextRunAt: reminder1hTime,
+          payload: snapshot as unknown as Prisma.InputJsonValue,
+        },
+      });
+      this.logger.log(
+        `Scheduled 1h reminder for booking ${booking.id} at ${reminder1hTime.toISOString()}`
+      );
+    }
+  }
+
+  async cancelPendingReminderJobsInTx(
+    tx: Prisma.TransactionClient,
+    bookingId: string
+  ): Promise<number> {
+    const result = await tx.notificationJob.updateMany({
+      where: {
+        bookingId,
+        status: NotificationStatus.PENDING,
+        type: {
+          in: [NotificationType.BOOKING_REMINDER_24H, NotificationType.BOOKING_REMINDER_1H],
+        },
+      },
+      data: {
+        status: NotificationStatus.CANCELLED,
+        lastError: "Cancelled due to booking state change (rescheduled/cancelled)",
+      },
+    });
+
+    if (result.count > 0) {
+      this.logger.log(`Cancelled ${result.count} pending reminder jobs for booking ${bookingId}`);
+    }
+
+    return result.count;
+  }
 }

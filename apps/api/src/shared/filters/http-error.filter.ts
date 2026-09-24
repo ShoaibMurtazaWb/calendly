@@ -27,12 +27,18 @@ export class HttpErrorFilter implements ExceptionFilter {
     const requestId = requestIdOf(request);
 
     if (exception instanceof AppError) {
+      const details = exception.details || {};
       response.status(exception.httpStatus).json({
         error: {
           code: exception.code,
           message: exception.message,
-          details: exception.details,
+          details,
+          ...(details.booking ? { booking: details.booking } : {}),
         },
+        code: exception.code,
+        message: exception.message,
+        details,
+        ...(details.booking ? { booking: details.booking } : {}),
       });
       return;
     }

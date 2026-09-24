@@ -1,5 +1,11 @@
 export type ErrorDetails = {
   fields?: Record<string, string>;
+  booking?: {
+    id: string;
+    startTime: string;
+    manageUrl: string;
+  };
+  [key: string]: unknown;
 };
 
 export class AppError extends Error {

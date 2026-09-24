@@ -8,6 +8,7 @@ import {
   Layers,
   Clock,
   Puzzle,
+  BarChart3,
   Plus,
   LogOut,
   ExternalLink,
@@ -125,6 +126,13 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
         active: pathname.startsWith("/dashboard/availability"),
         disabled: false,
         icon: Clock,
+      },
+      {
+        label: "Analytics",
+        href: "/dashboard/analytics",
+        active: pathname.startsWith("/dashboard/analytics"),
+        disabled: false,
+        icon: BarChart3,
       },
       {
         label: "Integrations",

@@ -624,3 +624,60 @@ Dashboard: ${dashboardUrl}
 
   return { subject, html, text };
 }
+
+export function renderBookingReminderAttendee(
+  snapshot: SnapshotPayload,
+  manageUrl: string,
+  timeframeLabel = "in 24 hours"
+): { subject: string; html: string; text: string } {
+  const { dateStr, timeRangeStr } = formatZonedRange(
+    snapshot.startUtc,
+    snapshot.endUtc,
+    snapshot.attendeeTimeZone
+  );
+
+  const subject = `Reminder: ${snapshot.eventTitle} with ${snapshot.hostName} is coming up ${timeframeLabel}`;
+
+  const safeEventTitle = escapeHtml(snapshot.eventTitle);
+  const safeHostName = escapeHtml(snapshot.hostName);
+  const locationHtml = renderLocationHtml(snapshot, "ATTENDEE");
+  const customQuestionsHtml = renderCustomResponsesHtml(snapshot);
+
+  const html = baseHtml(`
+    <div style="text-align: center; margin-bottom: 20px;">
+      <span class="badge badge-info">Upcoming Meeting Reminder</span>
+      <h1>${safeEventTitle}</h1>
+      <p>Hi <strong>${escapeHtml(snapshot.attendeeName)}</strong>, this is a reminder that your meeting with <strong>${safeHostName}</strong> is starting ${timeframeLabel}.</p>
+    </div>
+
+    <div class="details-box">
+      <div class="details-row"><span class="details-label">Host:</span><span class="details-value">${safeHostName}</span></div>
+      <div class="details-row"><span class="details-label">Date:</span><span class="details-value">${dateStr}</span></div>
+      <div class="details-row"><span class="details-label">Time:</span><span class="details-value">${timeRangeStr}</span></div>
+      ${locationHtml}
+      ${customQuestionsHtml}
+    </div>
+
+    <div style="text-align: center; margin-top: 24px;">
+      <a href="${manageUrl}" class="btn">Manage / Reschedule Booking</a>
+    </div>
+  `);
+
+  const locationText = renderLocationText(snapshot, "ATTENDEE");
+  const customQuestionsText = renderCustomResponsesText(snapshot);
+
+  const text = `REMINDER: ${snapshot.eventTitle} with ${snapshot.hostName} is starting ${timeframeLabel}
+
+Hi ${snapshot.attendeeName},
+
+This is a reminder for your upcoming meeting with ${snapshot.hostName}.
+
+Date: ${dateStr}
+Time: ${timeRangeStr}
+${locationText ? `${locationText}\n` : ""}${customQuestionsText ? `${customQuestionsText}\n` : ""}
+Manage, reschedule, or cancel:
+${manageUrl}
+`;
+
+  return { subject, html, text };
+}

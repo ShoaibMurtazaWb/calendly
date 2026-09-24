@@ -126,6 +126,8 @@ enum NotificationType {
   BOOKING_CANCELLED_HOST
   BOOKING_RESCHEDULED_ATTENDEE
   BOOKING_RESCHEDULED_HOST
+  BOOKING_REMINDER_24H
+  BOOKING_REMINDER_1H
 }
 
 enum NotificationStatus {
@@ -133,6 +135,7 @@ enum NotificationStatus {
   PROCESSING
   SENT
   FAILED
+  CANCELLED
 }
 
 enum CalendarProviderType {

@@ -1,6 +1,7 @@
 import { Module } from "@nestjs/common";
 import { ConfigModule } from "@nestjs/config";
 import { ThrottlerModule } from "@nestjs/throttler";
+import { AnalyticsModule } from "./analytics/analytics.module";
 import { AuthModule } from "./auth/auth.module";
 import { BookingsModule } from "./bookings/bookings.module";
 import { EventTypesModule } from "./event-types/event-types.module";
@@ -24,6 +25,7 @@ import { SharedModule } from "./shared/shared.module";
     NotificationsModule,
     BookingsModule,
     EventTypesModule,
+    AnalyticsModule,
   ],
 })
 export class AppModule {}

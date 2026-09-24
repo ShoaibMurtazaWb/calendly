@@ -15,6 +15,8 @@ import {
   AlertCircle,
   Plus,
   Trash2,
+  Archive,
+  ArchiveRestore,
 } from "lucide-react";
 import {
   createEventTypeBodySchema,
@@ -56,6 +58,7 @@ export function EventTypeForm({ eventTypeId }: EventTypeFormProps) {
   const [pending, setPending] = useState(false);
   const [loadingInitial, setLoadingInitial] = useState(Boolean(eventTypeId));
   const [isLegacyMissingLocation, setIsLegacyMissingLocation] = useState(false);
+  const [isArchived, setIsArchived] = useState(false);
 
   // Controlled form values
   const [title, setTitle] = useState("");
@@ -105,6 +108,7 @@ export function EventTypeForm({ eventTypeId }: EventTypeFormProps) {
         setDuration(data.durationMinutes);
         setDescription(data.description || "");
         setIsSlugTouched(true);
+        setIsArchived(Boolean(data.archivedAt));
 
         if (data.customQuestions && Array.isArray(data.customQuestions)) {
           setCustomQuestions(data.customQuestions);
@@ -136,6 +140,62 @@ export function EventTypeForm({ eventTypeId }: EventTypeFormProps) {
       .catch(() => setError("Event type not found."))
       .finally(() => setLoadingInitial(false));
   }, [eventTypeId]);
+
+  async function handleArchive() {
+    if (!eventTypeId) return;
+    setPending(true);
+    setError(null);
+    try {
+      await api(`/event-types/${eventTypeId}/archive`, { method: "POST" });
+      toast.info("Event type archived", "This link is now inactive and hidden from public booking.");
+      router.push("/dashboard");
+    } catch {
+      setError("Could not archive the event type.");
+      toast.error("Could not archive the event type");
+    } finally {
+      setPending(false);
+    }
+  }
+
+  async function handleRestore() {
+    if (!eventTypeId) return;
+    setPending(true);
+    setError(null);
+    try {
+      await api(`/event-types/${eventTypeId}/unarchive`, { method: "POST" });
+      toast.success("Event type restored to active", "This booking link is live again.");
+      setIsArchived(false);
+    } catch {
+      setError("Could not restore the event type.");
+      toast.error("Could not restore the event type");
+    } finally {
+      setPending(false);
+    }
+  }
+
+  async function handleDelete() {
+    if (!eventTypeId) return;
+    if (!window.confirm("Are you sure you want to permanently delete this event type? This action cannot be undone.")) {
+      return;
+    }
+    setPending(true);
+    setError(null);
+    try {
+      await api(`/event-types/${eventTypeId}`, { method: "DELETE" });
+      toast.success("Event type deleted permanently");
+      router.push("/dashboard");
+    } catch (caught) {
+      if (caught instanceof ApiError) {
+        setError(caught.message);
+        toast.error("Cannot delete event type", caught.message);
+      } else {
+        setError("Could not delete the event type.");
+        toast.error("Could not delete the event type");
+      }
+    } finally {
+      setPending(false);
+    }
+  }
 
   function handleTitleChange(val: string) {
     setTitle(val);
@@ -371,6 +431,32 @@ export function EventTypeForm({ eventTypeId }: EventTypeFormProps) {
           <ArrowLeft className="h-3.5 w-3.5 group-hover:-translate-x-0.5 transition-transform duration-150" />
           Back to Event Types
         </Link>
+
+        {/* Archived Event Type Alert */}
+        {isArchived && (
+          <div className="mb-4 rounded-xl border border-amber-200 bg-amber-50 p-4 text-xs text-amber-900 dark:border-amber-900/40 dark:bg-amber-950/20 dark:text-amber-300 flex items-start justify-between gap-3">
+            <div className="flex items-start gap-2.5">
+              <Archive className="h-4 w-4 shrink-0 text-amber-600 mt-0.5" />
+              <div className="space-y-1">
+                <p className="font-semibold">Event Type Archived</p>
+                <p className="text-[11px] text-amber-800 dark:text-amber-400">
+                  This event type is currently archived and hidden from public booking. Restore it to edit or accept bookings.
+                </p>
+              </div>
+            </div>
+            <Button
+              type="button"
+              size="sm"
+              variant="outline"
+              disabled={pending}
+              onClick={() => void handleRestore()}
+              className="shrink-0 gap-1.5 bg-white dark:bg-neutral-900 shadow-2xs"
+            >
+              <ArchiveRestore className="h-3.5 w-3.5" />
+              <span>Restore</span>
+            </Button>
+          </div>
+        )}
 
         {/* Legacy Missing Location Alert */}
         {isLegacyMissingLocation && (
@@ -907,24 +993,71 @@ export function EventTypeForm({ eventTypeId }: EventTypeFormProps) {
             )}
 
             {/* Action Buttons */}
-            <div className="pt-4 border-t border-[var(--border-subtle)] flex items-center justify-end gap-3">
-              <Button
-                asChild
-                type="button"
-                variant="outline"
-                size="sm"
-              >
-                <Link href="/dashboard">Cancel</Link>
-              </Button>
-              <Button
-                type="submit"
-                disabled={pending}
-                size="sm"
-                className="gap-2"
-              >
-                {pending && <Spinner size="sm" />}
-                <span>{pending ? "Saving…" : eventTypeId ? "Save Changes" : "Create Event Type"}</span>
-              </Button>
+            <div className="pt-4 border-t border-[var(--border-subtle)] flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
+              {eventTypeId ? (
+                <div className="flex items-center gap-2">
+                  {isArchived ? (
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      disabled={pending}
+                      onClick={() => void handleRestore()}
+                      className="gap-1.5"
+                    >
+                      <ArchiveRestore className="h-3.5 w-3.5" />
+                      <span>Restore</span>
+                    </Button>
+                  ) : (
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      disabled={pending}
+                      onClick={() => void handleArchive()}
+                      className="gap-1.5 text-[var(--text-muted)] hover:text-amber-600 hover:bg-amber-50 dark:hover:bg-amber-950/20"
+                    >
+                      <Archive className="h-3.5 w-3.5" />
+                      <span>Archive</span>
+                    </Button>
+                  )}
+
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    disabled={pending}
+                    onClick={() => void handleDelete()}
+                    className="gap-1.5 text-[var(--status-danger-text)] hover:bg-rose-50 hover:border-rose-200 dark:hover:bg-rose-950/30 dark:hover:border-rose-900/50"
+                    title="Permanently delete event type"
+                  >
+                    <Trash2 className="h-3.5 w-3.5" />
+                    <span>Delete</span>
+                  </Button>
+                </div>
+              ) : (
+                <div />
+              )}
+
+              <div className="flex items-center justify-end gap-2">
+                <Button
+                  asChild
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                >
+                  <Link href="/dashboard">Cancel</Link>
+                </Button>
+                <Button
+                  type="submit"
+                  disabled={pending || isArchived}
+                  size="sm"
+                  className="gap-2"
+                >
+                  {pending && <Spinner size="sm" />}
+                  <span>{pending ? "Saving…" : eventTypeId ? "Save Changes" : "Create Event Type"}</span>
+                </Button>
+              </div>
             </div>
           </form>
         </Card>

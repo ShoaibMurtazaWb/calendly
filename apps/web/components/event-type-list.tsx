@@ -15,6 +15,7 @@ import {
   Link2,
   Inbox,
   ExternalLink,
+  Trash2,
 } from "lucide-react";
 import { DashboardShell } from "@/components/dashboard-shell";
 import { Button } from "@/components/ui/button";
@@ -23,6 +24,7 @@ import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
 import { toast } from "@/components/ui/toast";
 import { api, type CurrentUser, type EventType } from "@/lib/api";
+import { ApiError } from "@/lib/api-error";
 
 export function EventTypeList() {
   const [activeItems, setActiveItems] = useState<EventType[]>([]);
@@ -77,7 +79,7 @@ export function EventTypeList() {
   async function handleArchive(id: string) {
     try {
       await api(`/event-types/${id}/archive`, { method: "POST" });
-      toast.info("Event type archived");
+      toast.info("Event type archived", "This link is now inactive and hidden from public booking.");
       await loadData();
     } catch {
       setError("Could not archive the event type.");
@@ -88,11 +90,30 @@ export function EventTypeList() {
   async function handleUnarchive(id: string) {
     try {
       await api(`/event-types/${id}/unarchive`, { method: "POST" });
-      toast.success("Event type restored to active");
+      toast.success("Event type restored to active", "This booking link is live again.");
       await loadData();
     } catch {
-      setError("Could not unarchive the event type.");
+      setError("Could not restore the event type.");
       toast.error("Could not restore the event type");
+    }
+  }
+
+  async function handleDelete(id: string) {
+    if (!window.confirm("Are you sure you want to permanently delete this event type? This action cannot be undone.")) {
+      return;
+    }
+    try {
+      await api(`/event-types/${id}`, { method: "DELETE" });
+      toast.success("Event type permanently deleted");
+      await loadData();
+    } catch (caught) {
+      if (caught instanceof ApiError) {
+        setError(caught.message);
+        toast.error("Cannot delete event type", caught.message);
+      } else {
+        setError("Could not delete the event type.");
+        toast.error("Could not delete the event type");
+      }
     }
   }
 
@@ -288,16 +309,30 @@ export function EventTypeList() {
                 <div className="mt-6 pt-4 border-t border-[var(--border-subtle)] flex items-center justify-between gap-3">
                   <div className="flex items-center gap-2">
                     {tab === "archived" ? (
-                      <Button
-                        type="button"
-                        variant="outline"
-                        size="sm"
-                        onClick={() => void handleUnarchive(item.id)}
-                        className="gap-1.5"
-                      >
-                        <ArchiveRestore className="h-3.5 w-3.5" />
-                        <span>Unarchive</span>
-                      </Button>
+                      <>
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          onClick={() => void handleUnarchive(item.id)}
+                          className="gap-1.5"
+                        >
+                          <ArchiveRestore className="h-3.5 w-3.5" />
+                          <span>Restore</span>
+                        </Button>
+
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          onClick={() => void handleDelete(item.id)}
+                          className="gap-1.5 text-[var(--status-danger-text)] hover:bg-rose-50 hover:border-rose-200 dark:hover:bg-rose-950/30 dark:hover:border-rose-900/50"
+                          title="Permanently delete event type"
+                        >
+                          <Trash2 className="h-3.5 w-3.5" />
+                          <span>Delete</span>
+                        </Button>
+                      </>
                     ) : (
                       <>
                         <Button
@@ -351,17 +386,18 @@ export function EventTypeList() {
                   {tab === "active" && (
                     <Button
                       variant="ghost"
-                      size="icon"
+                      size="sm"
                       onClick={() => void handleArchive(item.id)}
-                      className="text-[var(--text-muted)] hover:text-rose-600 hover:bg-rose-50"
+                      className="gap-1.5 text-[var(--text-muted)] hover:text-amber-600 hover:bg-amber-50 dark:hover:bg-amber-950/20"
                       title="Archive event type"
                       aria-label="Archive event type"
                     >
-                      <Archive className="h-4 w-4" />
+                      <Archive className="h-3.5 w-3.5" />
+                      <span className="text-xs">Archive</span>
                     </Button>
                   )}
                   {tab === "archived" && (
-                    <span className="text-xs font-medium text-[var(--text-disabled)]">
+                    <span className="text-[11px] font-medium text-[var(--text-muted)]">
                       Archived
                     </span>
                   )}

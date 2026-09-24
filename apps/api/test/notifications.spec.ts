@@ -95,18 +95,33 @@ describe("Notifications Subsystem Integration", () => {
     expect(bookRes.status).toBe(201);
     const bookingId = bookRes.body.id;
 
-    // Verify outbox records in DB
-    const jobs = await prisma.notificationJob.findMany({
-      where: { bookingId },
+    // Verify outbox records in DB (2 immediate confirmations + 2 future reminders)
+    const confirmationJobs = await prisma.notificationJob.findMany({
+      where: {
+        bookingId,
+        type: { in: ["BOOKING_CONFIRMED_ATTENDEE", "BOOKING_CONFIRMED_HOST"] },
+      },
       orderBy: { type: "asc" },
     });
 
-    expect(jobs).toHaveLength(2);
-    expect(jobs.some((j) => j.type === "BOOKING_CONFIRMED_ATTENDEE")).toBe(true);
-    expect(jobs.some((j) => j.type === "BOOKING_CONFIRMED_HOST")).toBe(true);
-    expect(jobs.every((j) => j.status === "PENDING")).toBe(true);
+    expect(confirmationJobs).toHaveLength(2);
+    expect(confirmationJobs.every((j) => j.status === "PENDING")).toBe(true);
 
-    // Run processor worker sweep
+    const reminderJobs = await prisma.notificationJob.findMany({
+      where: {
+        bookingId,
+        type: { in: ["BOOKING_REMINDER_24H", "BOOKING_REMINDER_1H"] },
+      },
+      orderBy: { nextRunAt: "asc" },
+    });
+    expect(reminderJobs).toHaveLength(2);
+    expect(reminderJobs.every((j) => j.status === "PENDING")).toBe(true);
+    // 24h reminder is 2026-10-11 14:00:00
+    expect(reminderJobs[0]?.nextRunAt.toISOString()).toBe("2026-10-11T14:00:00.000Z");
+    // 1h reminder is 2026-10-12 13:00:00
+    expect(reminderJobs[1]?.nextRunAt.toISOString()).toBe("2026-10-12T13:00:00.000Z");
+
+    // Run processor worker sweep (only processes jobs with next_run_at <= NOW)
     const result = await processor.processPendingJobs();
     expect(result.processed).toBe(2);
     expect(result.success).toBe(2);
@@ -131,10 +146,15 @@ describe("Notifications Subsystem Integration", () => {
     expect(hostEmailRecord?.subject).toContain("New Booking: Jane Invitee");
     expect(hostEmailRecord?.html).toContain("Discussing Q4 deliverables");
 
-    // DB status updated to SENT
-    const updatedJobs = await prisma.notificationJob.findMany({ where: { bookingId } });
-    expect(updatedJobs.every((j) => j.status === "SENT")).toBe(true);
-    expect(updatedJobs.every((j) => j.sentAt !== null)).toBe(true);
+    // Confirmation DB status updated to SENT
+    const updatedConfirmationJobs = await prisma.notificationJob.findMany({
+      where: {
+        bookingId,
+        type: { in: ["BOOKING_CONFIRMED_ATTENDEE", "BOOKING_CONFIRMED_HOST"] },
+      },
+    });
+    expect(updatedConfirmationJobs.every((j) => j.status === "SENT")).toBe(true);
+    expect(updatedConfirmationJobs.every((j) => j.sentAt !== null)).toBe(true);
   });
 
   it("enqueues and delivers cancellation notification to attendee when host cancels", async () => {
@@ -267,14 +287,150 @@ describe("Notifications Subsystem Integration", () => {
     });
 
     const recoveredCount = await processor.recoverStaleJobs(5);
-    expect(recoveredCount).toBe(2);
+    expect(recoveredCount).toBe(4);
 
     const jobsAfterRecovery = await prisma.notificationJob.findMany({ where: { bookingId } });
     expect(jobsAfterRecovery.every((j) => j.status === "PENDING")).toBe(true);
 
-    // Successfully deliver after recovery
+    // Successfully deliver after recovery (2 confirmation jobs with nextRunAt <= NOW)
     const sweep = await processor.processPendingJobs();
     expect(sweep.processed).toBe(2);
     expect(sweep.success).toBe(2);
+  });
+
+  it("cancels pending reminder jobs when a booking is cancelled", async () => {
+    const { username, eventSlug, cookies } = await setupHostAndEvent(uniqueLabel("notif-user6"));
+
+    const bookRes = await request(app.getHttpServer())
+      .post(`/api/v1/public/${username}/${eventSlug}/book`)
+      .send({
+        startUtc: "2026-10-20T14:00:00.000Z",
+        attendeeName: "Reminder Cancel Test",
+        attendeeEmail: "remind-cancel@example.com",
+        attendeeTimeZone: "America/New_York",
+      });
+
+    const bookingId = bookRes.body.id;
+
+    // Verify reminders are scheduled in PENDING
+    const pendingRemindersBefore = await prisma.notificationJob.findMany({
+      where: {
+        bookingId,
+        type: { in: ["BOOKING_REMINDER_24H", "BOOKING_REMINDER_1H"] },
+      },
+    });
+    expect(pendingRemindersBefore).toHaveLength(2);
+    expect(pendingRemindersBefore.every((j) => j.status === "PENDING")).toBe(true);
+
+    // Cancel booking
+    await request(app.getHttpServer())
+      .patch(`/api/v1/bookings/${bookingId}/cancel`)
+      .set("Cookie", cookies)
+      .send({ expectedSequence: 0, reason: "Host cancelled" });
+
+    // Verify reminders were updated to CANCELLED
+    const cancelledReminders = await prisma.notificationJob.findMany({
+      where: {
+        bookingId,
+        type: { in: ["BOOKING_REMINDER_24H", "BOOKING_REMINDER_1H"] },
+      },
+    });
+    expect(cancelledReminders).toHaveLength(2);
+    expect(cancelledReminders.every((j) => j.status === "CANCELLED")).toBe(true);
+  });
+
+  it("cancels old reminders and enqueues updated reminders when booking is rescheduled", async () => {
+    const { username, eventSlug, cookies } = await setupHostAndEvent(uniqueLabel("notif-user7"));
+
+    const bookRes = await request(app.getHttpServer())
+      .post(`/api/v1/public/${username}/${eventSlug}/book`)
+      .send({
+        startUtc: "2026-10-20T14:00:00.000Z", // Tuesday
+        attendeeName: "Reminder Reschedule Test",
+        attendeeEmail: "remind-resched@example.com",
+        attendeeTimeZone: "America/New_York",
+      });
+
+    expect(bookRes.status).toBe(201);
+    const bookingId = bookRes.body.id;
+
+    // Reschedule to a new time: 2026-10-22 15:00:00 UTC (Thursday)
+    const reschedRes = await request(app.getHttpServer())
+      .patch(`/api/v1/bookings/${bookingId}/reschedule`)
+      .set("Cookie", cookies)
+      .send({
+        startUtc: "2026-10-22T15:00:00.000Z",
+        expectedSequence: 0,
+        reason: "Adjusting to new time",
+      });
+
+    expect(reschedRes.status).toBe(200);
+
+    // Old sequence 0 reminders should be CANCELLED
+    const seq0Reminders = await prisma.notificationJob.findMany({
+      where: {
+        bookingId,
+        type: { in: ["BOOKING_REMINDER_24H", "BOOKING_REMINDER_1H"] },
+        status: "CANCELLED",
+      },
+    });
+    expect(seq0Reminders).toHaveLength(2);
+
+    // New sequence 1 reminders should be PENDING with new nextRunAt
+    const seq1Reminders = await prisma.notificationJob.findMany({
+      where: {
+        bookingId,
+        type: { in: ["BOOKING_REMINDER_24H", "BOOKING_REMINDER_1H"] },
+        status: "PENDING",
+      },
+      orderBy: { nextRunAt: "asc" },
+    });
+    expect(seq1Reminders).toHaveLength(2);
+    expect(seq1Reminders[0]?.nextRunAt.toISOString()).toBe("2026-10-21T15:00:00.000Z"); // 24h prior
+    expect(seq1Reminders[1]?.nextRunAt.toISOString()).toBe("2026-10-22T14:00:00.000Z"); // 1h prior
+  });
+
+  it("delivers reminder notification when nextRunAt is reached", async () => {
+    const { username, eventSlug } = await setupHostAndEvent(uniqueLabel("notif-user8"));
+
+    const bookRes = await request(app.getHttpServer())
+      .post(`/api/v1/public/${username}/${eventSlug}/book`)
+      .send({
+        startUtc: "2026-10-26T14:00:00.000Z", // Monday 10:00 AM America/New_York
+        attendeeName: "Due Reminder Tester",
+        attendeeEmail: "due-reminder@example.com",
+        attendeeTimeZone: "America/New_York",
+      });
+
+    expect(bookRes.status).toBe(201);
+    const bookingId = bookRes.body.id;
+
+    // Clear confirmation emails
+    await processor.processPendingJobs();
+    devEmailProvider.clearSentEmails();
+
+    // Fast-forward 24h reminder job nextRunAt to the past so it becomes claimable
+    await prisma.notificationJob.updateMany({
+      where: {
+        bookingId,
+        type: "BOOKING_REMINDER_24H",
+      },
+      data: {
+        nextRunAt: new Date(Date.now() - 1000), // 1 second ago
+      },
+    });
+
+    // Run processor
+    const sweep = await processor.processPendingJobs();
+    expect(sweep.processed).toBe(1);
+    expect(sweep.success).toBe(1);
+
+    const sent = devEmailProvider.getSentEmails();
+    expect(sent).toHaveLength(1);
+    expect(sent[0]?.to).toBe("due-reminder@example.com");
+    expect(sent[0]?.subject).toContain("Reminder: Strategy Session");
+    expect(sent[0]?.subject).toContain("in 24 hours");
+    expect(sent[0]?.html).toContain("Upcoming Meeting Reminder");
+    expect(sent[0]?.html).toContain("Due Reminder Tester");
   });
 });
