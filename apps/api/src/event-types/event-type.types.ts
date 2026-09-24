@@ -15,6 +15,7 @@ export type OwnerEventTypeResponse = {
   location: EventTypeLocationConfig | null;
   customQuestions: CustomQuestion[];
   archivedAt: string | null;
+  bookingCount: number;
   createdAt: string;
   updatedAt: string;
 };
@@ -37,7 +38,7 @@ export type PublicEventTypeResponse = {
   };
 };
 
-export function toOwnerEventType(row: EventType): OwnerEventTypeResponse {
+export function toOwnerEventType(row: EventType & { _count?: { bookings: number } }): OwnerEventTypeResponse {
   return {
     id: row.id,
     title: row.title,
@@ -50,6 +51,7 @@ export function toOwnerEventType(row: EventType): OwnerEventTypeResponse {
     location: parseEventTypeLocation(row.locationType, row.locationData),
     customQuestions: parseStoredCustomQuestions(row.customQuestions),
     archivedAt: row.archivedAt ? row.archivedAt.toISOString() : null,
+    bookingCount: row._count?.bookings ?? 0,
     createdAt: row.createdAt.toISOString(),
     updatedAt: row.updatedAt.toISOString(),
   };

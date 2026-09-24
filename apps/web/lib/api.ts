@@ -20,6 +20,7 @@ export type EventType = {
   location?: EventTypeLocationConfig | null;
   customQuestions?: CustomQuestion[];
   archivedAt: string | null;
+  bookingCount?: number;
   createdAt: string;
   updatedAt: string;
 };

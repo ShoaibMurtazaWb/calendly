@@ -309,30 +309,16 @@ export function EventTypeList() {
                 <div className="mt-6 pt-4 border-t border-[var(--border-subtle)] flex items-center justify-between gap-3">
                   <div className="flex items-center gap-2">
                     {tab === "archived" ? (
-                      <>
-                        <Button
-                          type="button"
-                          variant="outline"
-                          size="sm"
-                          onClick={() => void handleUnarchive(item.id)}
-                          className="gap-1.5"
-                        >
-                          <ArchiveRestore className="h-3.5 w-3.5" />
-                          <span>Restore</span>
-                        </Button>
-
-                        <Button
-                          type="button"
-                          variant="outline"
-                          size="sm"
-                          onClick={() => void handleDelete(item.id)}
-                          className="gap-1.5 text-[var(--status-danger-text)] hover:bg-rose-50 hover:border-rose-200 dark:hover:bg-rose-950/30 dark:hover:border-rose-900/50"
-                          title="Permanently delete event type"
-                        >
-                          <Trash2 className="h-3.5 w-3.5" />
-                          <span>Delete</span>
-                        </Button>
-                      </>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={() => void handleUnarchive(item.id)}
+                        className="gap-1.5"
+                      >
+                        <ArchiveRestore className="h-3.5 w-3.5" />
+                        <span>Restore</span>
+                      </Button>
                     ) : (
                       <>
                         <Button
@@ -383,24 +369,43 @@ export function EventTypeList() {
                     )}
                   </div>
 
-                  {tab === "active" && (
+                  <div className="flex items-center gap-2">
+                    {tab === "active" && (
+                      <Button
+                        type="button"
+                        size="sm"
+                        onClick={() => void handleArchive(item.id)}
+                        className="gap-1.5 border border-orange-500 bg-orange-500 text-white hover:bg-white hover:text-orange-600 hover:border-orange-500 disabled:opacity-40 disabled:cursor-not-allowed disabled:pointer-events-auto disabled:hover:bg-orange-500 disabled:hover:text-white disabled:hover:border-orange-500 shadow-2xs transition-[background-color,border-color,color] duration-150 ease-out"
+                        title="Archive event type"
+                        aria-label="Archive event type"
+                      >
+                        <Archive className="h-3.5 w-3.5" />
+                        <span>Archive</span>
+                      </Button>
+                    )}
+
+                    {/* Delete Action (Always visible on both Active and Archived) */}
                     <Button
-                      variant="ghost"
+                      type="button"
                       size="sm"
-                      onClick={() => void handleArchive(item.id)}
-                      className="gap-1.5 text-[var(--text-muted)] hover:text-amber-600 hover:bg-amber-50 dark:hover:bg-amber-950/20"
-                      title="Archive event type"
-                      aria-label="Archive event type"
+                      disabled={(item.bookingCount ?? 0) > 0}
+                      onClick={() => void handleDelete(item.id)}
+                      className="gap-1.5 border border-rose-600 bg-rose-600 text-white hover:bg-white hover:text-rose-600 hover:border-rose-600 disabled:opacity-40 disabled:cursor-not-allowed disabled:pointer-events-auto disabled:hover:bg-rose-600 disabled:hover:text-white disabled:hover:border-rose-600 shadow-2xs transition-[background-color,border-color,color] duration-150 ease-out"
+                      title={
+                        (item.bookingCount ?? 0) > 0
+                          ? "Cannot delete this event type because it has active bookings."
+                          : "Permanently delete event type"
+                      }
+                      aria-label={
+                        (item.bookingCount ?? 0) > 0
+                          ? "Cannot delete this event type because it has active bookings."
+                          : "Permanently delete event type"
+                      }
                     >
-                      <Archive className="h-3.5 w-3.5" />
-                      <span className="text-xs">Archive</span>
+                      <Trash2 className="h-3.5 w-3.5" />
+                      <span>Delete</span>
                     </Button>
-                  )}
-                  {tab === "archived" && (
-                    <span className="text-[11px] font-medium text-[var(--text-muted)]">
-                      Archived
-                    </span>
-                  )}
+                  </div>
                 </div>
               </Card>
             );

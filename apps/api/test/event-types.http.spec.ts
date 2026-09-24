@@ -225,6 +225,13 @@ describe("event types HTTP", () => {
       });
     expect(bookRes.status).toBe(201);
 
+    // Verify bookingCount is 1
+    const getAfterBook = await request(app.getHttpServer())
+      .get(`/api/v1/event-types/${withBookingEt.body.id}`)
+      .set("Cookie", cookies);
+    expect(getAfterBook.status).toBe(200);
+    expect(getAfterBook.body.bookingCount).toBe(1);
+
     // Attempt to delete it
     const blockDeleteRes = await request(app.getHttpServer())
       .delete(`/api/v1/event-types/${withBookingEt.body.id}`)
@@ -238,5 +245,6 @@ describe("event types HTTP", () => {
       .set("Cookie", cookies);
     expect(archiveRes.status).toBe(201);
     expect(archiveRes.body.archivedAt).toBeTruthy();
+    expect(archiveRes.body.bookingCount).toBe(1);
   });
 });

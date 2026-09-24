@@ -18,6 +18,11 @@ export class EventTypesService {
         userId,
         archivedAt: query.status === "archived" ? { not: null } : null,
       },
+      include: {
+        _count: {
+          select: { bookings: true },
+        },
+      },
       orderBy: { createdAt: "desc" },
     });
     return rows.map(toOwnerEventType);
@@ -45,6 +50,11 @@ export class EventTypesService {
           locationType: location.type,
           locationData: location.data as Prisma.InputJsonValue,
           customQuestions: customQuestions as unknown as Prisma.InputJsonValue,
+        },
+        include: {
+          _count: {
+            select: { bookings: true },
+          },
         },
       });
       return toOwnerEventType(row);
@@ -108,6 +118,11 @@ export class EventTypesService {
           ...locationUpdate,
           ...questionsUpdate,
         },
+        include: {
+          _count: {
+            select: { bookings: true },
+          },
+        },
       });
       return toOwnerEventType(row);
     } catch (error) {
@@ -125,6 +140,11 @@ export class EventTypesService {
     const row = await this.prisma.eventType.update({
       where: { id: existing.id },
       data: { archivedAt: new Date() },
+      include: {
+        _count: {
+          select: { bookings: true },
+        },
+      },
     });
     return toOwnerEventType(row);
   }
@@ -137,6 +157,11 @@ export class EventTypesService {
     const row = await this.prisma.eventType.update({
       where: { id: existing.id },
       data: { archivedAt: null },
+      include: {
+        _count: {
+          select: { bookings: true },
+        },
+      },
     });
     return toOwnerEventType(row);
   }
@@ -213,6 +238,11 @@ export class EventTypesService {
   private async findOwnedOrThrow(userId: string, id: string) {
     const row = await this.prisma.eventType.findFirst({
       where: { id, userId },
+      include: {
+        _count: {
+          select: { bookings: true },
+        },
+      },
     });
     if (!row) {
       throw new NotFoundError();

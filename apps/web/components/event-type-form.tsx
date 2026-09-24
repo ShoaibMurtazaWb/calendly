@@ -59,6 +59,7 @@ export function EventTypeForm({ eventTypeId }: EventTypeFormProps) {
   const [loadingInitial, setLoadingInitial] = useState(Boolean(eventTypeId));
   const [isLegacyMissingLocation, setIsLegacyMissingLocation] = useState(false);
   const [isArchived, setIsArchived] = useState(false);
+  const [bookingCount, setBookingCount] = useState(0);
 
   // Controlled form values
   const [title, setTitle] = useState("");
@@ -109,6 +110,7 @@ export function EventTypeForm({ eventTypeId }: EventTypeFormProps) {
         setDescription(data.description || "");
         setIsSlugTouched(true);
         setIsArchived(Boolean(data.archivedAt));
+        setBookingCount(data.bookingCount ?? 0);
 
         if (data.customQuestions && Array.isArray(data.customQuestions)) {
           setCustomQuestions(data.customQuestions);
@@ -1011,11 +1013,10 @@ export function EventTypeForm({ eventTypeId }: EventTypeFormProps) {
                   ) : (
                     <Button
                       type="button"
-                      variant="outline"
                       size="sm"
                       disabled={pending}
                       onClick={() => void handleArchive()}
-                      className="gap-1.5 text-[var(--text-muted)] hover:text-amber-600 hover:bg-amber-50 dark:hover:bg-amber-950/20"
+                      className="gap-1.5 border border-orange-500 bg-orange-500 text-white hover:bg-white hover:text-orange-600 hover:border-orange-500 disabled:opacity-40 disabled:cursor-not-allowed disabled:pointer-events-auto disabled:hover:bg-orange-500 disabled:hover:text-white disabled:hover:border-orange-500 shadow-2xs transition-[background-color,border-color,color] duration-150 ease-out"
                     >
                       <Archive className="h-3.5 w-3.5" />
                       <span>Archive</span>
@@ -1024,12 +1025,20 @@ export function EventTypeForm({ eventTypeId }: EventTypeFormProps) {
 
                   <Button
                     type="button"
-                    variant="outline"
                     size="sm"
-                    disabled={pending}
+                    disabled={pending || bookingCount > 0}
                     onClick={() => void handleDelete()}
-                    className="gap-1.5 text-[var(--status-danger-text)] hover:bg-rose-50 hover:border-rose-200 dark:hover:bg-rose-950/30 dark:hover:border-rose-900/50"
-                    title="Permanently delete event type"
+                    className="gap-1.5 border border-rose-600 bg-rose-600 text-white hover:bg-white hover:text-rose-600 hover:border-rose-600 disabled:opacity-40 disabled:cursor-not-allowed disabled:pointer-events-auto disabled:hover:bg-rose-600 disabled:hover:text-white disabled:hover:border-rose-600 shadow-2xs transition-[background-color,border-color,color] duration-150 ease-out"
+                    title={
+                      bookingCount > 0
+                        ? "Cannot delete this event type because it has active bookings."
+                        : "Permanently delete event type"
+                    }
+                    aria-label={
+                      bookingCount > 0
+                        ? "Cannot delete this event type because it has active bookings."
+                        : "Permanently delete event type"
+                    }
                   >
                     <Trash2 className="h-3.5 w-3.5" />
                     <span>Delete</span>
