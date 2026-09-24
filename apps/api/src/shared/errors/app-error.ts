@@ -43,3 +43,9 @@ export class ConflictError extends AppError {
     super(code, message, 409, details);
   }
 }
+
+export class ServiceUnavailableError extends AppError {
+  constructor(code: string, message: string, details: ErrorDetails = {}) {
+    super(code, message, 503, details);
+  }
+}

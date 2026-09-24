@@ -1,6 +1,11 @@
-import { Injectable } from "@nestjs/common";
+import { Injectable, Logger } from "@nestjs/common";
 import type { Prisma } from "@prisma/client";
-import { BookingActor, LocationType } from "@prisma/client";
+import {
+  BookingActor,
+  CalendarIntegrationStatus,
+  CalendarProviderType,
+  LocationType,
+} from "@prisma/client";
 import type {
   BookingResponse,
   CreateBookingBody,
@@ -8,8 +13,14 @@ import type {
   RescheduleBookingBody,
 } from "@sched/api-contract";
 import { phoneSchema } from "@sched/api-contract";
+import { GoogleCalendarService } from "../integrations/services/google-calendar.service";
 import { NotificationsService } from "../notifications/notifications.service";
-import { BadRequestError, ConflictError, NotFoundError } from "../shared/errors/app-error";
+import {
+  BadRequestError,
+  ConflictError,
+  NotFoundError,
+  ServiceUnavailableError,
+} from "../shared/errors/app-error";
 import { PrismaService } from "../shared/prisma/prisma.service";
 import { BookingTokenService } from "../shared/services/booking-token.service";
 import {
@@ -24,12 +35,15 @@ import { SlotsService } from "../schedules/slots.service";
 
 @Injectable()
 export class BookingsService {
+  private readonly logger = new Logger("BookingsService");
+
   constructor(
     private readonly prisma: PrismaService,
     private readonly schedules: SchedulesService,
     private readonly slots: SlotsService,
     private readonly notifications: NotificationsService,
-    private readonly tokenService: BookingTokenService
+    private readonly tokenService: BookingTokenService,
+    private readonly googleCalendar: GoogleCalendarService
   ) {}
 
   async createBooking(
@@ -123,6 +137,38 @@ export class BookingsService {
       );
     }
 
+    // Pre-transaction Google FreeBusy check:
+    // Note: The final Google FreeBusy check reduces external race risk but cannot provide
+    // the same atomic guarantee as PostgreSQL's internal booking exclusion constraint.
+    const googleIntegration = await this.prisma.calendarIntegration.findUnique({
+      where: { userId_provider: { userId: eventType.userId, provider: CalendarProviderType.GOOGLE } },
+    });
+
+    if (googleIntegration && googleIntegration.status === CalendarIntegrationStatus.CONNECTED) {
+      try {
+        const isAvailable = await this.googleCalendar.checkAvailability(
+          eventType.userId,
+          startUtc,
+          endUtc,
+          2500
+        );
+
+        if (!isAvailable) {
+          throw new ConflictError(
+            "SLOT_ALREADY_BOOKED",
+            "The selected time slot conflicts with an event on the host's Google Calendar."
+          );
+        }
+      } catch (err) {
+        if (err instanceof ConflictError) throw err;
+        this.logger.error("Google Calendar availability check failed during booking creation", err);
+        throw new ServiceUnavailableError(
+          "CALENDAR_AVAILABILITY_UNAVAILABLE",
+          "Unable to verify host external calendar availability. Please try again."
+        );
+      }
+    }
+
     // Double-booking prevention with atomic transaction and PostgreSQL GiST exclusion constraint
     const bufferedStart = new Date(startUtc.getTime() - eventType.beforeBufferMinutes * 60 * 1000);
     const bufferedEnd = new Date(endUtc.getTime() + eventType.afterBufferMinutes * 60 * 1000);
@@ -162,7 +208,8 @@ export class BookingsService {
             attendeeNotes: dto.attendeeNotes ?? "",
             locationType: eventType.locationType,
             locationData: eventType.locationData ?? undefined,
-            customResponses: customResponses.length > 0 ? (customResponses as unknown as Prisma.InputJsonValue) : undefined,
+            customResponses:
+              customResponses.length > 0 ? (customResponses as unknown as Prisma.InputJsonValue) : undefined,
           },
           include: {
             eventType: true,
@@ -170,8 +217,26 @@ export class BookingsService {
           },
         });
 
-        // Atomically enqueue transactional outbox jobs within the same transaction
+        // Atomically enqueue transactional notification outbox jobs
         await this.notifications.enqueueConfirmationJobsInTx(tx, created);
+
+        // Atomically enqueue transactional calendar sync outbox job
+        if (googleIntegration && googleIntegration.status === CalendarIntegrationStatus.CONNECTED) {
+          await tx.calendarSyncJob.create({
+            data: {
+              bookingId: created.id,
+              integrationId: googleIntegration.id,
+              calendarId: googleIntegration.selectedCalendarId || "primary",
+              sequence: created.sequence, // sequence 0 on creation
+              status: "PENDING",
+              payload: {
+                bookingId: created.id,
+                sequence: created.sequence,
+                status: created.status,
+              },
+            },
+          });
+        }
 
         return created;
       });
@@ -257,6 +322,48 @@ export class BookingsService {
       throw new ConflictError("INVALID_DATE", "Invalid start date time.");
     }
 
+    // Fetch existing booking to check host integration and slot duration
+    const existingBooking = await this.prisma.booking.findUnique({
+      where: { id: bookingId },
+      include: { eventType: true },
+    });
+    if (!existingBooking) {
+      throw new NotFoundError("Booking not found or this link is no longer valid.");
+    }
+
+    const durationMs = existingBooking.endTime.getTime() - existingBooking.startTime.getTime();
+    const endUtc = new Date(startUtc.getTime() + durationMs);
+
+    // Pre-transaction Google FreeBusy check for reschedule
+    const googleIntegration = await this.prisma.calendarIntegration.findUnique({
+      where: { userId_provider: { userId: existingBooking.hostId, provider: CalendarProviderType.GOOGLE } },
+    });
+
+    if (googleIntegration && googleIntegration.status === CalendarIntegrationStatus.CONNECTED) {
+      try {
+        const isAvailable = await this.googleCalendar.checkAvailability(
+          existingBooking.hostId,
+          startUtc,
+          endUtc,
+          2500
+        );
+
+        if (!isAvailable) {
+          throw new ConflictError(
+            "SLOT_ALREADY_BOOKED",
+            "The selected time slot conflicts with an event on the host's Google Calendar."
+          );
+        }
+      } catch (err) {
+        if (err instanceof ConflictError) throw err;
+        this.logger.error("Google Calendar availability check failed during reschedule", err);
+        throw new ServiceUnavailableError(
+          "CALENDAR_AVAILABILITY_UNAVAILABLE",
+          "Unable to verify host external calendar availability. Please try again."
+        );
+      }
+    }
+
     try {
       const updated = await this.prisma.$transaction(async (tx) => {
         // 1. Acquire explicit row lock
@@ -304,11 +411,7 @@ export class BookingsService {
           );
         }
 
-        // 4. Calculate new end time preserving committed duration
-        const durationMs = booking.endTime.getTime() - booking.startTime.getTime();
-        const endUtc = new Date(startUtc.getTime() + durationMs);
-
-        // 5. Minimum notice check
+        // 4. Minimum notice check
         const now = new Date();
         const minNoticeMs = booking.eventType.minimumNoticeMinutes * 60 * 1000;
         if (startUtc.getTime() < now.getTime() + minNoticeMs) {
@@ -318,7 +421,7 @@ export class BookingsService {
           );
         }
 
-        // 6. In-band availability verification ignoring the current booking
+        // 5. In-band availability verification ignoring the current booking
         const schedule = await this.schedules.getDefaultSchedule(booking.hostId);
         const slotDateStr = startUtc.toISOString().slice(0, 10);
         const timezone = dto.timeZone || booking.attendeeTimeZone;
@@ -357,7 +460,7 @@ export class BookingsService {
           );
         }
 
-        // 7. Check buffer collisions
+        // 6. Check buffer collisions
         const bufferedStart = new Date(
           startUtc.getTime() - booking.eventType.beforeBufferMinutes * 60 * 1000
         );
@@ -382,7 +485,7 @@ export class BookingsService {
           );
         }
 
-        // 8. Calculate new sequence and record audit history
+        // 7. Calculate new sequence and record audit history
         const newSequence = booking.sequence + 1;
         await tx.bookingRescheduleHistory.create({
           data: {
@@ -397,7 +500,7 @@ export class BookingsService {
           },
         });
 
-        // 9. Update booking: atomic sequence increment, preserving location snapshot
+        // 8. Update booking: atomic sequence increment, preserving location snapshot
         const res = await tx.booking.update({
           where: { id: booking.id },
           data: {
@@ -417,8 +520,26 @@ export class BookingsService {
           },
         });
 
-        // 10. Enqueue reschedule notification outbox jobs
+        // 9. Enqueue reschedule notification outbox jobs
         await this.notifications.enqueueRescheduleJobsInTx(tx, res);
+
+        // 10. Enqueue calendar sync outbox job for reschedule
+        if (googleIntegration && googleIntegration.status === CalendarIntegrationStatus.CONNECTED) {
+          await tx.calendarSyncJob.create({
+            data: {
+              bookingId: res.id,
+              integrationId: googleIntegration.id,
+              calendarId: googleIntegration.selectedCalendarId || "primary",
+              sequence: newSequence,
+              status: "PENDING",
+              payload: {
+                bookingId: res.id,
+                sequence: newSequence,
+                status: res.status,
+              },
+            },
+          });
+        }
 
         return res;
       });
@@ -511,8 +632,29 @@ export class BookingsService {
         },
       });
 
-      // Atomically enqueue cancellation outbox jobs
+      // Atomically enqueue cancellation notification outbox jobs
       await this.notifications.enqueueCancellationJobsInTx(tx, res);
+
+      // Atomically enqueue calendar sync outbox job for cancellation
+      const googleIntegration = await tx.calendarIntegration.findUnique({
+        where: { userId_provider: { userId: booking.hostId, provider: CalendarProviderType.GOOGLE } },
+      });
+      if (googleIntegration && googleIntegration.status === CalendarIntegrationStatus.CONNECTED) {
+        await tx.calendarSyncJob.create({
+          data: {
+            bookingId: res.id,
+            integrationId: googleIntegration.id,
+            calendarId: googleIntegration.selectedCalendarId || "primary",
+            sequence: newSequence,
+            status: "PENDING",
+            payload: {
+              bookingId: res.id,
+              sequence: newSequence,
+              status: "CANCELLED",
+            },
+          },
+        });
+      }
 
       return res;
     });
@@ -523,6 +665,7 @@ export class BookingsService {
       manageToken,
     };
   }
+
 
   async getBookingIcs(
     bookingId: string,

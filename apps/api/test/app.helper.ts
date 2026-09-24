@@ -1,5 +1,6 @@
 import { Test } from "@nestjs/testing";
-import { INestApplication } from "@nestjs/common";
+import { INestApplication, CanActivate } from "@nestjs/common";
+import { ThrottlerGuard } from "@nestjs/throttler";
 import cookieParser from "cookie-parser";
 import { AppModule } from "../src/app.module";
 import { HttpErrorFilter } from "../src/shared/filters/http-error.filter";
@@ -10,10 +11,20 @@ if (!process.env.DATABASE_URL) {
   process.env.DATABASE_URL = "postgresql://sched:sched@localhost:5432/sched";
 }
 
+class AllowAllThrottlerGuard implements CanActivate {
+  canActivate(): boolean {
+    return true;
+  }
+}
+
 export async function createTestApp(): Promise<INestApplication> {
   const moduleRef = await Test.createTestingModule({
     imports: [AppModule],
-  }).compile();
+  })
+    .overrideGuard(ThrottlerGuard)
+    .useClass(AllowAllThrottlerGuard)
+    .compile();
+
   const app = moduleRef.createNestApplication();
   app.use(cookieParser());
   app.useGlobalFilters(new HttpErrorFilter());
@@ -34,6 +45,37 @@ export async function resetDatabase(app: INestApplication): Promise<void> {
     },
   };
 
+  await prisma.calendarSyncJob.deleteMany({
+    where: {
+      booking: {
+        host: {
+          email: {
+            contains: "example.com",
+          },
+        },
+      },
+    },
+  });
+  await prisma.externalCalendarEvent.deleteMany({
+    where: {
+      booking: {
+        host: {
+          email: {
+            contains: "example.com",
+          },
+        },
+      },
+    },
+  });
+  await prisma.calendarIntegration.deleteMany({
+    where: {
+      user: {
+        email: {
+          contains: "example.com",
+        },
+      },
+    },
+  });
   await prisma.notificationJob.deleteMany({
     where: {
       booking: {

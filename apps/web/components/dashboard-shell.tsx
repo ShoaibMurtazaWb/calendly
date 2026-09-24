@@ -128,9 +128,9 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
       },
       {
         label: "Integrations",
-        href: "#",
-        active: false,
-        disabled: true,
+        href: "/dashboard/integrations",
+        active: pathname.startsWith("/dashboard/integrations"),
+        disabled: false,
         icon: Puzzle,
       },
     ],

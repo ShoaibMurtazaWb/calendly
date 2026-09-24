@@ -1,4 +1,4 @@
-import { Controller, Get, Param, Query, UseGuards } from "@nestjs/common";
+import { Controller, Get, Logger, Param, Query, UseGuards } from "@nestjs/common";
 import { ApiOperation, ApiTags } from "@nestjs/swagger";
 import { Throttle, ThrottlerGuard } from "@nestjs/throttler";
 import {
@@ -9,6 +9,7 @@ import {
   type PublicEventTypeParams,
   type PublicHostParams,
 } from "@sched/api-contract";
+import { GoogleCalendarService } from "../integrations/services/google-calendar.service";
 import { SchedulesService } from "../schedules/schedules.service";
 import { SlotsService } from "../schedules/slots.service";
 import { zodPipe } from "../shared/pipes/zod-validation.pipe";
@@ -19,11 +20,14 @@ import { EventTypesService } from "./event-types.service";
 @Controller("api/v1/public")
 @UseGuards(ThrottlerGuard)
 export class PublicEventTypesController {
+  private readonly logger = new Logger("PublicEventTypesController");
+
   constructor(
     private readonly eventTypes: EventTypesService,
     private readonly schedules: SchedulesService,
     private readonly slots: SlotsService,
-    private readonly prisma: PrismaService
+    private readonly prisma: PrismaService,
+    private readonly googleCalendar: GoogleCalendarService
   ) {}
 
   @Get(":username")
@@ -63,6 +67,29 @@ export class PublicEventTypesController {
       select: { startTime: true, endTime: true },
     });
 
+    // Query Google FreeBusy with explicit 1500ms timeout and fail-open degraded mode
+    let googleBusyIntervals: Array<{ startTime: Date; endTime: Date }> = [];
+    try {
+      const blocks = await this.googleCalendar.getFreeBusyIntervals(
+        eventType.userId,
+        startBoundary,
+        endBoundary,
+        1500
+      );
+      googleBusyIntervals = blocks.map((b) => ({
+        startTime: b.start,
+        endTime: b.end,
+      }));
+    } catch (err) {
+      // Degraded-mode policy: slot browsing fails open (logs warning and continues with DB availability)
+      this.logger.warn(
+        `Failed to fetch Google FreeBusy for host ${eventType.userId} during slot browsing. Operating in degraded mode.`,
+        err
+      );
+    }
+
+    const allBusyIntervals = [...existingBookings, ...googleBusyIntervals];
+
     return this.slots.computeAvailableSlots(
       schedule,
       eventType,
@@ -70,8 +97,9 @@ export class PublicEventTypesController {
       query.endDate,
       query.timezone,
       new Date(),
-      existingBookings
+      allBusyIntervals
     );
   }
 }
+
 

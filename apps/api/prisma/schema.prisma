@@ -21,6 +21,8 @@ model User {
   schedules    Schedule[]
   bookings     Booking[]
 
+  calendarIntegrations CalendarIntegration[]
+
   @@map("users")
 }
 
@@ -133,6 +135,108 @@ enum NotificationStatus {
   FAILED
 }
 
+enum CalendarProviderType {
+  GOOGLE
+}
+
+enum CalendarIntegrationStatus {
+  CONNECTED
+  REVOKED
+  DISCONNECTED
+}
+
+enum CalendarSyncStatus {
+  PENDING
+  SYNCED
+  FAILED
+}
+
+enum CalendarSyncJobStatus {
+  PENDING
+  PROCESSING
+  COMPLETED
+  FAILED
+}
+
+model CalendarIntegration {
+  id                    String                    @id @default(uuid()) @db.Uuid
+  userId                String                    @map("user_id") @db.Uuid
+  user                  User                      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  provider              CalendarProviderType      @default(GOOGLE)
+  status                CalendarIntegrationStatus @default(CONNECTED)
+  accountEmail          String                    @map("account_email")
+  
+  // Encrypted OAuth secrets (Nullable: cleared on disconnect/revocation)
+  encryptedAccessToken  String?                   @map("encrypted_access_token")
+  encryptedRefreshToken String?                   @map("encrypted_refresh_token")
+  tokenExpiresAt        DateTime?                 @map("token_expires_at") @db.Timestamptz(6)
+  scope                 String                    @default("")
+  
+  // Calendar Preferences
+  selectedCalendarId    String                    @default("primary") @map("selected_calendar_id")
+  selectedCalendarName  String?                   @map("selected_calendar_name")
+  conflictCalendarIds   String[]                  @default(["primary"]) @map("conflict_calendar_ids")
+  
+  createdAt             DateTime                  @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt             DateTime                  @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  externalEvents        ExternalCalendarEvent[]
+  syncJobs              CalendarSyncJob[]
+
+  @@unique([userId, provider])
+  @@index([userId, status])
+  @@map("calendar_integrations")
+}
+
+model ExternalCalendarEvent {
+  id                 String               @id @default(uuid()) @db.Uuid
+  bookingId          String               @map("booking_id") @db.Uuid
+  booking            Booking              @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+  integrationId      String               @map("integration_id") @db.Uuid
+  integration        CalendarIntegration  @relation(fields: [integrationId], references: [id], onDelete: Cascade)
+  
+  provider           CalendarProviderType @default(GOOGLE)
+  calendarId         String               @map("calendar_id")
+  externalEventId    String               @map("external_event_id")
+  lastSyncedSequence Int                  @default(0) @map("last_synced_sequence")
+  syncStatus         CalendarSyncStatus   @default(SYNCED) @map("sync_status")
+  lastSyncedAt       DateTime             @default(now()) @map("last_synced_at") @db.Timestamptz(6)
+  lastError          String?              @map("last_error")
+
+  createdAt          DateTime             @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt          DateTime             @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  @@unique([bookingId, integrationId])
+  @@index([integrationId, externalEventId])
+  @@map("external_calendar_events")
+}
+
+model CalendarSyncJob {
+  id            String                @id @default(uuid()) @db.Uuid
+  bookingId     String                @map("booking_id") @db.Uuid
+  booking       Booking               @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+  integrationId String                @map("integration_id") @db.Uuid
+  integration   CalendarIntegration   @relation(fields: [integrationId], references: [id], onDelete: Cascade)
+  calendarId    String                @map("calendar_id")
+  sequence      Int                   @default(0)
+  status        CalendarSyncJobStatus @default(PENDING)
+  attempts      Int                   @default(0)
+  maxAttempts   Int                   @default(5) @map("max_attempts")
+  nextRunAt     DateTime              @default(now()) @map("next_run_at") @db.Timestamptz(6)
+  lockedAt      DateTime?             @map("locked_at") @db.Timestamptz(6)
+  completedAt   DateTime?             @map("completed_at") @db.Timestamptz(6)
+  lastError     String?               @map("last_error")
+  payload       Json
+
+  createdAt     DateTime              @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt     DateTime              @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  @@unique([bookingId, integrationId, sequence])
+  @@index([status, nextRunAt])
+  @@index([bookingId])
+  @@map("calendar_sync_jobs")
+}
+
 model Booking {
   id                 String                     @id @default(uuid()) @db.Uuid
   eventTypeId        String                     @map("event_type_id") @db.Uuid
@@ -165,6 +269,8 @@ model Booking {
   updatedAt          DateTime                   @updatedAt @map("updated_at") @db.Timestamptz(6)
   rescheduleHistory  BookingRescheduleHistory[]
   notificationJobs   NotificationJob[]
+  externalEvents     ExternalCalendarEvent[]
+  calendarSyncJobs   CalendarSyncJob[]
 
   @@index([hostId, startTime, status])
   @@index([eventTypeId, startTime, status])
