@@ -31,6 +31,7 @@ import { Label } from "@/components/ui/label";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Spinner } from "@/components/ui/spinner";
 import { Textarea } from "@/components/ui/textarea";
+import { Tooltip } from "@/components/ui/tooltip";
 import { toast } from "@/components/ui/toast";
 import { api, type CurrentUser, type EventType } from "@/lib/api";
 import { ApiError, fieldErrors } from "@/lib/api-error";
@@ -1019,26 +1020,26 @@ export function EventTypeForm({ eventTypeId }: EventTypeFormProps) {
                     </Button>
                   )}
 
-                  <Button
-                    type="button"
-                    size="sm"
-                    disabled={pending || bookingCount > 0}
-                    onClick={() => void handleDelete()}
-                    className="gap-1.5 border border-rose-600 bg-rose-600 text-white hover:bg-white hover:text-rose-600 hover:border-rose-600 disabled:opacity-40 disabled:cursor-not-allowed disabled:pointer-events-auto disabled:hover:bg-rose-600 disabled:hover:text-white disabled:hover:border-rose-600 shadow-2xs transition-[background-color,border-color,color] duration-150 ease-out"
-                    title={
-                      bookingCount > 0
-                        ? "Cannot delete this event type because it has active bookings."
-                        : "Permanently delete event type"
-                    }
-                    aria-label={
-                      bookingCount > 0
-                        ? "Cannot delete this event type because it has active bookings."
-                        : "Permanently delete event type"
-                    }
+                  <Tooltip
+                    content="Cannot delete this event type because it has existing bookings."
+                    disabled={bookingCount === 0}
                   >
-                    <Trash2 className="h-3.5 w-3.5" />
-                    <span>Delete</span>
-                  </Button>
+                    <Button
+                      type="button"
+                      size="sm"
+                      disabled={pending || bookingCount > 0}
+                      onClick={() => void handleDelete()}
+                      className="gap-1.5 bg-white border border-red-500 text-red-600 hover:bg-red-600 hover:text-white hover:border-transparent disabled:bg-white disabled:border-red-200 disabled:text-red-300 disabled:cursor-not-allowed disabled:pointer-events-auto disabled:hover:bg-white disabled:hover:text-red-300 disabled:hover:border-red-200 shadow-2xs transition-[background-color,border-color,color] duration-150 ease-out"
+                      aria-label={
+                        bookingCount > 0
+                          ? "Cannot delete this event type because it has existing bookings."
+                          : "Permanently delete event type"
+                      }
+                    >
+                      <Trash2 className="h-3.5 w-3.5" />
+                      <span>Delete</span>
+                    </Button>
+                  </Tooltip>
                 </div>
               ) : (
                 <div />

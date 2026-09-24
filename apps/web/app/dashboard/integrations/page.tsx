@@ -16,6 +16,7 @@ import {
   Calendar as CalendarIcon,
   X,
 } from "lucide-react";
+import { Skeleton } from "@/components/ui/skeleton";
 import { GoogleCalendarLogo } from "@/components/google-calendar-logo";
 import { Button } from "@/components/ui/button";
 import { Spinner } from "@/components/ui/spinner";
@@ -309,11 +310,9 @@ function IntegrationsContent() {
       )}
 
       {isLoading ? (
-        <div className="flex min-h-[300px] flex-col items-center justify-center rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-surface)] p-12">
-          <Spinner size="default" />
-          <span className="mt-3 text-sm text-[var(--text-secondary)] font-medium">
-            Loading integration status…
-          </span>
+        <div className="space-y-6">
+          <Skeleton className="h-44 rounded-xl border border-[var(--border-subtle)]" />
+          <Skeleton className="h-32 rounded-xl border border-[var(--border-subtle)]" />
         </div>
       ) : (
         <div className="space-y-6">
@@ -633,8 +632,9 @@ export default function IntegrationsPage() {
   return (
     <Suspense
       fallback={
-        <div className="flex min-h-[400px] items-center justify-center">
-          <Spinner size="default" />
+        <div className="mx-auto max-w-4xl py-6 px-4 sm:px-6 space-y-6">
+          <Skeleton className="h-44 rounded-xl border border-[var(--border-subtle)]" />
+          <Skeleton className="h-32 rounded-xl border border-[var(--border-subtle)]" />
         </div>
       }
     >

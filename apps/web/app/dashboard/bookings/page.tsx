@@ -320,17 +320,17 @@ export default function BookingsPage() {
               {tab === "cancelled" && <CalendarX className="h-5 w-5" />}
             </div>
             <h3 className="text-sm font-semibold text-[var(--text-primary)]">
-              {tab === "upcoming" && "No upcoming bookings"}
-              {tab === "past" && "No past meetings yet"}
+              {tab === "upcoming" && "No upcoming meetings"}
+              {tab === "past" && "No completed meetings yet"}
               {tab === "cancelled" && "No cancelled meetings"}
             </h3>
             <p className="mt-1 text-xs text-[var(--text-secondary)] max-w-sm mx-auto leading-relaxed">
               {tab === "upcoming" &&
-                "Your schedule is clear. Share your booking page to start receiving meetings."}
+                "Share your booking page to receive new meetings."}
               {tab === "past" &&
                 "Completed meetings will appear here after they happen."}
               {tab === "cancelled" &&
-                "Cancelled bookings will appear here when a meeting is cancelled."}
+                "Cancelled meetings will appear here when a meeting is cancelled."}
             </p>
             {tab === "upcoming" && (
               <div className="mt-4 flex flex-wrap items-center justify-center gap-2">
@@ -348,7 +348,7 @@ export default function BookingsPage() {
                   ) : (
                     <>
                       <Copy className="h-3.5 w-3.5" />
-                      <span>Share Schedule</span>
+                      <span>Copy Booking Page Link</span>
                     </>
                   )}
                 </Button>

@@ -21,6 +21,7 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Tooltip } from "@/components/ui/tooltip";
 import { toast } from "@/components/ui/toast";
 import { api, type CurrentUser, type EventType } from "@/lib/api";
 import { ApiError } from "@/lib/api-error";
@@ -334,7 +335,7 @@ export function EventTypeList() {
                           ) : (
                             <>
                               <Copy className="h-3.5 w-3.5 text-[var(--text-muted)]" />
-                              <span>Copy Link</span>
+                              <span>Copy Booking Page Link</span>
                             </>
                           )}
                         </Button>
@@ -374,7 +375,7 @@ export function EventTypeList() {
                         type="button"
                         size="sm"
                         onClick={() => void handleArchive(item.id)}
-                        className="gap-1.5 border border-orange-500 bg-orange-500 text-white hover:bg-white hover:text-orange-600 hover:border-orange-500 disabled:opacity-40 disabled:cursor-not-allowed disabled:pointer-events-auto disabled:hover:bg-orange-500 disabled:hover:text-white disabled:hover:border-orange-500 shadow-2xs transition-[background-color,border-color,color] duration-150 ease-out"
+                        className="gap-1.5 border border-orange-500 bg-orange-500 text-white hover:bg-white hover:text-orange-600 hover:border-orange-500 disabled:opacity-40 disabled:cursor-not-allowed shadow-2xs transition-[background-color,border-color,color] duration-150 ease-out"
                         title="Archive event type"
                         aria-label="Archive event type"
                       >
@@ -384,26 +385,26 @@ export function EventTypeList() {
                     )}
 
                     {/* Delete Action (Always visible on both Active and Archived) */}
-                    <Button
-                      type="button"
-                      size="sm"
-                      disabled={(item.bookingCount ?? 0) > 0}
-                      onClick={() => void handleDelete(item.id)}
-                      className="gap-1.5 border border-rose-600 bg-rose-600 text-white hover:bg-white hover:text-rose-600 hover:border-rose-600 disabled:opacity-40 disabled:cursor-not-allowed disabled:pointer-events-auto disabled:hover:bg-rose-600 disabled:hover:text-white disabled:hover:border-rose-600 shadow-2xs transition-[background-color,border-color,color] duration-150 ease-out"
-                      title={
-                        (item.bookingCount ?? 0) > 0
-                          ? "Cannot delete this event type because it has active bookings."
-                          : "Permanently delete event type"
-                      }
-                      aria-label={
-                        (item.bookingCount ?? 0) > 0
-                          ? "Cannot delete this event type because it has active bookings."
-                          : "Permanently delete event type"
-                      }
+                    <Tooltip
+                      content="Cannot delete this event type because it has existing bookings."
+                      disabled={(item.bookingCount ?? 0) === 0}
                     >
-                      <Trash2 className="h-3.5 w-3.5" />
-                      <span>Delete</span>
-                    </Button>
+                      <Button
+                        type="button"
+                        size="sm"
+                        disabled={(item.bookingCount ?? 0) > 0}
+                        onClick={() => void handleDelete(item.id)}
+                        className="gap-1.5 bg-white border border-red-500 text-red-600 hover:bg-red-600 hover:text-white hover:border-transparent disabled:bg-white disabled:border-red-200 disabled:text-red-300 disabled:cursor-not-allowed disabled:pointer-events-auto disabled:hover:bg-white disabled:hover:text-red-300 disabled:hover:border-red-200 shadow-2xs transition-[background-color,border-color,color] duration-150 ease-out"
+                        aria-label={
+                          (item.bookingCount ?? 0) > 0
+                            ? "Cannot delete this event type because it has existing bookings."
+                            : "Permanently delete event type"
+                        }
+                      >
+                        <Trash2 className="h-3.5 w-3.5" />
+                        <span>Delete</span>
+                      </Button>
+                    </Tooltip>
                   </div>
                 </div>
               </Card>
@@ -415,20 +416,25 @@ export function EventTypeList() {
       {/* Empty State when no active event types exist */}
       {!isLoading && filteredItems.length === 0 && tab === "active" && !searchQuery && (
         <div className="mt-8">
-          <Link
-            href="/dashboard/event-types/new"
-            className="group flex flex-col items-center justify-center rounded-xl border-2 border-dashed border-[var(--border-strong)] bg-[var(--bg-surface)] hover:bg-[var(--bg-subtle)] hover:border-[var(--border-focus)] p-12 text-center transition-[background-color,border-color] duration-150 cursor-pointer shadow-2xs"
-          >
-            <div className="flex h-12 w-12 items-center justify-center rounded-full bg-[var(--bg-subtle)] border border-[var(--border-subtle)] text-[var(--text-secondary)] shadow-2xs group-hover:scale-105 group-hover:bg-neutral-900 group-hover:text-white transition-all duration-150 mb-3">
-              <Plus className="h-5 w-5 stroke-[2.5]" />
+          <div className="flex flex-col items-center justify-center rounded-xl border border-dashed border-[var(--border-subtle)] bg-[var(--bg-surface)] p-12 text-center shadow-xs">
+            <div className="flex h-12 w-12 items-center justify-center rounded-full bg-[var(--bg-subtle)] border border-[var(--border-subtle)] text-[var(--text-secondary)] shadow-2xs mb-4">
+              <Plus className="h-5 w-5" />
             </div>
-            <h3 className="text-base font-semibold text-[var(--text-primary)]">
-              No active event types yet
+            <h3 className="text-lg font-semibold tracking-tight text-[var(--text-primary)]">
+              Welcome to Sched
             </h3>
             <p className="mt-1.5 text-xs text-[var(--text-secondary)] max-w-sm leading-relaxed">
-              Create your first event type to share your booking link.
+              Create your first event type and share your booking page.
             </p>
-          </Link>
+            <div className="mt-6">
+              <Button asChild size="sm" className="gap-2">
+                <Link href="/dashboard/event-types/new">
+                  <Plus className="h-3.5 w-3.5" />
+                  <span>Create Event Type</span>
+                </Link>
+              </Button>
+            </div>
+          </div>
         </div>
       )}
 

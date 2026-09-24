@@ -522,27 +522,36 @@ export default function PublicBookingPage({
               {/* Duplicate Booking Detected Dialog or Slots / Form */}
               {existingBookingDuplicate ? (
                 <div className="space-y-4 rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-subtle)] p-5 animate-in fade-in-0 duration-150">
-                  <div className="space-y-1">
+                  <div className="space-y-2">
                     <h3 className="text-sm font-bold text-[var(--text-primary)]">
-                      You already have a booking for this event.
+                      You already have a booking for this meeting.
                     </h3>
-                    <p className="text-xs font-semibold text-[var(--text-primary)] pt-1">
-                      {eventDetails.title}
-                    </p>
-                    <p className="text-xs text-[var(--text-secondary)]">
-                      with {eventDetails.host.name}
-                    </p>
-                    <p className="text-xs text-[var(--text-muted)] font-mono pt-1">
-                      {new Intl.DateTimeFormat("en-US", {
-                        timeZone: attendeeTimezone,
-                        weekday: "long",
-                        month: "long",
-                        day: "numeric",
-                        hour: "numeric",
-                        minute: "2-digit",
-                        hour12: true,
-                      }).format(new Date(existingBookingDuplicate.startTime))}
-                    </p>
+                    <div className="pt-2 text-xs space-y-1 text-[var(--text-secondary)]">
+                      <p className="font-semibold text-[var(--text-primary)]">Existing booking:</p>
+                      <p>
+                        <span className="text-[var(--text-muted)]">Date: </span>
+                        <span className="font-medium text-[var(--text-primary)]">
+                          {new Intl.DateTimeFormat("en-US", {
+                            timeZone: attendeeTimezone,
+                            weekday: "long",
+                            month: "long",
+                            day: "numeric",
+                            year: "numeric",
+                          }).format(new Date(existingBookingDuplicate.startTime))}
+                        </span>
+                      </p>
+                      <p>
+                        <span className="text-[var(--text-muted)]">Time: </span>
+                        <span className="font-medium text-[var(--text-primary)]">
+                          {new Intl.DateTimeFormat("en-US", {
+                            timeZone: attendeeTimezone,
+                            hour: "numeric",
+                            minute: "2-digit",
+                            hour12: true,
+                          }).format(new Date(existingBookingDuplicate.startTime))} ({attendeeTimezone})
+                        </span>
+                      </p>
+                    </div>
                   </div>
 
                   <p className="text-xs font-medium text-[var(--text-primary)] pt-2 border-t border-[var(--border-subtle)]">
@@ -551,33 +560,25 @@ export default function PublicBookingPage({
 
                   <div className="space-y-2">
                     <Button asChild className="w-full" size="sm">
-                      <Link href={existingBookingDuplicate.manageUrl}>View Booking</Link>
+                      <Link href={existingBookingDuplicate.manageUrl}>View Existing Booking</Link>
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      className="w-full"
+                      size="sm"
+                      onClick={() => {
+                        setExistingBookingDuplicate(null);
+                        setSelectedSlot(null);
+                      }}
+                    >
+                      Choose Another Time
                     </Button>
                     <Button asChild variant="outline" className="w-full" size="sm">
                       <Link href={`${existingBookingDuplicate.manageUrl}&action=reschedule`}>
-                        Reschedule
+                        Reschedule Existing Booking
                       </Link>
                     </Button>
-                    <Button
-                      asChild
-                      variant="ghost"
-                      size="sm"
-                      className="w-full text-rose-600 hover:text-rose-700 hover:bg-rose-50 dark:hover:bg-rose-950/30 text-xs"
-                    >
-                      <Link href={`${existingBookingDuplicate.manageUrl}&action=cancel`}>
-                        Cancel and choose another time
-                      </Link>
-                    </Button>
-                  </div>
-
-                  <div className="pt-2 text-center">
-                    <button
-                      type="button"
-                      onClick={() => setExistingBookingDuplicate(null)}
-                      className="text-[11px] text-[var(--text-muted)] hover:text-[var(--text-primary)] underline cursor-pointer"
-                    >
-                      Use a different email or date
-                    </button>
                   </div>
                 </div>
               ) : !selectedSlot ? (
