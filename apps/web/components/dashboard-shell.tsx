@@ -5,7 +5,7 @@ import { usePathname } from "next/navigation";
 import { useEffect, useMemo, useRef, useState } from "react";
 import {
   Calendar,
-  Layers,
+  Link2,
   Clock,
   Puzzle,
   BarChart3,
@@ -18,8 +18,12 @@ import {
   Settings,
   Menu,
   X,
-  Copy,
-  Check,
+  ChevronsLeft,
+  ChevronsRight,
+  Sparkles,
+  UserPlus,
+  CreditCard,
+  Sliders,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Spinner } from "@/components/ui/spinner";
@@ -35,8 +39,35 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
   const [isLoading, setIsLoading] = useState(true);
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-  const [isCopied, setIsCopied] = useState(false);
+  
+  // Persisted collapsible sidebar state
+  const [isCollapsed, setIsCollapsed] = useState(false);
+
   const dropdownRef = useRef<HTMLDivElement>(null);
+
+  // Load sidebar preference from localStorage
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem("sched_sidebar_collapsed");
+      if (saved !== null) {
+        setIsCollapsed(saved === "true");
+      }
+    } catch {
+      // Ignore localStorage errors
+    }
+  }, []);
+
+  const toggleSidebar = () => {
+    setIsCollapsed((prev) => {
+      const next = !prev;
+      try {
+        localStorage.setItem("sched_sidebar_collapsed", String(next));
+      } catch {
+        // Ignore localStorage errors
+      }
+      return next;
+    });
+  };
 
   // Close mobile sidebar on route change
   useEffect(() => {
@@ -117,85 +148,54 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
     window.location.replace("/");
   }
 
-  const handleCopyProfileLink = async () => {
-    if (!user) return;
-    const url = `${window.location.origin}/public/${user.username}`;
-    try {
-      await navigator.clipboard.writeText(url);
-      setIsCopied(true);
-      setTimeout(() => setIsCopied(false), 2000);
-    } catch {
-      // Fallback
-    }
-  };
-
-  const navGroups = useMemo(
+  // Navigation Items matching Calendly's exact taxonomy
+  const mainNavItems = useMemo(
     () => [
       {
-        title: "Scheduling",
-        items: [
-          {
-            label: "Event Types",
-            href: "/dashboard",
-            active: pathname === "/dashboard" || pathname.startsWith("/dashboard/event-types"),
-            icon: Layers,
-          },
-          {
-            label: "Scheduled Events",
-            href: "/dashboard/bookings",
-            active: pathname.startsWith("/dashboard/bookings"),
-            icon: Calendar,
-          },
-          {
-            label: "Availability",
-            href: "/dashboard/availability",
-            active: pathname.startsWith("/dashboard/availability"),
-            icon: Clock,
-          },
-        ],
+        label: "Scheduling",
+        href: "/dashboard",
+        active: pathname === "/dashboard" || pathname.startsWith("/dashboard/event-types"),
+        icon: Link2,
       },
       {
-        title: "Insights & Apps",
-        items: [
-          {
-            label: "Analytics",
-            href: "/dashboard/analytics",
-            active: pathname.startsWith("/dashboard/analytics"),
-            icon: BarChart3,
-          },
-          {
-            label: "Integrations & Apps",
-            href: "/dashboard/integrations",
-            active: pathname.startsWith("/dashboard/integrations"),
-            icon: Puzzle,
-          },
-        ],
+        label: "Meetings",
+        href: "/dashboard/bookings",
+        active: pathname.startsWith("/dashboard/bookings"),
+        icon: Calendar,
       },
       {
-        title: "Configuration",
-        items: [
-          {
-            label: "Settings & Profile",
-            href: "/dashboard/settings",
-            active: pathname.startsWith("/dashboard/settings"),
-            icon: Settings,
-          },
-        ],
+        label: "Availability",
+        href: "/dashboard/availability",
+        active: pathname.startsWith("/dashboard/availability"),
+        icon: Clock,
+      },
+      {
+        label: "Integrations & apps",
+        href: "/dashboard/integrations",
+        active: pathname.startsWith("/dashboard/integrations"),
+        icon: Puzzle,
       },
     ],
     [pathname]
   );
 
-  // Active page title helper for breadcrumb
-  const activePageTitle = useMemo(() => {
-    if (pathname === "/dashboard" || pathname.startsWith("/dashboard/event-types")) return "Event Types";
-    if (pathname.startsWith("/dashboard/bookings")) return "Scheduled Events";
-    if (pathname.startsWith("/dashboard/availability")) return "Availability & Schedules";
-    if (pathname.startsWith("/dashboard/analytics")) return "Analytics & Reports";
-    if (pathname.startsWith("/dashboard/integrations")) return "Integrations & Apps";
-    if (pathname.startsWith("/dashboard/settings")) return "Account Settings";
-    return "Dashboard";
-  }, [pathname]);
+  const secondaryNavItems = useMemo(
+    () => [
+      {
+        label: "Analytics",
+        href: "/dashboard/analytics",
+        active: pathname.startsWith("/dashboard/analytics"),
+        icon: BarChart3,
+      },
+      {
+        label: "Admin center",
+        href: "/dashboard/settings",
+        active: pathname.startsWith("/dashboard/settings"),
+        icon: Sliders,
+      },
+    ],
+    [pathname]
+  );
 
   if (isLoading) {
     return (
@@ -242,283 +242,382 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
   }
 
   return (
-    <div className="min-h-screen bg-[var(--bg-canvas)] text-[var(--text-primary)] flex flex-col md:flex-row antialiased">
-      {/* Mobile Header Bar */}
-      <header className="md:hidden sticky top-0 z-40 flex items-center justify-between border-b border-[var(--border-subtle)] bg-[var(--bg-surface)] px-4 py-3">
-        <div className="flex items-center gap-2.5">
-          <button
-            type="button"
-            onClick={() => setIsMobileMenuOpen((prev) => !prev)}
-            className="flex h-9 w-9 items-center justify-center rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-surface)] text-[var(--text-secondary)] hover:bg-[var(--bg-subtle)]"
-            aria-label="Toggle navigation menu"
+    <div className="min-h-screen bg-[var(--bg-canvas)] text-[var(--text-primary)] flex flex-col antialiased selection:bg-blue-600 selection:text-white">
+      {/* Top Refreshed Announcement Banner (Calendly Style) */}
+      <div className="border-b border-pink-200/60 bg-gradient-to-r from-purple-100 via-pink-50 to-amber-50 px-4 py-2 text-center text-xs font-medium text-neutral-800 shrink-0">
+        <div className="flex items-center justify-center gap-2">
+          <span>A new, refreshed Sched is live!</span>
+          <Link
+            href="/dashboard"
+            className="rounded-full bg-white/90 px-2.5 py-0.5 text-[11px] font-semibold text-neutral-900 border border-neutral-300/80 shadow-2xs hover:bg-white transition-colors inline-flex items-center gap-1"
           >
-            {isMobileMenuOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
-          </button>
-          <Link href="/dashboard" className="flex items-center gap-2">
-            <Logo className="h-6 w-6" />
-            <span className="font-bold tracking-tight text-[var(--text-primary)] text-base">Sched</span>
+            Explore features →
           </Link>
         </div>
+      </div>
 
-        <div className="flex items-center gap-2">
-          <Button asChild size="sm" className="h-8 px-2.5 text-xs gap-1">
-            <Link href="/dashboard/event-types/new">
-              <Plus className="h-3.5 w-3.5" />
-              <span>Create</span>
-            </Link>
-          </Button>
-          <div className="flex h-7 w-7 items-center justify-center rounded-full bg-neutral-900 text-white text-[11px] font-bold">
-            {user.name.charAt(0).toUpperCase()}
-          </div>
-        </div>
-      </header>
-
-      {/* Mobile Drawer Backdrop */}
-      {isMobileMenuOpen && (
-        <div
-          className="fixed inset-0 z-40 bg-black/40 backdrop-blur-xs md:hidden"
-          onClick={() => setIsMobileMenuOpen(false)}
-        />
-      )}
-
-      {/* Calendly-Style Left Sidebar Navigation */}
-      <aside
-        className={`fixed inset-y-0 left-0 z-50 flex w-64 flex-col justify-between border-r border-[var(--border-subtle)] bg-[var(--bg-surface)] transition-transform duration-200 ease-in-out md:static md:translate-x-0 ${
-          isMobileMenuOpen ? "translate-x-0" : "-translate-x-full md:translate-x-0"
-        }`}
-      >
-        {/* Sidebar Top Header & Navigation */}
-        <div className="flex flex-col flex-1 overflow-y-auto px-4 py-5">
-          {/* Brand Logo & Name */}
-          <div className="flex items-center justify-between px-2 mb-6">
-            <Link href="/dashboard" className="flex items-center gap-2.5 group">
-              <Logo className="h-7 w-7 transition-transform duration-150 group-hover:scale-105" />
-              <div className="flex items-center gap-1.5">
-                <span className="font-bold tracking-tight text-[var(--text-primary)] text-lg">Sched</span>
-                <span className="rounded bg-neutral-900 px-1.5 py-0.5 text-[10px] font-semibold text-white uppercase tracking-wider">
-                  Pro
-                </span>
-              </div>
-            </Link>
+      {/* Main App Container */}
+      <div className="flex flex-1 min-h-0">
+        {/* Mobile Header Bar (< md) */}
+        <header className="md:hidden sticky top-0 z-40 flex w-full items-center justify-between border-b border-[var(--border-subtle)] bg-[var(--bg-surface)] px-4 py-2.5">
+          <div className="flex items-center gap-2.5">
             <button
               type="button"
-              onClick={() => setIsMobileMenuOpen(false)}
-              className="md:hidden p-1 text-[var(--text-muted)] hover:text-[var(--text-primary)]"
+              onClick={() => setIsMobileMenuOpen((prev) => !prev)}
+              className="flex h-8 w-8 items-center justify-center rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-surface)] text-[var(--text-secondary)] hover:bg-[var(--bg-subtle)]"
+              aria-label="Toggle navigation menu"
             >
-              <X className="h-5 w-5" />
+              {isMobileMenuOpen ? <X className="h-4 w-4" /> : <Menu className="h-4 w-4" />}
             </button>
+            <Link href="/dashboard" className="flex items-center gap-2">
+              <Logo className="h-6 w-6" />
+              <span className="font-bold tracking-tight text-[var(--text-primary)] text-base">Sched</span>
+            </Link>
           </div>
 
-          {/* Primary "+ Create" Action Button (Calendly Style) */}
-          <div className="mb-6 px-1">
-            <Button
-              asChild
-              className="w-full justify-center gap-2 h-10 rounded-xl bg-neutral-900 text-white hover:bg-neutral-800 shadow-sm font-semibold text-sm transition-all"
-            >
-              <Link href="/dashboard/event-types/new">
-                <Plus className="h-4 w-4 stroke-[2.5]" />
-                <span>Create Event Type</span>
-              </Link>
-            </Button>
-          </div>
-
-          {/* Navigation Groups */}
-          <nav className="space-y-6">
-            {navGroups.map((group) => (
-              <div key={group.title}>
-                <div className="px-3 mb-2 text-[11px] font-semibold uppercase tracking-wider text-[var(--text-muted)]">
-                  {group.title}
-                </div>
-                <div className="space-y-1">
-                  {group.items.map((item) => {
-                    const Icon = item.icon;
-                    return (
-                      <Link
-                        key={item.label}
-                        href={item.href}
-                        className={`flex items-center gap-3 rounded-xl px-3 py-2.5 text-xs font-medium transition-[background-color,color] duration-150 ${
-                          item.active
-                            ? "bg-neutral-900 text-white font-semibold shadow-xs"
-                            : "text-[var(--text-secondary)] hover:bg-[var(--bg-subtle)] hover:text-[var(--text-primary)]"
-                        }`}
-                      >
-                        <Icon
-                          className={`h-4 w-4 shrink-0 ${
-                            item.active ? "text-white" : "text-[var(--text-muted)]"
-                          }`}
-                        />
-                        <span>{item.label}</span>
-                      </Link>
-                    );
-                  })}
-                </div>
-              </div>
-            ))}
-          </nav>
-        </div>
-
-        {/* Sidebar Bottom Profile Card */}
-        <div className="border-t border-[var(--border-subtle)] bg-[var(--bg-surface)] p-3">
-          {/* Host Local Time */}
-          {user.timezone && (
-            <div className="flex items-center justify-between px-2.5 py-1.5 mb-2 rounded-lg bg-[var(--bg-subtle)] text-[11px] text-[var(--text-secondary)]">
-              <div className="flex items-center gap-1.5 truncate">
-                <Globe className="h-3 w-3 text-[var(--text-muted)] shrink-0" />
-                <span className="truncate font-mono">{user.timezone}</span>
-              </div>
-              {currentTime && (
-                <span className="font-mono font-medium text-[var(--text-primary)] tabular-nums shrink-0">
-                  {currentTime}
-                </span>
-              )}
-            </div>
-          )}
-
-          {/* User Profile / Account Quick Menu */}
-          <div className="relative" ref={dropdownRef}>
-            <button
-              type="button"
-              onClick={() => setIsDropdownOpen((prev) => !prev)}
-              className="flex w-full items-center justify-between rounded-xl p-2 hover:bg-[var(--bg-subtle)] transition-[background-color] duration-150 cursor-pointer text-left"
-            >
-              <div className="flex items-center gap-2.5 min-w-0">
-                <div className="relative shrink-0">
-                  <div className="flex h-8 w-8 items-center justify-center rounded-full bg-neutral-900 text-white text-xs font-bold shadow-2xs select-none">
-                    {user.name.charAt(0).toUpperCase()}
-                  </div>
-                  <span className="absolute bottom-0 right-0 h-2 w-2 rounded-full bg-emerald-500 ring-2 ring-white" />
-                </div>
-                <div className="min-w-0 flex-1">
-                  <p className="truncate text-xs font-semibold text-[var(--text-primary)] leading-tight">
-                    {user.name}
-                  </p>
-                  <p className="truncate text-[11px] font-mono text-[var(--text-muted)]">
-                    @{user.username}
-                  </p>
-                </div>
-              </div>
-              <ChevronDown
-                className={`h-3.5 w-3.5 text-[var(--text-muted)] shrink-0 transition-transform duration-150 ${
-                  isDropdownOpen ? "rotate-180" : ""
-                }`}
-              />
-            </button>
-
-            {/* Dropdown Popup */}
-            {isDropdownOpen && (
-              <div className="absolute bottom-full left-0 mb-2 w-full rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-surface)] p-2 shadow-xl z-50 animate-in fade-in-0 zoom-in-95 duration-150">
-                <div className="p-2 border-b border-[var(--border-subtle)] mb-1">
-                  <p className="text-xs font-semibold text-[var(--text-primary)] truncate">{user.name}</p>
-                  <p className="text-[11px] text-[var(--text-muted)] truncate">{user.email}</p>
-                </div>
-
-                <Link
-                  href={`/public/${user.username}`}
-                  target="_blank"
-                  onClick={() => setIsDropdownOpen(false)}
-                  className="flex items-center justify-between rounded-lg px-2.5 py-1.5 text-xs font-medium text-[var(--text-secondary)] hover:bg-[var(--bg-subtle)] hover:text-[var(--text-primary)] transition-colors"
-                >
-                  <div className="flex items-center gap-2">
-                    <UserIcon className="h-3.5 w-3.5 text-[var(--text-muted)]" />
-                    <span>View Public Page</span>
-                  </div>
-                  <ExternalLink className="h-3 w-3 text-[var(--text-muted)]" />
-                </Link>
-
-                <Link
-                  href="/dashboard/settings"
-                  onClick={() => setIsDropdownOpen(false)}
-                  className="flex items-center gap-2 rounded-lg px-2.5 py-1.5 text-xs font-medium text-[var(--text-secondary)] hover:bg-[var(--bg-subtle)] hover:text-[var(--text-primary)] transition-colors"
-                >
-                  <Settings className="h-3.5 w-3.5 text-[var(--text-muted)]" />
-                  <span>Account Settings</span>
-                </Link>
-
-                <div className="my-1 border-t border-[var(--border-subtle)]" />
-
-                <button
-                  type="button"
-                  onClick={() => {
-                    setIsDropdownOpen(false);
-                    void logout();
-                  }}
-                  className="flex w-full items-center gap-2 rounded-lg px-2.5 py-1.5 text-xs font-medium text-rose-600 hover:bg-rose-50 transition-colors cursor-pointer"
-                >
-                  <LogOut className="h-3.5 w-3.5" />
-                  <span>Sign out</span>
-                </button>
-              </div>
-            )}
-          </div>
-        </div>
-      </aside>
-
-      {/* Main Content Area */}
-      <div className="flex-1 min-w-0 flex flex-col min-h-screen">
-        {/* Top Bar for Desktop Content Area */}
-        <header className="hidden md:flex sticky top-0 z-30 h-16 items-center justify-between border-b border-[var(--border-subtle)] bg-[var(--bg-surface)]/90 backdrop-blur-md px-8">
           <div className="flex items-center gap-2">
-            <span className="text-sm font-medium text-[var(--text-muted)]">Workspace</span>
-            <span className="text-[var(--text-muted)]">/</span>
-            <h1 className="text-sm font-semibold text-[var(--text-primary)]">{activePageTitle}</h1>
-          </div>
-
-          {/* Quick Header Actions */}
-          <div className="flex items-center gap-3">
-            {/* Fast Copy Public Booking Link */}
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              onClick={handleCopyProfileLink}
-              className="gap-1.5 text-xs h-8"
-              title="Copy your personal booking link"
-            >
-              {isCopied ? (
-                <>
-                  <Check className="h-3.5 w-3.5 text-emerald-600" />
-                  <span className="text-emerald-600 font-medium">Copied!</span>
-                </>
-              ) : (
-                <>
-                  <Copy className="h-3.5 w-3.5 text-[var(--text-muted)]" />
-                  <span>Copy Page Link</span>
-                </>
-              )}
-            </Button>
-
-            {/* Direct Link to Public Profile */}
-            <Button asChild variant="ghost" size="sm" className="gap-1 text-xs h-8 text-[var(--text-secondary)] hover:text-[var(--text-primary)]">
-              <Link href={`/public/${user.username}`} target="_blank">
-                <span>View Live Page</span>
-                <ExternalLink className="h-3 w-3 text-[var(--text-muted)]" />
+            <Button asChild size="sm" className="h-7 px-2.5 text-xs rounded-full bg-blue-600 hover:bg-blue-700 text-white font-medium gap-1">
+              <Link href="/dashboard/event-types/new">
+                <Plus className="h-3 w-3" />
+                <span>Create</span>
               </Link>
             </Button>
+            <div className="flex h-7 w-7 items-center justify-center rounded-full bg-blue-600 text-white text-[11px] font-bold">
+              {user.name.charAt(0).toUpperCase()}
+            </div>
           </div>
         </header>
 
-        {/* Dynamic Page Content */}
-        <main className="flex-1 px-4 sm:px-8 py-6 sm:py-8 max-w-7xl w-full mx-auto">
-          {children}
-        </main>
+        {/* Mobile Drawer Backdrop */}
+        {isMobileMenuOpen && (
+          <div
+            className="fixed inset-0 z-40 bg-black/40 backdrop-blur-xs md:hidden"
+            onClick={() => setIsMobileMenuOpen(false)}
+          />
+        )}
 
-        {/* Minimal Footer */}
-        <footer className="border-t border-[var(--border-subtle)] bg-[var(--bg-surface)] px-4 sm:px-8 py-4 mt-auto">
-          <div className="max-w-7xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-[var(--text-muted)]">
-            <div className="flex items-center gap-2">
-              <Logo className="h-4 w-4" />
-              <span className="font-semibold text-[var(--text-primary)]">Sched</span>
-              <span>— Autonomous Scheduling Infrastructure</span>
+        {/* Dynamic Collapsible Sidebar Navigation */}
+        <aside
+          className={`fixed inset-y-0 left-0 z-50 flex flex-col justify-between border-r border-[var(--border-subtle)] bg-[var(--bg-surface)] transition-all duration-200 ease-in-out md:static md:translate-x-0 ${
+            isMobileMenuOpen ? "translate-x-0 w-[230px]" : "-translate-x-full md:translate-x-0"
+          } ${isCollapsed ? "md:w-[72px]" : "md:w-[230px]"}`}
+        >
+          {/* Top Section: Logo & Toggle Button + Create CTA */}
+          <div className="flex flex-col flex-1 overflow-y-auto px-3 py-4">
+            {/* Logo Row + Collapse/Expand Button */}
+            <div className={`flex items-center ${isCollapsed ? "justify-center" : "justify-between"} mb-5 px-1`}>
+              <Link href="/dashboard" className="flex items-center gap-2.5 group">
+                <Logo className="h-7 w-7 transition-transform duration-150 group-hover:scale-105 shrink-0" />
+                {!isCollapsed && (
+                  <span className="font-bold tracking-tight text-[var(--text-primary)] text-lg">
+                    Sched
+                  </span>
+                )}
+              </Link>
+
+              {/* Desktop Collapse / Expand Double Chevron Toggle */}
+              <button
+                type="button"
+                onClick={toggleSidebar}
+                className="hidden md:flex h-7 w-7 items-center justify-center rounded-lg text-[var(--text-muted)] hover:bg-[var(--bg-subtle)] hover:text-[var(--text-primary)] transition-colors cursor-pointer"
+                title={isCollapsed ? "Expand sidebar" : "Collapse sidebar"}
+                aria-label={isCollapsed ? "Expand sidebar" : "Collapse sidebar"}
+              >
+                {isCollapsed ? (
+                  <ChevronsRight className="h-4 w-4 stroke-[2.5]" />
+                ) : (
+                  <ChevronsLeft className="h-4 w-4 stroke-[2.5]" />
+                )}
+              </button>
+
+              {/* Mobile Close Button */}
+              <button
+                type="button"
+                onClick={() => setIsMobileMenuOpen(false)}
+                className="md:hidden p-1 text-[var(--text-muted)] hover:text-[var(--text-primary)]"
+              >
+                <X className="h-5 w-5" />
+              </button>
             </div>
-            <div className="flex items-center gap-4">
-              <span className="inline-flex items-center gap-1.5 text-emerald-700 font-medium">
-                <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
-                Operational
-              </span>
-              <span>© 2026 Sched</span>
+
+            {/* "+ Create" Action Button (Calendly Style) */}
+            <div className="mb-5">
+              {isCollapsed ? (
+                <div className="flex justify-center">
+                  <Button
+                    asChild
+                    size="icon"
+                    className="h-10 w-10 rounded-full border border-neutral-300 bg-white text-neutral-800 hover:bg-neutral-50 shadow-2xs hover:border-neutral-400 transition-all"
+                    title="Create Event Type"
+                  >
+                    <Link href="/dashboard/event-types/new">
+                      <Plus className="h-5 w-5 stroke-[2.5]" />
+                    </Link>
+                  </Button>
+                </div>
+              ) : (
+                <Button
+                  asChild
+                  variant="outline"
+                  className="w-full justify-center gap-2 h-10 rounded-full border-neutral-300 bg-white text-neutral-900 hover:bg-neutral-50 shadow-2xs font-semibold text-sm hover:border-neutral-400 transition-all cursor-pointer"
+                >
+                  <Link href="/dashboard/event-types/new">
+                    <Plus className="h-4 w-4 stroke-[2.5]" />
+                    <span>Create</span>
+                  </Link>
+                </Button>
+              )}
+            </div>
+
+            {/* Main Navigation List */}
+            <nav className="space-y-1">
+              {mainNavItems.map((item) => {
+                const Icon = item.icon;
+                if (isCollapsed) {
+                  return (
+                    <Link
+                      key={item.label}
+                      href={item.href}
+                      className={`flex flex-col items-center justify-center py-2.5 px-1 rounded-xl text-center transition-all ${
+                        item.active
+                          ? "bg-blue-50 text-blue-600 font-semibold"
+                          : "text-neutral-600 hover:bg-[var(--bg-subtle)] hover:text-neutral-900"
+                      }`}
+                      title={item.label}
+                    >
+                      <Icon className={`h-5 w-5 mb-1 shrink-0 ${item.active ? "text-blue-600" : "text-neutral-600"}`} />
+                      <span className="text-[10px] leading-tight line-clamp-1 font-medium">{item.label}</span>
+                    </Link>
+                  );
+                }
+
+                return (
+                  <Link
+                    key={item.label}
+                    href={item.href}
+                    className={`flex items-center gap-3 rounded-xl px-3 py-2.5 text-xs font-medium transition-[background-color,color] duration-150 ${
+                      item.active
+                        ? "bg-blue-50 text-blue-600 font-semibold"
+                        : "text-neutral-600 hover:bg-[var(--bg-subtle)] hover:text-neutral-900"
+                    }`}
+                  >
+                    <Icon
+                      className={`h-4 w-4 shrink-0 ${
+                        item.active ? "text-blue-600" : "text-neutral-500"
+                      }`}
+                    />
+                    <span>{item.label}</span>
+                  </Link>
+                );
+              })}
+            </nav>
+
+            {/* Spacer */}
+            <div className="my-3 border-t border-[var(--border-subtle)]" />
+
+            {/* Secondary Navigation */}
+            <nav className="space-y-1">
+              {/* Upgrade Plan Action (Calendly Style) */}
+              {!isCollapsed ? (
+                <Link
+                  href="/dashboard/settings"
+                  className="flex items-center gap-3 rounded-full border border-neutral-200 px-3 py-2 text-xs font-medium text-neutral-700 hover:bg-neutral-50 hover:border-neutral-300 transition-colors mb-2"
+                >
+                  <CreditCard className="h-4 w-4 text-neutral-500 shrink-0" />
+                  <span>Upgrade plan</span>
+                </Link>
+              ) : (
+                <Link
+                  href="/dashboard/settings"
+                  className="flex flex-col items-center justify-center py-2 px-1 rounded-xl text-center text-neutral-600 hover:bg-[var(--bg-subtle)] transition-all mb-1"
+                  title="Upgrade plan"
+                >
+                  <CreditCard className="h-5 w-5 mb-0.5 text-neutral-500" />
+                  <span className="text-[9px] font-medium leading-tight">Upgrade</span>
+                </Link>
+              )}
+
+              {secondaryNavItems.map((item) => {
+                const Icon = item.icon;
+                if (isCollapsed) {
+                  return (
+                    <Link
+                      key={item.label}
+                      href={item.href}
+                      className={`flex flex-col items-center justify-center py-2 px-1 rounded-xl text-center transition-all ${
+                        item.active
+                          ? "bg-blue-50 text-blue-600 font-semibold"
+                          : "text-neutral-600 hover:bg-[var(--bg-subtle)] hover:text-neutral-900"
+                      }`}
+                      title={item.label}
+                    >
+                      <Icon className={`h-5 w-5 mb-0.5 shrink-0 ${item.active ? "text-blue-600" : "text-neutral-600"}`} />
+                      <span className="text-[9px] leading-tight line-clamp-1 font-medium">{item.label}</span>
+                    </Link>
+                  );
+                }
+
+                return (
+                  <Link
+                    key={item.label}
+                    href={item.href}
+                    className={`flex items-center gap-3 rounded-xl px-3 py-2 text-xs font-medium transition-colors ${
+                      item.active
+                        ? "bg-blue-50 text-blue-600 font-semibold"
+                        : "text-neutral-600 hover:bg-[var(--bg-subtle)] hover:text-neutral-900"
+                    }`}
+                  >
+                    <Icon className={`h-4 w-4 shrink-0 ${item.active ? "text-blue-600" : "text-neutral-500"}`} />
+                    <span>{item.label}</span>
+                  </Link>
+                );
+              })}
+            </nav>
+          </div>
+
+          {/* Bottom Profile Area */}
+          <div className="border-t border-[var(--border-subtle)] bg-[var(--bg-surface)] p-2">
+            {!isCollapsed && user.timezone && (
+              <div className="flex items-center justify-between px-2.5 py-1 mb-1.5 rounded-lg bg-[var(--bg-subtle)] text-[11px] text-[var(--text-secondary)]">
+                <div className="flex items-center gap-1.5 truncate">
+                  <Globe className="h-3 w-3 text-[var(--text-muted)] shrink-0" />
+                  <span className="truncate font-mono text-[10px]">{user.timezone}</span>
+                </div>
+                {currentTime && (
+                  <span className="font-mono font-medium text-[var(--text-primary)] tabular-nums shrink-0 text-[10px]">
+                    {currentTime}
+                  </span>
+                )}
+              </div>
+            )}
+
+            {/* Profile Dropdown */}
+            <div className="relative" ref={dropdownRef}>
+              <button
+                type="button"
+                onClick={() => setIsDropdownOpen((prev) => !prev)}
+                className={`flex w-full items-center ${
+                  isCollapsed ? "justify-center p-1.5" : "justify-between p-2"
+                } rounded-xl hover:bg-[var(--bg-subtle)] transition-colors cursor-pointer text-left`}
+                title={`${user.name} (@${user.username})`}
+              >
+                <div className="flex items-center gap-2.5 min-w-0">
+                  <div className="relative shrink-0">
+                    <div className="flex h-7 w-7 items-center justify-center rounded-full bg-blue-600 text-white text-[11px] font-bold select-none shadow-2xs">
+                      {user.name.charAt(0).toUpperCase()}
+                    </div>
+                    <span className="absolute bottom-0 right-0 h-2 w-2 rounded-full bg-emerald-500 ring-2 ring-white" />
+                  </div>
+                  {!isCollapsed && (
+                    <div className="min-w-0 flex-1">
+                      <p className="truncate text-xs font-semibold text-neutral-900 leading-tight">
+                        {user.name}
+                      </p>
+                      <p className="truncate text-[10px] font-mono text-neutral-500">
+                        @{user.username}
+                      </p>
+                    </div>
+                  )}
+                </div>
+                {!isCollapsed && (
+                  <ChevronDown
+                    className={`h-3.5 w-3.5 text-neutral-400 shrink-0 transition-transform duration-150 ${
+                      isDropdownOpen ? "rotate-180" : ""
+                    }`}
+                  />
+                )}
+              </button>
+
+              {/* User Dropdown Menu */}
+              {isDropdownOpen && (
+                <div
+                  className={`absolute bottom-full mb-2 ${
+                    isCollapsed ? "left-0 w-60" : "left-0 w-full"
+                  } rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-surface)] p-2 shadow-xl z-50 animate-in fade-in-0 zoom-in-95 duration-150`}
+                >
+                  <div className="p-2 border-b border-[var(--border-subtle)] mb-1">
+                    <p className="text-xs font-semibold text-neutral-900 truncate">{user.name}</p>
+                    <p className="text-[11px] text-neutral-500 truncate">{user.email}</p>
+                  </div>
+
+                  <Link
+                    href={`/public/${user.username}`}
+                    target="_blank"
+                    onClick={() => setIsDropdownOpen(false)}
+                    className="flex items-center justify-between rounded-lg px-2.5 py-1.5 text-xs font-medium text-neutral-700 hover:bg-[var(--bg-subtle)] hover:text-neutral-900 transition-colors"
+                  >
+                    <div className="flex items-center gap-2">
+                      <UserIcon className="h-3.5 w-3.5 text-neutral-500" />
+                      <span>View Public Page</span>
+                    </div>
+                    <ExternalLink className="h-3 w-3 text-neutral-400" />
+                  </Link>
+
+                  <Link
+                    href="/dashboard/settings"
+                    onClick={() => setIsDropdownOpen(false)}
+                    className="flex items-center gap-2 rounded-lg px-2.5 py-1.5 text-xs font-medium text-neutral-700 hover:bg-[var(--bg-subtle)] hover:text-neutral-900 transition-colors"
+                  >
+                    <Settings className="h-3.5 w-3.5 text-neutral-500" />
+                    <span>Account Settings</span>
+                  </Link>
+
+                  <div className="my-1 border-t border-[var(--border-subtle)]" />
+
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setIsDropdownOpen(false);
+                      void logout();
+                    }}
+                    className="flex w-full items-center gap-2 rounded-lg px-2.5 py-1.5 text-xs font-medium text-rose-600 hover:bg-rose-50 transition-colors cursor-pointer"
+                  >
+                    <LogOut className="h-3.5 w-3.5" />
+                    <span>Sign out</span>
+                  </button>
+                </div>
+              )}
             </div>
           </div>
-        </footer>
+        </aside>
+
+        {/* Main Content Area */}
+        <div className="flex-1 min-w-0 flex flex-col min-h-screen bg-[var(--bg-canvas)]">
+          {/* Top Bar (Calendly Style with AI Assistant Pill and User Quick Menu) */}
+          <header className="hidden md:flex h-14 items-center justify-end border-b border-[var(--border-subtle)] bg-[var(--bg-surface)] px-8 gap-3">
+            {/* AI Assistant Pill (Ask Callie Style) */}
+            <button
+              type="button"
+              className="inline-flex items-center gap-1.5 rounded-full border border-purple-200 bg-gradient-to-r from-purple-50 to-pink-50 px-3 py-1 text-xs font-medium text-purple-900 shadow-2xs hover:from-purple-100 hover:to-pink-100 transition-all cursor-pointer"
+              title="AI Assistant"
+            >
+              <Sparkles className="h-3.5 w-3.5 text-purple-600" />
+              <span>Ask AI</span>
+            </button>
+
+            {/* Invite / Add Member Icon */}
+            <button
+              type="button"
+              className="flex h-8 w-8 items-center justify-center rounded-full text-neutral-500 hover:bg-neutral-100 hover:text-neutral-800 transition-colors"
+              title="Invite members"
+            >
+              <UserPlus className="h-4 w-4" />
+            </button>
+
+            {/* Quick Profile Avatar Pill */}
+            <div className="flex items-center gap-1.5 pl-1">
+              <div className="flex h-7 w-7 items-center justify-center rounded-full bg-blue-600 text-white text-[11px] font-bold select-none">
+                {user.name.charAt(0).toUpperCase()}
+              </div>
+              <ChevronDown className="h-3 w-3 text-neutral-400" />
+            </div>
+          </header>
+
+          {/* Dynamic Page Body */}
+          <main className="flex-1 px-4 sm:px-8 py-6 sm:py-8 max-w-7xl w-full mx-auto">
+            {children}
+          </main>
+        </div>
       </div>
     </div>
   );
