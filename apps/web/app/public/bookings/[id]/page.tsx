@@ -422,11 +422,17 @@ export default function PublicBookingConfirmationPage({
             {/* Footer Action */}
             <div className="pt-8 mt-6 border-t border-neutral-200/70 flex items-center justify-between text-xs max-w-md mx-auto">
               <Link
-                href={`/public/${booking.host.username}`}
-                className="inline-flex items-center gap-1.5 font-semibold text-neutral-600 hover:text-blue-600 transition-colors"
+                href={`/public/${booking.host.username}/${booking.eventType.slug}`}
+                className="inline-flex items-center gap-1.5 font-semibold text-blue-600 hover:text-blue-700 transition-colors"
               >
                 <ArrowLeft className="h-3.5 w-3.5" />
-                <span>Book another meeting</span>
+                <span>Schedule another meeting</span>
+              </Link>
+              <Link
+                href={`/public/${booking.host.username}`}
+                className="font-medium text-neutral-500 hover:text-neutral-800 transition-colors"
+              >
+                View all event types
               </Link>
             </div>
           </div>

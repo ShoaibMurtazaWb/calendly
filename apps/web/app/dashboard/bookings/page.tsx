@@ -107,6 +107,14 @@ export default function BookingsPage() {
     setTimeout(() => setIsCopiedLink(false), 2000);
   };
 
+  const handleTabChange = (newTab: TabStatus) => {
+    if (tab !== newTab) {
+      setTab(newTab);
+      setIsDrawerOpen(false);
+      setSelectedBooking(null);
+    }
+  };
+
   useEffect(() => {
     void loadAllBookings();
   }, []);
@@ -325,7 +333,7 @@ export default function BookingsPage() {
         <div className="flex items-center gap-6 pb-2 text-xs">
           <button
             type="button"
-            onClick={() => setTab("upcoming")}
+            onClick={() => handleTabChange("upcoming")}
             className={`pb-2 border-b-2 transition-colors cursor-pointer ${
               tab === "upcoming"
                 ? "border-blue-600 text-blue-600 font-bold"
@@ -337,7 +345,7 @@ export default function BookingsPage() {
 
           <button
             type="button"
-            onClick={() => setTab("past")}
+            onClick={() => handleTabChange("past")}
             className={`pb-2 border-b-2 transition-colors cursor-pointer ${
               tab === "past"
                 ? "border-blue-600 text-blue-600 font-bold"
@@ -349,7 +357,7 @@ export default function BookingsPage() {
 
           <button
             type="button"
-            onClick={() => setTab("cancelled")}
+            onClick={() => handleTabChange("cancelled")}
             className={`pb-2 border-b-2 transition-colors cursor-pointer ${
               tab === "cancelled"
                 ? "border-blue-600 text-blue-600 font-bold"
