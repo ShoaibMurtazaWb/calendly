@@ -15,8 +15,6 @@ import {
   AlertCircle,
   Plus,
   Trash2,
-  Archive,
-  ArchiveRestore,
 } from "lucide-react";
 import {
   createEventTypeBodySchema,
@@ -31,7 +29,6 @@ import { Label } from "@/components/ui/label";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Spinner } from "@/components/ui/spinner";
 import { Textarea } from "@/components/ui/textarea";
-import { Tooltip } from "@/components/ui/tooltip";
 import { toast } from "@/components/ui/toast";
 import { api, type CurrentUser, type EventType } from "@/lib/api";
 import { ApiError, fieldErrors } from "@/lib/api-error";
@@ -58,8 +55,6 @@ export function EventTypeForm({ eventTypeId }: EventTypeFormProps) {
   const [pending, setPending] = useState(false);
   const [loadingInitial, setLoadingInitial] = useState(Boolean(eventTypeId));
   const [isLegacyMissingLocation, setIsLegacyMissingLocation] = useState(false);
-  const [isArchived, setIsArchived] = useState(false);
-  const [bookingCount, setBookingCount] = useState(0);
 
   // Controlled form values
   const [title, setTitle] = useState("");
@@ -109,8 +104,6 @@ export function EventTypeForm({ eventTypeId }: EventTypeFormProps) {
         setDuration(data.durationMinutes);
         setDescription(data.description || "");
         setIsSlugTouched(true);
-        setIsArchived(Boolean(data.archivedAt));
-        setBookingCount(data.bookingCount ?? 0);
 
         if (data.customQuestions && Array.isArray(data.customQuestions)) {
           setCustomQuestions(data.customQuestions);
@@ -142,38 +135,6 @@ export function EventTypeForm({ eventTypeId }: EventTypeFormProps) {
       .catch(() => setError("Event type not found."))
       .finally(() => setLoadingInitial(false));
   }, [eventTypeId]);
-
-  async function handleArchive() {
-    if (!eventTypeId) return;
-    setPending(true);
-    setError(null);
-    try {
-      await api(`/event-types/${eventTypeId}/archive`, { method: "POST" });
-      toast.info("Event type archived", "This link is now inactive and hidden from public booking.");
-      router.push("/dashboard");
-    } catch {
-      setError("Could not archive the event type.");
-      toast.error("Could not archive the event type");
-    } finally {
-      setPending(false);
-    }
-  }
-
-  async function handleRestore() {
-    if (!eventTypeId) return;
-    setPending(true);
-    setError(null);
-    try {
-      await api(`/event-types/${eventTypeId}/unarchive`, { method: "POST" });
-      toast.success("Event type restored to active", "This booking link is live again.");
-      setIsArchived(false);
-    } catch {
-      setError("Could not restore the event type.");
-      toast.error("Could not restore the event type");
-    } finally {
-      setPending(false);
-    }
-  }
 
   async function handleDelete() {
     if (!eventTypeId) return;
@@ -430,32 +391,6 @@ export function EventTypeForm({ eventTypeId }: EventTypeFormProps) {
           <ArrowLeft className="h-3.5 w-3.5 group-hover:-translate-x-0.5 transition-transform duration-150" />
           Back to Event Types
         </Link>
-
-        {/* Archived Event Type Alert */}
-        {isArchived && (
-          <div className="mb-4 rounded-xl border border-amber-200 bg-amber-50 p-4 text-xs text-amber-900 dark:border-amber-900/40 dark:bg-amber-950/20 dark:text-amber-300 flex items-start justify-between gap-3">
-            <div className="flex items-start gap-2.5">
-              <Archive className="h-4 w-4 shrink-0 text-amber-600 mt-0.5" />
-              <div className="space-y-1">
-                <p className="font-semibold">Event Type Archived</p>
-                <p className="text-[11px] text-amber-800 dark:text-amber-400">
-                  This event type is currently archived and hidden from public booking. Restore it to edit or accept bookings.
-                </p>
-              </div>
-            </div>
-            <Button
-              type="button"
-              size="sm"
-              variant="outline"
-              disabled={pending}
-              onClick={() => void handleRestore()}
-              className="shrink-0 gap-1.5 bg-white dark:bg-neutral-900 shadow-2xs"
-            >
-              <ArchiveRestore className="h-3.5 w-3.5" />
-              <span>Restore</span>
-            </Button>
-          </div>
-        )}
 
         {/* Legacy Missing Location Alert */}
         {isLegacyMissingLocation && (
@@ -1021,7 +956,7 @@ export function EventTypeForm({ eventTypeId }: EventTypeFormProps) {
                 </Button>
                 <Button
                   type="submit"
-                  disabled={pending || isArchived}
+                  disabled={pending}
                   size="sm"
                   className="gap-2"
                 >
