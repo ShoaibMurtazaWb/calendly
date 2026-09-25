@@ -240,19 +240,6 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
 
   return (
     <div className="min-h-screen bg-[var(--bg-canvas)] text-[var(--text-primary)] flex flex-col antialiased selection:bg-blue-600 selection:text-white">
-      {/* Top Refreshed Announcement Banner (Calendly Style) */}
-      <div className="border-b border-pink-200/60 bg-gradient-to-r from-purple-100 via-pink-50 to-amber-50 px-4 py-2 text-center text-xs font-medium text-neutral-800 shrink-0">
-        <div className="flex items-center justify-center gap-2">
-          <span>A new, refreshed Sched is live!</span>
-          <Link
-            href="/dashboard"
-            className="rounded-full bg-white/90 px-2.5 py-0.5 text-[11px] font-semibold text-neutral-900 border border-neutral-300/80 shadow-2xs hover:bg-white transition-colors inline-flex items-center gap-1"
-          >
-            Explore features →
-          </Link>
-        </div>
-      </div>
-
       {/* Main App Container */}
       <div className="flex flex-1 min-h-0">
         {/* Mobile Header Bar (< md) */}
@@ -296,15 +283,15 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
         {/* Dynamic Collapsible Sidebar Navigation */}
         <aside
           className={`fixed inset-y-0 left-0 z-50 flex flex-col justify-between border-r border-[var(--border-subtle)] bg-[var(--bg-surface)] transition-[width,transform] duration-500 ease-in-out md:static md:translate-x-0 relative ${
-            isMobileMenuOpen ? "translate-x-0 w-[240px]" : "-translate-x-full md:translate-x-0"
-          } ${isCollapsed ? "md:w-[76px]" : "md:w-[240px]"}`}
+            isMobileMenuOpen ? "translate-x-0 w-[260px]" : "-translate-x-full md:translate-x-0"
+          } ${isCollapsed ? "md:w-[84px]" : "md:w-[260px]"}`}
         >
-          {/* Floating Expand Button on Right Border (When Collapsed) */}
+          {/* Floating Expand Button on Right Border (When Collapsed) - Centered with Logo */}
           {isCollapsed && (
             <button
               type="button"
               onClick={toggleSidebar}
-              className="hidden md:flex absolute -right-4 top-3.5 z-50 h-8 w-8 items-center justify-center rounded-full border border-neutral-200 bg-white shadow-md text-neutral-900 hover:bg-neutral-50 hover:scale-110 active:scale-95 transition-all cursor-pointer"
+              className="hidden md:flex absolute -right-4 top-[20px] z-50 h-8 w-8 items-center justify-center rounded-full border border-neutral-200 bg-white shadow-md text-neutral-900 hover:bg-neutral-50 hover:scale-110 active:scale-95 transition-all cursor-pointer"
               title="Expand sidebar"
               aria-label="Expand sidebar"
             >
@@ -313,10 +300,10 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
           )}
 
           {/* Top Section: Logo & Toggle Button + Create CTA */}
-          <div className={`flex flex-col flex-1 overflow-y-auto ${isCollapsed ? "px-2" : "px-4"} py-4 transition-[padding] duration-500`}>
+          <div className={`flex flex-col flex-1 overflow-y-auto ${isCollapsed ? "px-3" : "px-5"} py-5 transition-[padding] duration-500`}>
             {/* Logo Row + Collapse Button */}
             <div className={`flex items-center ${isCollapsed ? "justify-center" : "justify-between"} mb-5 px-1 min-h-[36px]`}>
-              <Link href="/dashboard" className="flex items-center gap-2.5 group">
+              <Link href="/dashboard" className="flex items-center gap-2.5 group shrink-0">
                 <Logo className="h-8 w-8 transition-transform duration-150 group-hover:scale-105 shrink-0" />
                 {!isCollapsed && (
                   <span className="font-bold tracking-tight text-black text-2xl whitespace-nowrap overflow-hidden transition-all duration-300">
@@ -325,16 +312,16 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
                 )}
               </Link>
 
-              {/* Desktop Collapse Button (When Expanded) - No border, circular hover */}
+              {/* Desktop Collapse Button (When Expanded) - Exact matching size (32x32) with logo */}
               {!isCollapsed && (
                 <button
                   type="button"
                   onClick={toggleSidebar}
-                  className="hidden md:flex h-7 w-7 items-center justify-center rounded-full text-black hover:bg-neutral-100 transition-colors cursor-pointer"
+                  className="hidden md:flex h-8 w-8 items-center justify-center rounded-full text-black hover:bg-neutral-100 transition-colors cursor-pointer shrink-0"
                   title="Collapse sidebar"
                   aria-label="Collapse sidebar"
                 >
-                  <ChevronsLeft className="h-4 w-4 stroke-[2.5]" />
+                  <ChevronsLeft className="h-4.5 w-4.5 stroke-[2.5]" />
                 </button>
               )}
 
@@ -467,7 +454,7 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
         {/* Main Content Area */}
         <div className="flex-1 min-w-0 flex flex-col min-h-screen bg-[var(--bg-canvas)]">
           {/* Top Bar with User Profile Dropdown (Borderless, Seamless Header) */}
-          <header className="hidden md:flex h-14 items-center justify-end bg-[var(--bg-surface)] px-8 gap-4">
+          <header className="hidden md:flex h-14 items-center justify-end bg-[var(--bg-surface)] px-8 sm:px-12 md:px-16 gap-4">
             {/* User Profile Dropdown Menu in Top Navbar */}
             <div className="relative" ref={dropdownRef}>
               <button
@@ -551,8 +538,8 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
             </div>
           </header>
 
-          {/* Dynamic Page Body (Full Width) */}
-          <main className="flex-1 w-full px-6 sm:px-10 py-4 sm:py-6">
+          {/* Dynamic Page Body (Full Width with generous padding) */}
+          <main className="flex-1 w-full px-8 sm:px-12 md:px-16 py-6 sm:py-8 md:py-10">
             {children}
           </main>
         </div>

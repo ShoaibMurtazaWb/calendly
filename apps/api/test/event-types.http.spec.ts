@@ -149,7 +149,7 @@ describe("event types HTTP", () => {
     expect(del.status).toBe(404);
   });
 
-  it("deletes event type when there are no bookings, but blocks deletion when bookings exist", async () => {
+  it("deletes event type cleanly whether it has bookings or not", async () => {
     const { cookies, user } = await register(uniqueLabel("delhost"));
 
     // Set schedule
@@ -232,19 +232,29 @@ describe("event types HTTP", () => {
     expect(getAfterBook.status).toBe(200);
     expect(getAfterBook.body.bookingCount).toBe(1);
 
-    // Attempt to delete it
-    const blockDeleteRes = await request(app.getHttpServer())
+    // Delete it - should succeed and soft-delete to preserve bookings
+    const deleteWithBookings = await request(app.getHttpServer())
       .delete(`/api/v1/event-types/${withBookingEt.body.id}`)
       .set("Cookie", cookies);
-    expect(blockDeleteRes.status).toBe(400);
-    expect(blockDeleteRes.body.error.code).toBe("CANNOT_DELETE_WITH_BOOKINGS");
+    expect(deleteWithBookings.status).toBe(200);
 
-    // But archiving it should work perfectly and preserve historical bookings
-    const archiveRes = await request(app.getHttpServer())
-      .post(`/api/v1/event-types/${withBookingEt.body.id}/archive`)
+    // Verify it is no longer listed in active event types
+    const listRes = await request(app.getHttpServer())
+      .get("/api/v1/event-types")
       .set("Cookie", cookies);
-    expect(archiveRes.status).toBe(201);
-    expect(archiveRes.body.archivedAt).toBeTruthy();
-    expect(archiveRes.body.bookingCount).toBe(1);
+    expect(listRes.body.find((e: { id: string }) => e.id === withBookingEt.body.id)).toBeUndefined();
+
+    // Verify public lookup returns 404 (preventing further scheduling)
+    const publicRes = await request(app.getHttpServer())
+      .get(`/api/v1/public/${user.username}/popular-session`);
+    expect(publicRes.status).toBe(404);
+
+    // Verify booking still exists in bookings list
+    const bookingsRes = await request(app.getHttpServer())
+      .get("/api/v1/bookings")
+      .set("Cookie", cookies);
+    expect(bookingsRes.status).toBe(200);
+    expect(bookingsRes.body.length).toBe(1);
+    expect(bookingsRes.body[0].id).toBe(bookRes.body.id);
   });
 });

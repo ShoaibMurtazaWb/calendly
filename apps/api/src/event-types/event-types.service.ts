@@ -210,15 +210,22 @@ export class EventTypesService {
     const bookingCount = await this.prisma.booking.count({
       where: { eventTypeId: existing.id },
     });
+
     if (bookingCount > 0) {
-      throw new BadRequestError(
-        "CANNOT_DELETE_WITH_BOOKINGS",
-        "This event type cannot be deleted because it has existing bookings. You can archive it instead to preserve past records and analytics."
-      );
+      // Soft-delete to preserve all historical/confirmed bookings and relational integrity,
+      // while disabling any further public bookings and releasing the slug for reuse.
+      await this.prisma.eventType.update({
+        where: { id: existing.id },
+        data: {
+          archivedAt: new Date(),
+          slug: `${existing.slug}-deleted-${Date.now()}`,
+        },
+      });
+    } else {
+      await this.prisma.eventType.delete({
+        where: { id: existing.id },
+      });
     }
-    await this.prisma.eventType.delete({
-      where: { id: existing.id },
-    });
 
     await this.audit.log({
       userId,

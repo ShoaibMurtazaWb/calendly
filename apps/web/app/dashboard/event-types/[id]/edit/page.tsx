@@ -1,4 +1,4 @@
-import { EventTypeForm } from "@/components/event-type-form";
+import { redirect } from "next/navigation";
 
 export default async function EditEventTypePage({
   params,
@@ -6,5 +6,5 @@ export default async function EditEventTypePage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
-  return <EventTypeForm eventTypeId={id} />;
+  redirect(`/dashboard?edit=${id}`);
 }

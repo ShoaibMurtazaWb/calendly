@@ -1,15 +1,13 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useSearchParams } from "next/navigation";
+import { useEffect, useMemo, useRef, useState, Suspense } from "react";
 import {
   Check,
   Edit2,
-  Archive,
-  ArchiveRestore,
   Search,
   Plus,
-  ArrowRight,
   Link2,
   Inbox,
   ExternalLink,
@@ -23,21 +21,46 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Spinner } from "@/components/ui/spinner";
 import { Tooltip } from "@/components/ui/tooltip";
 import { toast } from "@/components/ui/toast";
 import { api, type CurrentUser, type EventType } from "@/lib/api";
 import { ApiError } from "@/lib/api-error";
+import { EventTypeDrawer } from "@/components/event-type-drawer";
 
-export function EventTypeList() {
-  const [activeItems, setActiveItems] = useState<EventType[]>([]);
-  const [archivedItems, setArchivedItems] = useState<EventType[]>([]);
+function EventTypeListContent() {
+  const searchParams = useSearchParams();
+  const [items, setItems] = useState<EventType[]>([]);
   const [user, setUser] = useState<CurrentUser | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-  const [tab, setTab] = useState<"active" | "archived">("active");
   const [searchQuery, setSearchQuery] = useState("");
   const [copiedId, setCopiedId] = useState<string | null>(null);
   const searchInputRef = useRef<HTMLInputElement>(null);
+
+  // Drawer State
+  const [drawerState, setDrawerState] = useState<{
+    isOpen: boolean;
+    eventTypeId: string | null;
+  }>({
+    isOpen: false,
+    eventTypeId: null,
+  });
+
+  // Delete Modal State
+  const [deleteModalItem, setDeleteModalItem] = useState<EventType | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
+
+  // Sync with URL query params (?new=true or ?edit=[id])
+  useEffect(() => {
+    const isNew = searchParams.get("new") === "true";
+    const editId = searchParams.get("edit");
+    if (isNew) {
+      setDrawerState({ isOpen: true, eventTypeId: null });
+    } else if (editId) {
+      setDrawerState({ isOpen: true, eventTypeId: editId });
+    }
+  }, [searchParams]);
 
   useEffect(() => {
     function handleKeyDown(e: KeyboardEvent) {
@@ -46,27 +69,31 @@ export function EventTypeList() {
         searchInputRef.current?.focus();
         searchInputRef.current?.select();
       }
-      if (e.key === "Escape" && document.activeElement === searchInputRef.current) {
-        searchInputRef.current?.blur();
+      if (e.key === "Escape") {
+        if (deleteModalItem) {
+          if (!isDeleting) setDeleteModalItem(null);
+        } else if (drawerState.isOpen) {
+          closeDrawer();
+        } else if (document.activeElement === searchInputRef.current) {
+          searchInputRef.current?.blur();
+        }
       }
     }
 
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, []);
+  }, [drawerState.isOpen, deleteModalItem, isDeleting]);
 
   async function loadData() {
     setIsLoading(true);
     setError(null);
     try {
-      const [me, activeList, archivedList] = await Promise.all([
+      const [me, activeList] = await Promise.all([
         api<CurrentUser>("/auth/me"),
         api<EventType[]>("/event-types?status=active"),
-        api<EventType[]>("/event-types?status=archived"),
       ]);
       setUser(me);
-      setActiveItems(activeList);
-      setArchivedItems(archivedList);
+      setItems(activeList);
     } catch {
       setError("Could not load event types.");
     } finally {
@@ -78,44 +105,44 @@ export function EventTypeList() {
     void loadData();
   }, []);
 
-  async function handleArchive(id: string) {
+  function closeDrawer() {
+    setDrawerState({ isOpen: false, eventTypeId: null });
     try {
-      await api(`/event-types/${id}/archive`, { method: "POST" });
-      toast.info("Event type archived", "This link is now inactive and hidden from public booking.");
-      await loadData();
+      if (typeof window !== "undefined" && window.location.search) {
+        window.history.replaceState(null, "", "/dashboard");
+      }
     } catch {
-      setError("Could not archive the event type.");
-      toast.error("Could not archive the event type");
+      // Ignore history state errors
     }
   }
 
-  async function handleUnarchive(id: string) {
-    try {
-      await api(`/event-types/${id}/unarchive`, { method: "POST" });
-      toast.success("Event type restored to active", "This booking link is live again.");
-      await loadData();
-    } catch {
-      setError("Could not restore the event type.");
-      toast.error("Could not restore the event type");
-    }
+  function openCreateDrawer() {
+    setDrawerState({ isOpen: true, eventTypeId: null });
   }
 
-  async function handleDelete(id: string) {
-    if (!window.confirm("Are you sure you want to permanently delete this event type? This action cannot be undone.")) {
-      return;
-    }
+  function openEditDrawer(id: string) {
+    setDrawerState({ isOpen: true, eventTypeId: id });
+  }
+
+  async function handleConfirmDelete() {
+    if (!deleteModalItem) return;
+    setIsDeleting(true);
     try {
-      await api(`/event-types/${id}`, { method: "DELETE" });
-      toast.success("Event type permanently deleted");
+      await api(`/event-types/${deleteModalItem.id}`, { method: "DELETE" });
+      toast.success("Event type permanently deleted", `"${deleteModalItem.title}" was removed.`);
+      if (drawerState.eventTypeId === deleteModalItem.id) {
+        closeDrawer();
+      }
+      setDeleteModalItem(null);
       await loadData();
     } catch (caught) {
       if (caught instanceof ApiError) {
-        setError(caught.message);
         toast.error("Cannot delete event type", caught.message);
       } else {
-        setError("Could not delete the event type.");
         toast.error("Could not delete the event type");
       }
+    } finally {
+      setIsDeleting(false);
     }
   }
 
@@ -131,211 +158,194 @@ export function EventTypeList() {
     }, 2000);
   }
 
-  const currentList = tab === "active" ? activeItems : archivedItems;
-
   const filteredItems = useMemo(() => {
-    if (!searchQuery.trim()) return currentList;
+    if (!searchQuery.trim()) return items;
     const query = searchQuery.toLowerCase();
-    return currentList.filter(
+    return items.filter(
       (item) =>
         item.title.toLowerCase().includes(query) ||
         item.slug.toLowerCase().includes(query) ||
         item.description.toLowerCase().includes(query)
     );
-  }, [currentList, searchQuery]);
+  }, [items, searchQuery]);
 
   return (
-    <div className="w-full space-y-6">
-      {/* Calendly Secondary Header Row (Directly under Top Navbar) */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div className="flex items-center gap-2">
-          <h1 className="text-2xl font-bold tracking-tight text-black">Scheduling</h1>
-          <Tooltip content="Manage your event types, booking links, and scheduling options.">
-            <Info className="h-4 w-4 text-neutral-400 cursor-pointer hover:text-neutral-700 transition-colors" />
-          </Tooltip>
-        </div>
+    <div className="w-full flex flex-col lg:flex-row items-start gap-6 relative">
+      {/* Left/Main Content Section (Smoothly shrinks when Right Sidebar Drawer is open) */}
+      <div className="flex-1 min-w-0 w-full space-y-6 transition-all duration-300">
+        {/* Calendly Secondary Header Row (Directly under Top Navbar) */}
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div className="flex items-center gap-2">
+            <h1 className="text-2xl font-bold tracking-tight text-black">Scheduling</h1>
+            <Tooltip content="Manage your event types, booking links, and scheduling options.">
+              <Info className="h-4 w-4 text-neutral-400 cursor-pointer hover:text-neutral-700 transition-colors" />
+            </Tooltip>
+          </div>
 
-        {/* Right Header Actions: Manage Availability & Create Pill */}
-        <div className="flex items-center gap-3 shrink-0">
-          <Button
-            asChild
-            variant="outline"
-            className="rounded-full border-neutral-300 bg-white hover:bg-neutral-50 px-4 py-2 text-xs font-semibold text-neutral-800 shadow-2xs gap-2 transition-all cursor-pointer"
-          >
-            <Link href="/dashboard/availability">
-              <Calendar className="h-3.5 w-3.5 text-neutral-600" />
-              <span>Manage availability</span>
-            </Link>
-          </Button>
+          {/* Right Header Actions: Manage Availability & Create Pill */}
+          <div className="flex items-center gap-3 shrink-0">
+            <Button
+              asChild
+              variant="outline"
+              className="rounded-full border-neutral-300 bg-white hover:bg-neutral-50 px-4 py-2 text-xs font-semibold text-neutral-800 shadow-2xs gap-2 transition-all cursor-pointer"
+            >
+              <Link href="/dashboard/availability">
+                <Calendar className="h-3.5 w-3.5 text-neutral-600" />
+                <span>Manage availability</span>
+              </Link>
+            </Button>
 
-          <Button
-            asChild
-            className="rounded-full bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 text-xs font-semibold shadow-2xs gap-1.5 transition-all cursor-pointer"
-          >
-            <Link href="/dashboard/event-types/new">
+            <Button
+              type="button"
+              onClick={openCreateDrawer}
+              className="rounded-full bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 text-xs font-semibold shadow-2xs gap-1.5 transition-all cursor-pointer"
+            >
               <Plus className="h-3.5 w-3.5 stroke-[2.5]" />
               <span>Create</span>
               <ChevronDown className="h-3 w-3" />
-            </Link>
-          </Button>
+            </Button>
+          </div>
         </div>
-      </div>
 
-      {/* Subtabs Bar (Calendly Style) */}
-      <div className="flex items-center gap-8 border-b border-neutral-200 text-xs font-semibold">
-        <button
-          type="button"
-          onClick={() => setTab("active")}
-          className={`pb-3 border-b-2 transition-colors cursor-pointer ${
-            tab === "active"
-              ? "border-blue-600 text-blue-600 font-bold"
-              : "border-transparent text-neutral-600 hover:text-black"
-          }`}
-        >
-          Event types ({activeItems.length})
-        </button>
+        {/* Subtabs Bar without Count */}
+        <div className="flex items-center gap-8 border-b border-neutral-200 text-xs font-semibold">
+          <button
+            type="button"
+            className="pb-3 border-b-2 border-blue-600 text-blue-600 font-bold"
+          >
+            Event types
+          </button>
 
-        <button
-          type="button"
-          onClick={() => setTab("archived")}
-          className={`pb-3 border-b-2 transition-colors cursor-pointer ${
-            tab === "archived"
-              ? "border-blue-600 text-blue-600 font-bold"
-              : "border-transparent text-neutral-600 hover:text-black"
-          }`}
-        >
-          Archived ({archivedItems.length})
-        </button>
+          <button
+            type="button"
+            disabled
+            className="pb-3 border-b-2 border-transparent text-neutral-400 cursor-not-allowed hidden sm:inline-flex items-center gap-1.5"
+          >
+            <span>Single-use links</span>
+            <span className="text-[9px] uppercase px-1 py-0.2 rounded bg-neutral-100 text-neutral-400">Soon</span>
+          </button>
 
-        <button
-          type="button"
-          disabled
-          className="pb-3 border-b-2 border-transparent text-neutral-400 cursor-not-allowed hidden sm:inline-flex items-center gap-1.5"
-        >
-          <span>Single-use links</span>
-          <span className="text-[9px] uppercase px-1 py-0.2 rounded bg-neutral-100 text-neutral-400">Soon</span>
-        </button>
+          <button
+            type="button"
+            disabled
+            className="pb-3 border-b-2 border-transparent text-neutral-400 cursor-not-allowed hidden sm:inline-flex items-center gap-1.5"
+          >
+            <span>Meeting polls</span>
+            <span className="text-[9px] uppercase px-1 py-0.2 rounded bg-neutral-100 text-neutral-400">Soon</span>
+          </button>
+        </div>
 
-        <button
-          type="button"
-          disabled
-          className="pb-3 border-b-2 border-transparent text-neutral-400 cursor-not-allowed hidden sm:inline-flex items-center gap-1.5"
-        >
-          <span>Meeting polls</span>
-          <span className="text-[9px] uppercase px-1 py-0.2 rounded bg-neutral-100 text-neutral-400">Soon</span>
-        </button>
-      </div>
+        {/* Search Bar Input */}
+        <div className="max-w-md relative">
+          <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-neutral-400" />
+          <Input
+            ref={searchInputRef}
+            type="text"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            placeholder="Search event types"
+            className="h-10 pl-10 pr-9 rounded-xl border-neutral-200 bg-white text-xs shadow-2xs focus:border-neutral-400"
+          />
+          <button
+            type="button"
+            onClick={() => searchInputRef.current?.focus()}
+            className="absolute right-2.5 top-1/2 -translate-y-1/2 rounded border border-neutral-200 bg-neutral-50 px-1 py-0.5 text-[10px] font-mono text-neutral-500 hover:text-black transition-colors cursor-pointer"
+            title="Focus search (⌘K or Ctrl+K)"
+          >
+            ⌘K
+          </button>
+        </div>
 
-      {/* Search Bar Input */}
-      <div className="max-w-md relative">
-        <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-neutral-400" />
-        <Input
-          ref={searchInputRef}
-          type="text"
-          value={searchQuery}
-          onChange={(e) => setSearchQuery(e.target.value)}
-          placeholder="Search event types"
-          className="h-10 pl-10 pr-9 rounded-xl border-neutral-200 bg-white text-xs shadow-2xs focus:border-neutral-400"
-        />
-        <button
-          type="button"
-          onClick={() => searchInputRef.current?.focus()}
-          className="absolute right-2.5 top-1/2 -translate-y-1/2 rounded border border-neutral-200 bg-neutral-50 px-1 py-0.5 text-[10px] font-mono text-neutral-500 hover:text-black transition-colors cursor-pointer"
-          title="Focus search (⌘K or Ctrl+K)"
-        >
-          ⌘K
-        </button>
-      </div>
-
-      {/* Host User Identity Strip (Calendly Style) */}
-      {user && (
-        <div className="flex items-center justify-between py-1 px-1">
-          <div className="flex items-center gap-2.5">
-            <div className="flex h-6 w-6 items-center justify-center rounded-full bg-blue-100 text-blue-700 text-[11px] font-bold select-none">
-              {user.name.charAt(0).toUpperCase()}
+        {/* Host User Identity Strip */}
+        {user && (
+          <div className="flex items-center justify-between py-1 px-1">
+            <div className="flex items-center gap-2.5">
+              <div className="flex h-6 w-6 items-center justify-center rounded-full bg-blue-100 text-blue-700 text-[11px] font-bold select-none">
+                {user.name.charAt(0).toUpperCase()}
+              </div>
+              <span className="text-xs font-bold text-black">{user.name}</span>
             </div>
-            <span className="text-xs font-bold text-black">{user.name}</span>
-          </div>
 
-          <div className="flex items-center gap-3">
-            <Link
-              href={`/public/${user.username}`}
-              target="_blank"
-              className="text-xs font-semibold text-blue-600 hover:underline flex items-center gap-1"
-            >
-              <span>View landing page</span>
-              <ExternalLink className="h-3 w-3" />
-            </Link>
-            <button
-              type="button"
-              className="text-neutral-400 hover:text-neutral-700 p-1 rounded-md transition-colors"
-              title="More options"
-            >
-              <MoreVertical className="h-4 w-4" />
-            </button>
-          </div>
-        </div>
-      )}
-
-      {error && (
-        <div className="rounded-xl bg-red-50 border border-red-200 p-3.5 text-xs text-red-700 font-medium">
-          {error}
-        </div>
-      )}
-
-      {/* Loading Skeletons */}
-      {isLoading && (
-        <div className="space-y-4 pt-2">
-          <Skeleton className="h-28 w-full rounded-xl border border-neutral-200" />
-          <Skeleton className="h-28 w-full rounded-xl border border-neutral-200" />
-        </div>
-      )}
-
-      {/* Full-Width Event Cards List (Calendly Style) */}
-      {!isLoading && filteredItems.length > 0 && (
-        <div className="space-y-4">
-          {filteredItems.map((item) => {
-            const isCopied = copiedId === item.id;
-            return (
-              <Card
-                key={item.id}
-                className="group relative flex flex-col md:flex-row md:items-center justify-between gap-4 rounded-xl border border-neutral-200 bg-white p-5 shadow-2xs hover:border-neutral-300 hover:shadow-xs transition-all border-l-[5px] border-l-purple-600 w-full"
+            <div className="flex items-center gap-3">
+              <Link
+                href={`/public/${user.username}`}
+                target="_blank"
+                className="text-xs font-semibold text-blue-600 hover:underline flex items-center gap-1"
               >
-                {/* Left: Checkbox + Event Meta */}
-                <div className="flex items-start gap-4 min-w-0">
-                  <input
-                    type="checkbox"
-                    className="mt-1 h-4 w-4 rounded border-neutral-300 text-blue-600 focus:ring-blue-500 cursor-pointer shrink-0"
-                    aria-label={`Select ${item.title}`}
-                  />
+                <span>View landing page</span>
+                <ExternalLink className="h-3 w-3" />
+              </Link>
+              <button
+                type="button"
+                className="text-neutral-400 hover:text-neutral-700 p-1 rounded-md transition-colors"
+                title="More options"
+              >
+                <MoreVertical className="h-4 w-4" />
+              </button>
+            </div>
+          </div>
+        )}
 
-                  <div className="min-w-0">
-                    <Link
-                      href={`/dashboard/event-types/${item.id}/edit`}
-                      className="text-base font-bold text-black hover:text-blue-600 transition-colors inline-block"
-                    >
-                      {item.title}
-                    </Link>
+        {error && (
+          <div className="rounded-xl bg-red-50 border border-red-200 p-3.5 text-xs text-red-700 font-medium">
+            {error}
+          </div>
+        )}
 
-                    <div className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-neutral-600 font-medium">
-                      <span>{item.durationMinutes} min</span>
-                      <span>•</span>
-                      <span>{item.location?.type ? item.location.type.replace(/_/g, " ") : "Video Call"}</span>
-                      <span>•</span>
-                      <span>One-on-One</span>
+        {/* Loading Skeletons */}
+        {isLoading && (
+          <div className="space-y-4 pt-2">
+            <Skeleton className="h-28 w-full rounded-xl border border-neutral-200" />
+            <Skeleton className="h-28 w-full rounded-xl border border-neutral-200" />
+          </div>
+        )}
+
+        {/* Full-Width Event Cards List */}
+        {!isLoading && filteredItems.length > 0 && (
+          <div className="space-y-4">
+            {filteredItems.map((item) => {
+              const isCopied = copiedId === item.id;
+              const isCurrentlyEditing =
+                drawerState.isOpen && drawerState.eventTypeId === item.id;
+
+              return (
+                <Card
+                  key={item.id}
+                  className={`group relative flex flex-col md:flex-row md:items-center justify-between gap-4 rounded-xl border bg-white p-5 shadow-2xs hover:shadow-xs transition-all duration-200 border-l-[8px] w-full ${
+                    isCurrentlyEditing
+                      ? "border-blue-400 ring-2 ring-blue-500/20 border-l-blue-600"
+                      : "border-neutral-200 hover:border-neutral-300 border-l-neutral-300 hover:border-l-purple-600"
+                  }`}
+                >
+                  {/* Left: Event Meta Details */}
+                  <div className="flex items-start gap-3 min-w-0">
+                    <div className="min-w-0">
+                      <button
+                        type="button"
+                        onClick={() => openEditDrawer(item.id)}
+                        className="text-base font-bold text-black hover:text-blue-600 transition-colors text-left inline-block cursor-pointer"
+                      >
+                        {item.title}
+                      </button>
+
+                      <div className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-neutral-600 font-medium">
+                        <span>{item.durationMinutes} min</span>
+                        <span>•</span>
+                        <span>{item.location?.type ? item.location.type.replace(/_/g, " ") : "Video Call"}</span>
+                        <span>•</span>
+                        <span>One-on-One</span>
+                      </div>
+
+                      <p className="mt-0.5 text-xs text-neutral-500 font-normal">
+                        Weekdays, hours vary
+                      </p>
                     </div>
-
-                    <p className="mt-0.5 text-xs text-neutral-500 font-normal">
-                      Weekdays, hours vary
-                    </p>
                   </div>
-                </div>
 
-                {/* Right: Actions (Copy Link, Preview, Edit, Archive, Delete) */}
-                <div className="flex flex-wrap items-center gap-2 self-end md:self-center shrink-0">
-                  {tab === "active" ? (
-                    <>
-                      {/* Copy Link Pill Button */}
+                  {/* Right: Actions with Animated Tooltips */}
+                  <div className="flex flex-wrap items-center gap-2 self-end md:self-center shrink-0">
+                    {/* Copy Link Pill Button */}
+                    <Tooltip content="Copy public booking link">
                       <Button
                         type="button"
                         variant="outline"
@@ -355,153 +365,167 @@ export function EventTypeList() {
                           </>
                         )}
                       </Button>
+                    </Tooltip>
 
-                      {/* Direct Preview Link in New Tab */}
-                      {user && (
+                    {/* Direct Preview Link in New Tab */}
+                    {user && (
+                      <Tooltip content="Preview booking page">
                         <Button
                           asChild
                           variant="ghost"
                           size="icon"
-                          className="h-8 w-8 rounded-full text-neutral-500 hover:text-black hover:bg-neutral-100"
-                          title="Preview public page"
+                          className="h-8 w-8 rounded-full text-neutral-500 hover:text-black hover:bg-neutral-100 cursor-pointer"
                         >
                           <Link href={`/public/${user.username}/${item.slug}`} target="_blank">
                             <ExternalLink className="h-3.5 w-3.5" />
                           </Link>
                         </Button>
-                      )}
+                      </Tooltip>
+                    )}
 
-                      {/* Edit Button */}
-                      <Button
-                        asChild
-                        variant="ghost"
-                        size="icon"
-                        className="h-8 w-8 rounded-full text-neutral-500 hover:text-black hover:bg-neutral-100"
-                        title="Edit event type"
-                      >
-                        <Link href={`/dashboard/event-types/${item.id}/edit`}>
-                          <Edit2 className="h-3.5 w-3.5" />
-                        </Link>
-                      </Button>
-
-                      {/* Archive Button */}
+                    {/* Edit Button (Opens Right Sidebar Drawer) */}
+                    <Tooltip content="Edit event type">
                       <Button
                         type="button"
                         variant="ghost"
                         size="icon"
-                        onClick={() => void handleArchive(item.id)}
-                        className="h-8 w-8 rounded-full text-neutral-500 hover:text-amber-600 hover:bg-amber-50"
-                        title="Archive event type"
+                        onClick={() => openEditDrawer(item.id)}
+                        className="h-8 w-8 rounded-full text-neutral-500 hover:text-black hover:bg-neutral-100 cursor-pointer"
                       >
-                        <Archive className="h-3.5 w-3.5" />
+                        <Edit2 className="h-3.5 w-3.5" />
                       </Button>
-                    </>
-                  ) : (
-                    /* Restore Button for Archived items */
-                    <Button
-                      type="button"
-                      variant="outline"
-                      size="sm"
-                      onClick={() => void handleUnarchive(item.id)}
-                      className="rounded-full border-neutral-300 gap-1.5 text-xs font-semibold"
-                    >
-                      <ArchiveRestore className="h-3.5 w-3.5" />
-                      <span>Restore</span>
-                    </Button>
-                  )}
+                    </Tooltip>
 
-                  {/* Delete Button */}
-                  <Tooltip
-                    content="Cannot delete this event type because it has existing bookings."
-                    disabled={(item.bookingCount ?? 0) === 0}
-                  >
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="icon"
-                      disabled={(item.bookingCount ?? 0) > 0}
-                      onClick={() => void handleDelete(item.id)}
-                      className="h-8 w-8 rounded-full text-neutral-400 hover:text-red-600 hover:bg-red-50 disabled:opacity-40 disabled:cursor-not-allowed"
-                      title="Delete event type"
-                    >
-                      <Trash2 className="h-3.5 w-3.5" />
-                    </Button>
-                  </Tooltip>
-                </div>
-              </Card>
-            );
-          })}
-        </div>
-      )}
+                    {/* Delete Button */}
+                    <Tooltip content="Delete event type">
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => setDeleteModalItem(item)}
+                        className="h-8 w-8 rounded-full text-neutral-400 hover:text-red-600 hover:bg-red-50 transition-colors cursor-pointer"
+                      >
+                        <Trash2 className="h-3.5 w-3.5" />
+                      </Button>
+                    </Tooltip>
+                  </div>
+                </Card>
+              );
+            })}
+          </div>
+        )}
 
-      {/* Empty State when no active event types exist */}
-      {!isLoading && filteredItems.length === 0 && tab === "active" && !searchQuery && (
-        <div className="mt-8">
-          <div className="flex flex-col items-center justify-center rounded-xl border border-dashed border-neutral-300 bg-white p-12 text-center shadow-xs">
-            <div className="flex h-12 w-12 items-center justify-center rounded-full bg-neutral-100 text-neutral-600 shadow-2xs mb-4">
-              <Plus className="h-5 w-5" />
-            </div>
-            <h3 className="text-lg font-bold tracking-tight text-black">
-              Welcome to Sched
-            </h3>
-            <p className="mt-1.5 text-xs text-neutral-600 max-w-sm leading-relaxed">
-              Create your first event type and start sharing your booking page with clients and teammates.
-            </p>
-            <div className="mt-6">
-              <Button asChild size="sm" className="rounded-full bg-blue-600 hover:bg-blue-700 text-white font-semibold gap-2">
-                <Link href="/dashboard/event-types/new">
+        {/* Empty State when no event types exist */}
+        {!isLoading && filteredItems.length === 0 && !searchQuery && (
+          <div className="mt-8">
+            <div className="flex flex-col items-center justify-center rounded-xl border border-dashed border-neutral-300 bg-white p-12 text-center shadow-xs">
+              <div className="flex h-12 w-12 items-center justify-center rounded-full bg-neutral-100 text-neutral-600 shadow-2xs mb-4">
+                <Plus className="h-5 w-5" />
+              </div>
+              <h3 className="text-lg font-bold tracking-tight text-black">
+                Welcome to Sched
+              </h3>
+              <p className="mt-1.5 text-xs text-neutral-600 max-w-sm leading-relaxed">
+                Create your first event type and start sharing your booking page with clients and teammates.
+              </p>
+              <div className="mt-6">
+                <Button
+                  type="button"
+                  onClick={openCreateDrawer}
+                  size="sm"
+                  className="rounded-full bg-blue-600 hover:bg-blue-700 text-white font-semibold gap-2 cursor-pointer"
+                >
                   <Plus className="h-3.5 w-3.5" />
                   <span>Create Event Type</span>
-                </Link>
+                </Button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Empty State for Search Filter */}
+        {!isLoading && filteredItems.length === 0 && searchQuery && (
+          <div className="mt-8 rounded-xl border border-neutral-200 bg-white p-12 text-center shadow-2xs">
+            <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-xl bg-neutral-100 text-neutral-500 mb-3">
+              <Inbox className="h-5 w-5" />
+            </div>
+            <h3 className="text-base font-bold text-black">
+              No matching event types
+            </h3>
+            <p className="mt-1 text-xs text-neutral-600 max-w-sm mx-auto">
+              No results for &ldquo;{searchQuery}&rdquo;. Try a different search keyword.
+            </p>
+          </div>
+        )}
+      </div>
+
+      {/* Right Sidebar Drawer for Adding/Editing Event Types (Matching Screenshot) */}
+      <EventTypeDrawer
+        isOpen={drawerState.isOpen}
+        eventTypeId={drawerState.eventTypeId}
+        onClose={closeDrawer}
+        onSaved={() => void loadData()}
+      />
+
+      {/* Custom Confirmation Popup Modal Matching Screenshot */}
+      {deleteModalItem && (
+        <div
+          className="fixed inset-0 z-50 bg-black/25 flex items-center justify-center p-4 animate-in fade-in-0 duration-150"
+          onClick={() => {
+            if (!isDeleting) setDeleteModalItem(null);
+          }}
+        >
+          <div
+            className="w-full max-w-[480px] rounded-2xl border border-neutral-100 bg-white p-8 sm:p-9 shadow-2xl space-y-7 animate-in fade-in-0 zoom-in-95 duration-150"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="space-y-4">
+              <h3 className="text-xl font-bold text-neutral-900 tracking-tight leading-snug">
+                Delete {deleteModalItem.title}?
+              </h3>
+              <p className="text-sm text-neutral-700 leading-relaxed font-normal">
+                Users will be unable to schedule further meetings with deleted event types. Meetings previously scheduled will not be affected.
+              </p>
+            </div>
+
+            <div className="flex items-center gap-3.5 pt-2 w-full">
+              <Button
+                type="button"
+                variant="outline"
+                disabled={isDeleting}
+                onClick={() => setDeleteModalItem(null)}
+                className="flex-1 w-full rounded-full border border-neutral-800 bg-white hover:bg-neutral-50 text-neutral-900 font-semibold text-sm py-3 px-6 text-center shadow-xs transition-colors cursor-pointer"
+              >
+                Cancel
+              </Button>
+              <Button
+                type="button"
+                disabled={isDeleting}
+                onClick={() => void handleConfirmDelete()}
+                className="flex-1 w-full rounded-full bg-[#C23600] hover:bg-[#A92E00] text-white font-semibold text-sm py-3 px-6 text-center shadow-xs transition-colors cursor-pointer"
+              >
+                {isDeleting ? (
+                  <span className="flex items-center justify-center gap-1.5">
+                    <Spinner size="sm" />
+                    <span>Deleting…</span>
+                  </span>
+                ) : (
+                  <span>Yes</span>
+                )}
               </Button>
             </div>
           </div>
         </div>
       )}
-
-      {/* Empty State for Search Filter or Archived Tab */}
-      {!isLoading && filteredItems.length === 0 && (searchQuery || tab === "archived") && (
-        <div className="mt-8 rounded-xl border border-neutral-200 bg-white p-12 text-center shadow-2xs">
-          <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-xl bg-neutral-100 text-neutral-500 mb-3">
-            <Inbox className="h-5 w-5" />
-          </div>
-          <h3 className="text-base font-bold text-black">
-            {searchQuery ? "No matching event types" : "No archived event types"}
-          </h3>
-          <p className="mt-1 text-xs text-neutral-600 max-w-sm mx-auto">
-            {searchQuery
-              ? `No results for "${searchQuery}". Try a different search keyword.`
-              : "Archived event types will appear here."}
-          </p>
-        </div>
-      )}
-
-      {/* Archived Notice Banner */}
-      {!isLoading && tab === "active" && archivedItems.length > 0 && (
-        <div className="mt-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4 rounded-xl border border-neutral-200 bg-white p-5 shadow-2xs">
-          <div className="flex items-center gap-3.5">
-            <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-neutral-100 text-neutral-600 shrink-0">
-              <Inbox className="h-5 w-5" />
-            </div>
-            <div>
-              <p className="text-sm font-bold text-black">Looking for archived links?</p>
-              <p className="text-xs text-neutral-600">
-                {archivedItems.length} archived event type{archivedItems.length > 1 ? "s are" : " is"} currently inactive.
-              </p>
-            </div>
-          </div>
-          <Button
-            type="button"
-            variant="outline"
-            size="sm"
-            onClick={() => setTab("archived")}
-            className="rounded-full border-neutral-300 self-start sm:self-center shrink-0 font-semibold text-xs"
-          >
-            View Archived
-            <ArrowRight className="ml-1.5 h-3.5 w-3.5" />
-          </Button>
-        </div>
-      )}
     </div>
   );
 }
+
+export function EventTypeList() {
+  return (
+    <Suspense fallback={<div className="w-full h-96 animate-pulse rounded-xl bg-neutral-100" />}>
+      <EventTypeListContent />
+    </Suspense>
+  );
+}
+

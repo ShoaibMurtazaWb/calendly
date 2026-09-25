@@ -1,5 +1,5 @@
-import { EventTypeForm } from "@/components/event-type-form";
+import { redirect } from "next/navigation";
 
 export default function NewEventTypePage() {
-  return <EventTypeForm />;
+  redirect("/dashboard?new=true");
 }

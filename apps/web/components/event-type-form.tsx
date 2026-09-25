@@ -995,51 +995,16 @@ export function EventTypeForm({ eventTypeId }: EventTypeFormProps) {
             <div className="pt-4 border-t border-[var(--border-subtle)] flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
               {eventTypeId ? (
                 <div className="flex items-center gap-2">
-                  {isArchived ? (
-                    <Button
-                      type="button"
-                      variant="outline"
-                      size="sm"
-                      disabled={pending}
-                      onClick={() => void handleRestore()}
-                      className="gap-1.5"
-                    >
-                      <ArchiveRestore className="h-3.5 w-3.5" />
-                      <span>Restore</span>
-                    </Button>
-                  ) : (
-                    <Button
-                      type="button"
-                      size="sm"
-                      disabled={pending}
-                      onClick={() => void handleArchive()}
-                      className="gap-1.5 border border-orange-500 bg-orange-500 text-white hover:bg-white hover:text-orange-600 hover:border-orange-500 disabled:opacity-40 disabled:cursor-not-allowed disabled:pointer-events-auto disabled:hover:bg-orange-500 disabled:hover:text-white disabled:hover:border-orange-500 shadow-2xs transition-[background-color,border-color,color] duration-150 ease-out"
-                    >
-                      <Archive className="h-3.5 w-3.5" />
-                      <span>Archive</span>
-                    </Button>
-                  )}
-
-                  <Tooltip
-                    content="Cannot delete this event type because it has existing bookings."
-                    disabled={bookingCount === 0}
+                  <Button
+                    type="button"
+                    size="sm"
+                    disabled={pending}
+                    onClick={() => void handleDelete()}
+                    className="gap-1.5 bg-white border border-red-500 text-red-600 hover:bg-red-600 hover:text-white hover:border-transparent shadow-2xs transition-[background-color,border-color,color] duration-150 ease-out cursor-pointer"
                   >
-                    <Button
-                      type="button"
-                      size="sm"
-                      disabled={pending || bookingCount > 0}
-                      onClick={() => void handleDelete()}
-                      className="gap-1.5 bg-white border border-red-500 text-red-600 hover:bg-red-600 hover:text-white hover:border-transparent disabled:bg-white disabled:border-red-200 disabled:text-red-300 disabled:cursor-not-allowed disabled:pointer-events-auto disabled:hover:bg-white disabled:hover:text-red-300 disabled:hover:border-red-200 shadow-2xs transition-[background-color,border-color,color] duration-150 ease-out"
-                      aria-label={
-                        bookingCount > 0
-                          ? "Cannot delete this event type because it has existing bookings."
-                          : "Permanently delete event type"
-                      }
-                    >
-                      <Trash2 className="h-3.5 w-3.5" />
-                      <span>Delete</span>
-                    </Button>
-                  </Tooltip>
+                    <Trash2 className="h-3.5 w-3.5" />
+                    <span>Delete</span>
+                  </Button>
                 </div>
               ) : (
                 <div />

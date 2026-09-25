@@ -250,7 +250,7 @@ export function AvailabilityEditor() {
 
   if (isLoading) {
     return (
-      <div className="mx-auto max-w-4xl space-y-6 pb-16">
+      <div className="w-full space-y-6 pb-16">
         <Skeleton className="h-8 w-48 rounded-md" />
         <Skeleton className="h-40 rounded-xl border border-[var(--border-subtle)]" />
         <Skeleton className="h-96 rounded-xl border border-[var(--border-subtle)]" />
@@ -259,15 +259,15 @@ export function AvailabilityEditor() {
   }
 
   return (
-    <div className="mx-auto max-w-4xl space-y-8 pb-24">
+    <div className="w-full space-y-8 pb-24">
       {/* Header Title Section */}
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 border-b border-[var(--border-subtle)] pb-5">
-          <div>
-            <h1 className="text-2xl font-bold tracking-tight text-[var(--text-primary)]">Availability</h1>
-            <p className="mt-1 text-sm text-[var(--text-secondary)]">
-              Configure your default working hours, recurring weekly schedules, and date overrides.
-            </p>
-          </div>
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 pb-2">
+        <div>
+          <h1 className="text-2xl font-bold tracking-tight text-[var(--text-primary)]">Availability</h1>
+          <p className="mt-1 text-sm text-[var(--text-secondary)]">
+            Configure your default working hours, recurring weekly schedules, and date overrides.
+          </p>
+        </div>
           <Button
             type="button"
             onClick={handleSave}

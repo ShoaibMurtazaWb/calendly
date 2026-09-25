@@ -209,11 +209,11 @@ export default function SettingsPage() {
   }
 
   return (
-    <div className="space-y-6 max-w-4xl">
+    <div className="w-full space-y-6">
       {/* Header */}
       <div>
-        <h1 className="text-xl sm:text-2xl font-semibold tracking-tight text-[var(--text-primary)]">
-          Account & SaaS Settings
+        <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-[var(--text-primary)]">
+          Admin center
         </h1>
         <p className="mt-1 text-xs sm:text-sm text-[var(--text-secondary)]">
           Manage your personal profile, delivery notifications, default scheduling rules, and security audit trail.

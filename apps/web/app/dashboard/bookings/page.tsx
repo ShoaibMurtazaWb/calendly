@@ -246,10 +246,10 @@ export default function BookingsPage() {
   return (
     <div className="space-y-6">
         {/* Page Header */}
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 pb-4 border-b border-[var(--border-subtle)]">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 pb-2">
           <div>
             <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-[var(--text-primary)]">
-              Bookings & Meetings
+              Meetings
             </h1>
             <p className="mt-1 text-xs text-[var(--text-secondary)]">
               Track upcoming sessions, review meeting histories, reschedule conflicts, and manage cancellations.
@@ -262,46 +262,37 @@ export default function BookingsPage() {
           <button
             type="button"
             onClick={() => setTab("upcoming")}
-            className={`flex items-center gap-1.5 px-3 py-1.5 text-xs rounded-md transition-colors cursor-pointer ${
+            className={`px-3 py-1.5 text-xs rounded-md transition-colors cursor-pointer ${
               tab === "upcoming"
                 ? "text-[var(--text-primary)] font-semibold"
                 : "text-[var(--text-muted)] hover:text-[var(--text-primary)] font-medium"
             }`}
           >
             <span>Upcoming</span>
-            <Badge variant="secondary" className="tabular-nums font-sans">
-              {dataByStatus.upcoming.length}
-            </Badge>
           </button>
 
           <button
             type="button"
             onClick={() => setTab("past")}
-            className={`flex items-center gap-1.5 px-3 py-1.5 text-xs rounded-md transition-colors cursor-pointer ${
+            className={`px-3 py-1.5 text-xs rounded-md transition-colors cursor-pointer ${
               tab === "past"
                 ? "text-[var(--text-primary)] font-semibold"
                 : "text-[var(--text-muted)] hover:text-[var(--text-primary)] font-medium"
             }`}
           >
             <span>Past</span>
-            <Badge variant="secondary" className="tabular-nums font-sans">
-              {dataByStatus.past.length}
-            </Badge>
           </button>
 
           <button
             type="button"
             onClick={() => setTab("cancelled")}
-            className={`flex items-center gap-1.5 px-3 py-1.5 text-xs rounded-md transition-colors cursor-pointer ${
+            className={`px-3 py-1.5 text-xs rounded-md transition-colors cursor-pointer ${
               tab === "cancelled"
                 ? "text-[var(--text-primary)] font-semibold"
                 : "text-[var(--text-muted)] hover:text-[var(--text-primary)] font-medium"
             }`}
           >
             <span>Cancelled</span>
-            <Badge variant="secondary" className="tabular-nums font-sans">
-              {dataByStatus.cancelled.length}
-            </Badge>
           </button>
         </div>
 

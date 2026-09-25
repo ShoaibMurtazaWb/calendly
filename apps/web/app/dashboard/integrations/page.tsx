@@ -241,11 +241,11 @@ function IntegrationsContent() {
   }, [isConnected, selectedCalendarId, savedSelectedCalendarId, conflictCalendarIds, savedConflictCalendarIds]);
 
   return (
-    <div className="mx-auto max-w-4xl py-6 px-4 sm:px-6">
+    <div className="w-full space-y-6">
       {/* Page Header */}
-      <div className="mb-8">
+      <div>
         <h1 className="text-2xl font-bold tracking-tight text-[var(--text-primary)]">
-          Calendar Integrations
+          Integrations & apps
         </h1>
         <p className="mt-1 text-sm text-[var(--text-secondary)]">
           Connect your Google Calendar to synchronize busy times, prevent double-bookings, and

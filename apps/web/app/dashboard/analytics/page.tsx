@@ -92,10 +92,10 @@ export default function AnalyticsPage() {
   return (
     <div className="space-y-6">
       {/* Page Header with Timeframe Range Selector */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 pb-4 border-b border-[var(--border-subtle)]">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 pb-2">
         <div>
           <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-[var(--text-primary)]">
-            Analytics & Insights
+            Analytics
           </h1>
           <p className="mt-1 text-xs text-[var(--text-secondary)]">
             Overview of meeting volume, show rates, time commitments, and event type popularity.
