@@ -20,7 +20,6 @@ import {
   X,
   ChevronsLeft,
   ChevronsRight,
-  CreditCard,
   Sliders,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -269,7 +268,7 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
             </button>
             <Link href="/dashboard" className="flex items-center gap-2">
               <Logo className="h-7 w-7" />
-              <span className="font-bold tracking-tight text-[var(--text-primary)] text-base">Sched</span>
+              <span className="font-bold tracking-tight text-[var(--text-primary)] text-lg">Sched</span>
             </Link>
           </div>
 
@@ -316,11 +315,11 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
           {/* Top Section: Logo & Toggle Button + Create CTA */}
           <div className={`flex flex-col flex-1 overflow-y-auto ${isCollapsed ? "px-2" : "px-4"} py-4 transition-[padding] duration-500`}>
             {/* Logo Row + Collapse Button */}
-            <div className={`flex items-center ${isCollapsed ? "justify-center" : "justify-between"} mb-5 px-1 min-h-[40px]`}>
+            <div className={`flex items-center ${isCollapsed ? "justify-center" : "justify-between"} mb-5 px-1 min-h-[36px]`}>
               <Link href="/dashboard" className="flex items-center gap-2.5 group">
-                <Logo className="h-10 w-10 transition-transform duration-150 group-hover:scale-105 shrink-0" />
+                <Logo className="h-8 w-8 transition-transform duration-150 group-hover:scale-105 shrink-0" />
                 {!isCollapsed && (
-                  <span className="font-bold tracking-tight text-[var(--text-primary)] text-xl whitespace-nowrap overflow-hidden transition-all duration-300">
+                  <span className="font-bold tracking-tight text-black text-2xl whitespace-nowrap overflow-hidden transition-all duration-300">
                     Sched
                   </span>
                 )}
@@ -331,7 +330,7 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
                 <button
                   type="button"
                   onClick={toggleSidebar}
-                  className="hidden md:flex h-7 w-7 items-center justify-center rounded-full text-neutral-500 hover:bg-neutral-100 hover:text-neutral-900 transition-colors cursor-pointer"
+                  className="hidden md:flex h-7 w-7 items-center justify-center rounded-full text-black hover:bg-neutral-100 transition-colors cursor-pointer"
                   title="Collapse sidebar"
                   aria-label="Collapse sidebar"
                 >
@@ -390,12 +389,12 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
                       className={`flex flex-col items-center justify-center py-2.5 px-1 rounded-xl text-center transition-all ${
                         item.active
                           ? "bg-blue-50 text-blue-600 font-semibold shadow-2xs"
-                          : "text-neutral-600 hover:bg-[var(--bg-subtle)] hover:text-neutral-900"
+                          : "text-black hover:bg-[var(--bg-subtle)] hover:text-black"
                       }`}
                       title={item.label}
                     >
-                      <Icon className={`h-5 w-5 mb-1 shrink-0 ${item.active ? "text-blue-600" : "text-neutral-600"}`} />
-                      <span className="text-[10px] leading-tight line-clamp-1 font-medium">{item.label}</span>
+                      <Icon className={`h-5 w-5 mb-1 shrink-0 ${item.active ? "text-blue-600" : "text-black"}`} />
+                      <span className="text-[10px] leading-tight line-clamp-1 font-semibold text-black">{item.label}</span>
                     </Link>
                   );
                 }
@@ -404,18 +403,18 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
                   <Link
                     key={item.label}
                     href={item.href}
-                    className={`flex items-center gap-3 rounded-xl px-3.5 py-2.5 text-xs font-medium transition-[background-color,color] duration-150 ${
+                    className={`flex items-center gap-3 rounded-xl px-3.5 py-2.5 text-xs font-semibold transition-[background-color,color] duration-150 ${
                       item.active
                         ? "bg-blue-50 text-blue-600 font-semibold"
-                        : "text-neutral-600 hover:bg-[var(--bg-subtle)] hover:text-neutral-900"
+                        : "text-black hover:bg-[var(--bg-subtle)] hover:text-black"
                     }`}
                   >
                     <Icon
                       className={`h-4 w-4 shrink-0 ${
-                        item.active ? "text-blue-600" : "text-neutral-500"
+                        item.active ? "text-blue-600" : "text-black"
                       }`}
                     />
-                    <span className="whitespace-nowrap overflow-hidden text-ellipsis">{item.label}</span>
+                    <span className="whitespace-nowrap overflow-hidden text-ellipsis text-black">{item.label}</span>
                   </Link>
                 );
               })}
@@ -426,26 +425,6 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
 
             {/* Secondary Navigation */}
             <nav className="space-y-1">
-              {/* Upgrade Plan Action (Calendly Style) */}
-              {!isCollapsed ? (
-                <Link
-                  href="/dashboard/settings"
-                  className="flex items-center gap-3 rounded-full border border-neutral-200 px-3.5 py-2 text-xs font-medium text-neutral-700 hover:bg-neutral-50 hover:border-neutral-300 transition-colors mb-2"
-                >
-                  <CreditCard className="h-4 w-4 text-neutral-500 shrink-0" />
-                  <span className="whitespace-nowrap">Upgrade plan</span>
-                </Link>
-              ) : (
-                <Link
-                  href="/dashboard/settings"
-                  className="flex flex-col items-center justify-center py-2 px-1 rounded-xl text-center text-neutral-600 hover:bg-[var(--bg-subtle)] transition-all mb-1"
-                  title="Upgrade plan"
-                >
-                  <CreditCard className="h-5 w-5 mb-0.5 text-neutral-500" />
-                  <span className="text-[9px] font-medium leading-tight">Upgrade</span>
-                </Link>
-              )}
-
               {secondaryNavItems.map((item) => {
                 const Icon = item.icon;
                 if (isCollapsed) {
@@ -456,12 +435,12 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
                       className={`flex flex-col items-center justify-center py-2 px-1 rounded-xl text-center transition-all ${
                         item.active
                           ? "bg-blue-50 text-blue-600 font-semibold"
-                          : "text-neutral-600 hover:bg-[var(--bg-subtle)] hover:text-neutral-900"
+                          : "text-black hover:bg-[var(--bg-subtle)] hover:text-black"
                       }`}
                       title={item.label}
                     >
-                      <Icon className={`h-5 w-5 mb-0.5 shrink-0 ${item.active ? "text-blue-600" : "text-neutral-600"}`} />
-                      <span className="text-[9px] leading-tight line-clamp-1 font-medium">{item.label}</span>
+                      <Icon className={`h-5 w-5 mb-0.5 shrink-0 ${item.active ? "text-blue-600" : "text-black"}`} />
+                      <span className="text-[9px] leading-tight line-clamp-1 font-semibold text-black">{item.label}</span>
                     </Link>
                   );
                 }
@@ -470,14 +449,14 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
                   <Link
                     key={item.label}
                     href={item.href}
-                    className={`flex items-center gap-3 rounded-xl px-3.5 py-2 text-xs font-medium transition-colors ${
+                    className={`flex items-center gap-3 rounded-xl px-3.5 py-2 text-xs font-semibold transition-colors ${
                       item.active
                         ? "bg-blue-50 text-blue-600 font-semibold"
-                        : "text-neutral-600 hover:bg-[var(--bg-subtle)] hover:text-neutral-900"
+                        : "text-black hover:bg-[var(--bg-subtle)] hover:text-black"
                     }`}
                   >
-                    <Icon className={`h-4 w-4 shrink-0 ${item.active ? "text-blue-600" : "text-neutral-500"}`} />
-                    <span className="whitespace-nowrap overflow-hidden text-ellipsis">{item.label}</span>
+                    <Icon className={`h-4 w-4 shrink-0 ${item.active ? "text-blue-600" : "text-black"}`} />
+                    <span className="whitespace-nowrap overflow-hidden text-ellipsis text-black">{item.label}</span>
                   </Link>
                 );
               })}
@@ -489,19 +468,6 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
         <div className="flex-1 min-w-0 flex flex-col min-h-screen bg-[var(--bg-canvas)]">
           {/* Top Bar with User Profile Dropdown */}
           <header className="hidden md:flex h-14 items-center justify-end border-b border-[var(--border-subtle)] bg-[var(--bg-surface)] px-8 gap-4">
-            {/* Host Local Time & Timezone Pill */}
-            {user.timezone && (
-              <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-[var(--bg-subtle)] text-xs text-[var(--text-secondary)] border border-[var(--border-subtle)]">
-                <Globe className="h-3.5 w-3.5 text-[var(--text-muted)] shrink-0" />
-                <span className="font-mono text-[11px]">{user.timezone}</span>
-                {currentTime && (
-                  <span className="font-mono font-medium text-[var(--text-primary)] tabular-nums pl-1 border-l border-[var(--border-subtle)]">
-                    {currentTime}
-                  </span>
-                )}
-              </div>
-            )}
-
             {/* User Profile Dropdown Menu in Top Navbar */}
             <div className="relative" ref={dropdownRef}>
               <button
@@ -518,7 +484,7 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
                   <span className="absolute bottom-0 right-0 h-2 w-2 rounded-full bg-emerald-500 ring-2 ring-white" />
                 </div>
                 <ChevronDown
-                  className={`h-3.5 w-3.5 text-neutral-500 transition-transform duration-150 ${
+                  className={`h-3.5 w-3.5 text-black transition-transform duration-150 ${
                     isDropdownOpen ? "rotate-180" : ""
                   }`}
                 />
@@ -528,30 +494,42 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
               {isDropdownOpen && (
                 <div className="absolute right-0 mt-2 w-72 rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-surface)] p-2 shadow-xl z-50 animate-in fade-in-0 zoom-in-95 duration-150">
                   <div className="p-2.5 rounded-lg bg-[var(--bg-subtle)] border border-[var(--border-subtle)] mb-1">
-                    <p className="text-xs font-semibold text-neutral-900 truncate">{user.name}</p>
-                    <p className="text-[11px] font-mono text-neutral-500 truncate">@{user.username}</p>
-                    <p className="text-[10px] text-neutral-400 truncate">{user.email}</p>
+                    <p className="text-xs font-semibold text-black truncate">{user.name}</p>
+                    <p className="text-[11px] font-mono text-neutral-600 truncate">@{user.username}</p>
+                    <p className="text-[10px] text-neutral-500 truncate">{user.email}</p>
                   </div>
+
+                  {user.timezone && (
+                    <div className="px-2.5 py-1.5 mb-1 flex items-center justify-between text-[11px] font-mono text-neutral-600 bg-neutral-50 rounded-md">
+                      <span className="flex items-center gap-1.5 truncate">
+                        <Globe className="h-3 w-3 text-neutral-400 shrink-0" />
+                        <span className="truncate">{user.timezone}</span>
+                      </span>
+                      {currentTime && (
+                        <span className="text-black font-semibold tabular-nums shrink-0">{currentTime}</span>
+                      )}
+                    </div>
+                  )}
 
                   <Link
                     href={`/public/${user.username}`}
                     target="_blank"
                     onClick={() => setIsDropdownOpen(false)}
-                    className="flex items-center justify-between rounded-lg px-2.5 py-2 text-xs font-medium text-neutral-700 hover:bg-[var(--bg-subtle)] hover:text-neutral-900 transition-colors"
+                    className="flex items-center justify-between rounded-lg px-2.5 py-2 text-xs font-semibold text-black hover:bg-[var(--bg-subtle)] transition-colors"
                   >
                     <div className="flex items-center gap-2.5">
-                      <UserIcon className="h-3.5 w-3.5 text-neutral-500" />
+                      <UserIcon className="h-3.5 w-3.5 text-black" />
                       <span>Public Booking Profile</span>
                     </div>
-                    <ExternalLink className="h-3 w-3 text-neutral-400" />
+                    <ExternalLink className="h-3 w-3 text-neutral-500" />
                   </Link>
 
                   <Link
                     href="/dashboard/settings"
                     onClick={() => setIsDropdownOpen(false)}
-                    className="flex items-center gap-2.5 rounded-lg px-2.5 py-2 text-xs font-medium text-neutral-700 hover:bg-[var(--bg-subtle)] hover:text-neutral-900 transition-colors"
+                    className="flex items-center gap-2.5 rounded-lg px-2.5 py-2 text-xs font-semibold text-black hover:bg-[var(--bg-subtle)] transition-colors"
                   >
-                    <Settings className="h-3.5 w-3.5 text-neutral-500" />
+                    <Settings className="h-3.5 w-3.5 text-black" />
                     <span>Account Settings</span>
                   </Link>
 
@@ -563,7 +541,7 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
                       setIsDropdownOpen(false);
                       void logout();
                     }}
-                    className="flex w-full items-center gap-2.5 rounded-lg px-2.5 py-2 text-xs font-medium text-rose-600 hover:bg-rose-50 transition-colors cursor-pointer"
+                    className="flex w-full items-center gap-2.5 rounded-lg px-2.5 py-2 text-xs font-semibold text-rose-600 hover:bg-rose-50 transition-colors cursor-pointer"
                   >
                     <LogOut className="h-3.5 w-3.5" />
                     <span>Sign out</span>
