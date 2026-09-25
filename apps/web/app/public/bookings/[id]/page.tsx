@@ -59,6 +59,7 @@ export default function PublicBookingConfirmationPage({
     return `${y}-${m}-${d}`;
   });
   const [currentMonth, setCurrentMonth] = useState<Date>(new Date());
+  const [slideDirection, setSlideDirection] = useState<"next" | "prev" | "none">("none");
   const [slots, setSlots] = useState<TimeSlot[]>([]);
   const [isLoadingSlots, setIsLoadingSlots] = useState(false);
   const [selectedSlot, setSelectedSlot] = useState<TimeSlot | null>(null);
@@ -641,27 +642,32 @@ export default function PublicBookingConfirmationPage({
                   {(rescheduleStep === "date" || typeof window === "undefined") && (
                     <div className="space-y-3">
                       <div className="flex items-center justify-between">
-                        <span className="font-semibold text-xs text-[var(--text-primary)]">
+                        <span
+                          key={`month-label-${year}-${month}`}
+                          className="font-semibold text-xs text-[var(--text-primary)] animate-in fade-in-0 duration-200"
+                        >
                           {monthLabel}
                         </span>
                         <div className="flex items-center gap-1">
                           <Button
                             variant="ghost"
                             size="sm"
-                            onClick={() =>
-                              setCurrentMonth(new Date(year, month - 1, 1))
-                            }
-                            className="h-7 w-7 p-0"
+                            onClick={() => {
+                              setSlideDirection("prev");
+                              setCurrentMonth(new Date(year, month - 1, 1));
+                            }}
+                            className="h-7 w-7 p-0 cursor-pointer"
                           >
                             <ChevronLeft className="h-4 w-4" />
                           </Button>
                           <Button
                             variant="ghost"
                             size="sm"
-                            onClick={() =>
-                              setCurrentMonth(new Date(year, month + 1, 1))
-                            }
-                            className="h-7 w-7 p-0"
+                            onClick={() => {
+                              setSlideDirection("next");
+                              setCurrentMonth(new Date(year, month + 1, 1));
+                            }}
+                            className="h-7 w-7 p-0 cursor-pointer"
                           >
                             <ChevronRight className="h-4 w-4" />
                           </Button>
@@ -674,36 +680,50 @@ export default function PublicBookingConfirmationPage({
                             {d}
                           </div>
                         ))}
-                        {calendarDays.map((item, idx) => {
-                          if (!item) {
-                            return <div key={`empty-${idx}`} className="h-8" />;
-                          }
-                          const isSelected = selectedDate === item.dateStr;
-                          const isPast =
-                            new Date(`${item.dateStr}T23:59:59`).getTime() <
-                            new Date().setHours(0, 0, 0, 0);
+                      </div>
 
-                          return (
-                            <button
-                              key={item.dateStr}
-                              type="button"
-                              disabled={isPast}
-                              onClick={() => {
-                                setSelectedDate(item.dateStr);
-                                setRescheduleStep("slot");
-                              }}
-                              className={`h-8 w-full rounded-md text-xs font-medium transition-colors ${
-                                isSelected
-                                  ? "bg-neutral-900 text-white dark:bg-neutral-100 dark:text-neutral-900 font-bold"
-                                  : isPast
-                                  ? "text-neutral-300 dark:text-neutral-700 cursor-not-allowed"
-                                  : "hover:bg-[var(--bg-subtle)] text-[var(--text-primary)] cursor-pointer"
-                              }`}
-                            >
-                              {item.day}
-                            </button>
-                          );
-                        })}
+                      <div className="overflow-hidden">
+                        <div
+                          key={`reschedule-grid-${year}-${month}`}
+                          className={`grid grid-cols-7 gap-1 text-center ${
+                            slideDirection === "next"
+                              ? "animate-in fade-in-0 slide-in-from-right-4 duration-200 ease-out"
+                              : slideDirection === "prev"
+                              ? "animate-in fade-in-0 slide-in-from-left-4 duration-200 ease-out"
+                              : "animate-in fade-in-0 duration-150"
+                          }`}
+                        >
+                          {calendarDays.map((item, idx) => {
+                            if (!item) {
+                              return <div key={`empty-${idx}`} className="h-8" />;
+                            }
+                            const isSelected = selectedDate === item.dateStr;
+                            const isPast =
+                              new Date(`${item.dateStr}T23:59:59`).getTime() <
+                              new Date().setHours(0, 0, 0, 0);
+
+                            return (
+                              <button
+                                key={item.dateStr}
+                                type="button"
+                                disabled={isPast}
+                                onClick={() => {
+                                  setSelectedDate(item.dateStr);
+                                  setRescheduleStep("slot");
+                                }}
+                                className={`h-8 w-full rounded-md text-xs font-medium transition-colors ${
+                                  isSelected
+                                    ? "bg-neutral-900 text-white dark:bg-neutral-100 dark:text-neutral-900 font-bold"
+                                    : isPast
+                                    ? "text-neutral-300 dark:text-neutral-700 cursor-not-allowed"
+                                    : "hover:bg-[var(--bg-subtle)] text-[var(--text-primary)] cursor-pointer"
+                                }`}
+                              >
+                                {item.day}
+                              </button>
+                            );
+                          })}
+                        </div>
                       </div>
 
                       <div className="sm:hidden flex justify-end pt-2">

@@ -5,9 +5,9 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
   Clock,
-  Globe,
   ChevronLeft,
   ChevronRight,
+  ChevronDown,
   ArrowLeft,
   User,
   Mail,
@@ -23,11 +23,11 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Select } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Spinner } from "@/components/ui/spinner";
 import { toast } from "@/components/ui/toast";
 import { Logo } from "@/components/logo";
+import { TimezonePicker } from "@/components/timezone-picker";
 import { api } from "@/lib/api";
 import { ApiError, fieldErrors, getExistingBookingFromError } from "@/lib/api-error";
 import type { BookingResponse, CustomQuestion, PublicLocationMetadata, TimeSlot } from "@sched/api-contract";
@@ -60,7 +60,6 @@ export default function PublicBookingPage({
 
   // Timezone state
   const [attendeeTimezone, setAttendeeTimezone] = useState<string>("UTC");
-  const [availableTimezones, setAvailableTimezones] = useState<string[]>([]);
 
   // Mobile active step ('date' | 'slots' | 'details')
   const [mobileStep, setMobileStep] = useState<"date" | "slots" | "details">("date");
@@ -96,6 +95,8 @@ export default function PublicBookingPage({
   const [customAnswers, setCustomAnswers] = useState<Record<string, string | boolean>>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [fieldValidationErrors, setFieldValidationErrors] = useState<Record<string, string>>({});
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const [troubleshootOpen, setTroubleshootOpen] = useState(false);
 
   const setCustomAnswer = (qId: string, val: string | boolean) => {
     setCustomAnswers((prev) => ({ ...prev, [qId]: val }));
@@ -106,16 +107,8 @@ export default function PublicBookingPage({
     try {
       const detected = Intl.DateTimeFormat().resolvedOptions().timeZone;
       if (detected) setAttendeeTimezone(detected);
-      setAvailableTimezones(Intl.supportedValuesOf("timeZone"));
     } catch {
-      setAvailableTimezones([
-        "UTC",
-        "America/New_York",
-        "America/Los_Angeles",
-        "Europe/London",
-        "Asia/Karachi",
-        "Asia/Tokyo",
-      ]);
+      setAttendeeTimezone("UTC");
     }
   }, []);
 
@@ -159,12 +152,16 @@ export default function PublicBookingPage({
     void loadSlots();
   }, [eventDetails, selectedDate, attendeeTimezone, username, eventSlug]);
 
+  const [slideDirection, setSlideDirection] = useState<"next" | "prev" | "none">("none");
+
   const handlePrevMonth = () => {
-    setCurrentMonth(new Date(currentMonth.getFullYear(), currentMonth.getMonth() - 1, 1));
+    setSlideDirection("prev");
+    setCurrentMonth((prev) => new Date(prev.getFullYear(), prev.getMonth() - 1, 1));
   };
 
   const handleNextMonth = () => {
-    setCurrentMonth(new Date(currentMonth.getFullYear(), currentMonth.getMonth() + 1, 1));
+    setSlideDirection("next");
+    setCurrentMonth((prev) => new Date(prev.getFullYear(), prev.getMonth() + 1, 1));
   };
 
   const handleBookSubmit = async (e: React.FormEvent) => {
@@ -248,10 +245,11 @@ export default function PublicBookingPage({
     );
   }
 
-  // Calendar calculations
+  // Calendar calculations (Monday start to match Calendly)
   const year = currentMonth.getFullYear();
   const month = currentMonth.getMonth();
-  const firstDayIndex = new Date(year, month, 1).getDay();
+  // Monday start: 0 = Mon, ..., 6 = Sun
+  const firstDayIndex = (new Date(year, month, 1).getDay() + 6) % 7;
   const totalDaysInMonth = new Date(year, month + 1, 0).getDate();
 
   const daysMatrix = [];
@@ -275,28 +273,87 @@ export default function PublicBookingPage({
     day: "numeric",
   }).format(new Date(`${selectedDate}T12:00:00Z`));
 
-  return (
-    <div className="min-h-screen flex flex-col justify-between bg-[var(--bg-canvas)] font-sans text-[var(--text-primary)] selection:bg-neutral-900 selection:text-white">
-      <main className="flex-1 py-10 px-4 sm:px-6">
-        <div className="mx-auto max-w-4xl space-y-4">
-          {/* Back to Host Link */}
-          <Link
-            href={`/public/${username}`}
-            className="inline-flex items-center gap-1.5 text-xs font-medium text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors duration-150 group"
-          >
-            <ArrowLeft className="h-3.5 w-3.5 group-hover:-translate-x-0.5 transition-transform duration-150" />
-            <span>All events with {eventDetails.host.name}</span>
-          </Link>
+  const handleCopyLink = async () => {
+    if (typeof window !== "undefined") {
+      try {
+        await navigator.clipboard.writeText(window.location.href);
+        toast.success("Link copied", "Booking page link copied to clipboard.");
+      } catch {
+        toast.error("Copy failed", "Could not copy link to clipboard.");
+      }
+    }
+  };
 
+  return (
+    <div className="min-h-screen flex flex-col justify-between bg-neutral-100/70 dark:bg-neutral-900 font-sans text-neutral-900 dark:text-neutral-100 selection:bg-blue-600 selection:text-white">
+      {/* Top Bar with Menu and Copy Link */}
+      <header className="w-full max-w-[1040px] mx-auto px-4 pt-6 pb-2 flex items-center justify-between">
+        <Link
+          href={`/public/${username}`}
+          className="inline-flex items-center gap-1.5 text-xs font-semibold text-neutral-600 dark:text-neutral-400 hover:text-neutral-900 dark:hover:text-white transition-colors duration-150 group"
+        >
+          <ArrowLeft className="h-3.5 w-3.5 group-hover:-translate-x-0.5 transition-transform duration-150" />
+          <span>All events with {eventDetails.host.name}</span>
+        </Link>
+
+        <div className="flex items-center gap-2 relative">
+          {/* Menu Dropdown */}
+          <div className="relative">
+            <button
+              type="button"
+              onClick={() => setIsMenuOpen((prev) => !prev)}
+              className="inline-flex items-center gap-1 text-xs font-semibold text-neutral-700 dark:text-neutral-300 hover:text-neutral-900 dark:hover:text-white px-2.5 py-1.5 rounded-lg hover:bg-white/60 dark:hover:bg-neutral-800 transition-colors cursor-pointer"
+            >
+              <span>Menu</span>
+              <ChevronDown className="h-3.5 w-3.5" />
+            </button>
+            {isMenuOpen && (
+              <div className="absolute right-0 top-full mt-1.5 z-40 w-44 rounded-xl border border-neutral-200 bg-white dark:bg-neutral-950 dark:border-neutral-800 p-1 shadow-lg text-xs animate-in fade-in-0 zoom-in-95">
+                <Link
+                  href={`/public/${username}`}
+                  className="block px-3 py-2 rounded-lg hover:bg-neutral-100 dark:hover:bg-neutral-900 text-neutral-700 dark:text-neutral-300 font-medium"
+                  onClick={() => setIsMenuOpen(false)}
+                >
+                  Host Profile
+                </Link>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setIsMenuOpen(false);
+                    setTroubleshootOpen(true);
+                  }}
+                  className="w-full text-left px-3 py-2 rounded-lg hover:bg-neutral-100 dark:hover:bg-neutral-900 text-neutral-700 dark:text-neutral-300 font-medium cursor-pointer"
+                >
+                  Troubleshooting
+                </button>
+              </div>
+            )}
+          </div>
+
+          {/* Copy Link Button */}
+          <button
+            type="button"
+            onClick={handleCopyLink}
+            className="inline-flex items-center gap-1.5 text-xs font-semibold text-neutral-700 dark:text-neutral-300 bg-white dark:bg-neutral-950 border border-neutral-300 dark:border-neutral-700 rounded-full px-3.5 py-1.5 hover:bg-neutral-50 dark:hover:bg-neutral-900 shadow-2xs transition-all cursor-pointer"
+          >
+            <Link2 className="h-3.5 w-3.5" />
+            <span>Copy link</span>
+          </button>
+        </div>
+      </header>
+
+      {/* Main Container */}
+      <main className="flex-1 flex flex-col justify-center items-center py-4 px-4 sm:px-6 w-full">
+        <div className="w-full max-w-[1040px] my-auto">
           {/* Mobile Tab Stepper */}
-          <div className="flex md:hidden items-center justify-between border-b border-[var(--border-subtle)] pb-2 gap-2">
+          <div className="flex md:hidden items-center justify-between border-b border-neutral-200 dark:border-neutral-800 pb-2 mb-3 gap-2">
             <button
               type="button"
               onClick={() => setMobileStep("date")}
               className={`flex-1 py-1.5 text-xs font-medium rounded-md transition-all duration-150 ${
                 mobileStep === "date"
-                  ? "bg-[var(--bg-surface)] text-[var(--text-primary)] font-semibold shadow-xs"
-                  : "text-[var(--text-secondary)]"
+                  ? "bg-white text-neutral-900 font-semibold shadow-xs dark:bg-neutral-800 dark:text-white"
+                  : "text-neutral-500"
               }`}
             >
               1. Date
@@ -306,8 +363,8 @@ export default function PublicBookingPage({
               onClick={() => setMobileStep("slots")}
               className={`flex-1 py-1.5 text-xs font-medium rounded-md transition-all duration-150 ${
                 mobileStep === "slots"
-                  ? "bg-[var(--bg-surface)] text-[var(--text-primary)] font-semibold shadow-xs"
-                  : "text-[var(--text-secondary)]"
+                  ? "bg-white text-neutral-900 font-semibold shadow-xs dark:bg-neutral-800 dark:text-white"
+                  : "text-neutral-500"
               }`}
             >
               2. Slot ({slots.length})
@@ -317,220 +374,274 @@ export default function PublicBookingPage({
               onClick={() => setMobileStep("details")}
               className={`flex-1 py-1.5 text-xs font-medium rounded-md transition-all duration-150 ${
                 mobileStep === "details"
-                  ? "bg-[var(--bg-surface)] text-[var(--text-primary)] font-semibold shadow-xs"
-                  : "text-[var(--text-secondary)]"
+                  ? "bg-white text-neutral-900 font-semibold shadow-xs dark:bg-neutral-800 dark:text-white"
+                  : "text-neutral-500"
               }`}
             >
               3. Details
             </button>
           </div>
 
-          {/* Main High-Emphasis Booking Shell */}
-          <div className="overflow-hidden rounded-2xl border border-[var(--border-subtle)] bg-[var(--bg-surface)] shadow-sm grid grid-cols-1 lg:grid-cols-12 divide-y lg:divide-y-0 lg:divide-x divide-[var(--border-subtle)]">
-            {/* Left Column: Event & Host Details */}
-            <div className="p-6 sm:p-8 lg:col-span-4 flex flex-col justify-between space-y-6">
-              <div className="space-y-4">
-                <div className="flex items-center gap-3">
-                  <div className="flex h-10 w-10 items-center justify-center rounded-full bg-neutral-900 font-bold text-white text-xs select-none dark:bg-neutral-100 dark:text-neutral-900">
-                    {eventDetails.host.name.slice(0, 2).toUpperCase()}
-                  </div>
-                  <div>
-                    <p className="text-sm font-semibold text-[var(--text-primary)]">{eventDetails.host.name}</p>
-                    <p className="text-xs font-mono text-[var(--text-muted)]">@{eventDetails.host.username}</p>
-                  </div>
-                </div>
+          {/* Main Calendly Card Shell */}
+          <div className="relative rounded-2xl border border-neutral-200 bg-white dark:bg-neutral-950 dark:border-neutral-800 shadow-lg min-h-[580px] sm:min-h-[620px] grid grid-cols-1 lg:grid-cols-12 divide-y lg:divide-y-0 lg:divide-x divide-neutral-200 dark:divide-neutral-800">
+            {/* Top-Right Powered By Ribbon */}
+            <div className="absolute top-0 right-0 w-28 h-28 overflow-hidden rounded-tr-2xl pointer-events-none z-10 select-none">
+              <div className="absolute transform rotate-45 bg-neutral-700/90 text-white text-[8px] font-bold uppercase tracking-wider py-1.5 right-[-34px] top-[22px] w-[130px] text-center shadow-md">
+                <span className="block text-[6px] font-normal tracking-widest text-neutral-300 -mb-0.5">
+                  POWERED BY
+                </span>
+                Sched
+              </div>
+            </div>
 
+            {/* Left Column: Host & Event Details */}
+            <div className="p-7 sm:p-8 lg:col-span-4 flex flex-col justify-between space-y-6">
+              <div className="space-y-4">
                 <div>
-                  <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-[var(--text-primary)]">
+                  <p className="text-xs font-bold text-neutral-500 uppercase tracking-wider">
+                    {eventDetails.host.name}
+                  </p>
+                  <h1 className="text-2xl sm:text-[26px] font-bold tracking-tight text-neutral-900 dark:text-white mt-1">
                     {eventDetails.title}
                   </h1>
-                  <div className="mt-2.5 flex flex-wrap items-center gap-3 text-xs font-medium text-[var(--text-secondary)]">
-                    <div className="flex items-center gap-1.5">
-                      <Clock className="h-3.5 w-3.5 text-[var(--text-muted)]" />
-                      <span className="tabular-nums font-sans">{eventDetails.durationMinutes}m</span>
-                    </div>
+                </div>
 
-                    {/* Location Badge */}
-                    {eventDetails.location && (
-                      <div className="flex items-center gap-1 text-[var(--text-primary)] font-medium bg-[var(--bg-subtle)] px-2 py-0.5 rounded-md">
-                        {eventDetails.location.type === "IN_PERSON" && (
-                          <>
-                            <MapPin className="h-3.5 w-3.5 text-neutral-600 dark:text-neutral-300" />
-                            <span>In-Person{eventDetails.location.publicAddress ? `: ${eventDetails.location.publicAddress}` : ""}</span>
-                          </>
-                        )}
-                        {eventDetails.location.type === "STATIC_VIDEO" && (
-                          <>
-                            <Video className="h-3.5 w-3.5 text-neutral-600 dark:text-neutral-300" />
-                            <span>Video Meeting</span>
-                          </>
-                        )}
-                        {eventDetails.location.type === "CUSTOM_LINK" && (
-                          <>
-                            <Link2 className="h-3.5 w-3.5 text-neutral-600 dark:text-neutral-300" />
-                            <span>Web Conference</span>
-                          </>
-                        )}
-                        {eventDetails.location.type === "HOST_CALLS_ATTENDEE" && (
-                          <>
-                            <PhoneCall className="h-3.5 w-3.5 text-neutral-600 dark:text-neutral-300" />
-                            <span>Phone Call (Host calls you)</span>
-                          </>
-                        )}
-                        {eventDetails.location.type === "ATTENDEE_CALLS_HOST" && (
-                          <>
-                            <PhoneForwarded className="h-3.5 w-3.5 text-neutral-600 dark:text-neutral-300" />
-                            <span>Phone Call (You call host)</span>
-                          </>
-                        )}
-                      </div>
-                    )}
+                <div className="space-y-2.5 text-sm font-semibold text-neutral-600 dark:text-neutral-400">
+                  <div className="flex items-center gap-2">
+                    <Clock className="h-4 w-4 text-neutral-500 shrink-0" />
+                    <span>{eventDetails.durationMinutes} min</span>
                   </div>
+
+                  {/* Location Badge */}
+                  {eventDetails.location && (
+                    <div className="flex items-center gap-2 text-xs font-medium text-neutral-700 dark:text-neutral-300">
+                      {eventDetails.location.type === "IN_PERSON" && (
+                        <>
+                          <MapPin className="h-4 w-4 text-neutral-500 shrink-0" />
+                          <span>In-Person{eventDetails.location.publicAddress ? `: ${eventDetails.location.publicAddress}` : ""}</span>
+                        </>
+                      )}
+                      {eventDetails.location.type === "STATIC_VIDEO" && (
+                        <>
+                          <Video className="h-4 w-4 text-neutral-500 shrink-0" />
+                          <span>Web conferencing details provided upon confirmation</span>
+                        </>
+                      )}
+                      {eventDetails.location.type === "CUSTOM_LINK" && (
+                        <>
+                          <Link2 className="h-4 w-4 text-neutral-500 shrink-0" />
+                          <span>Web Conference</span>
+                        </>
+                      )}
+                      {eventDetails.location.type === "HOST_CALLS_ATTENDEE" && (
+                        <>
+                          <PhoneCall className="h-4 w-4 text-neutral-500 shrink-0" />
+                          <span>Phone call</span>
+                        </>
+                      )}
+                      {eventDetails.location.type === "ATTENDEE_CALLS_HOST" && (
+                        <>
+                          <PhoneForwarded className="h-4 w-4 text-neutral-500 shrink-0" />
+                          <span>Phone call (attendee calls host)</span>
+                        </>
+                      )}
+                    </div>
+                  )}
                 </div>
 
                 {eventDetails.description && (
-                  <p className="text-xs text-[var(--text-secondary)] leading-relaxed pt-3 border-t border-[var(--border-subtle)] whitespace-pre-wrap">
+                  <p className="text-xs text-neutral-600 dark:text-neutral-400 leading-relaxed pt-3 whitespace-pre-wrap">
                     {eventDetails.description}
                   </p>
                 )}
               </div>
 
-              {/* Timezone Selector Box */}
-              <div className="rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-subtle)] p-3 space-y-1.5">
-                <div className="flex items-center gap-1.5 text-xs font-medium text-[var(--text-secondary)]">
-                  <Globe className="h-3.5 w-3.5 text-[var(--text-muted)]" />
-                  <span>Your Timezone</span>
-                </div>
-                <Select
-                  size="sm"
-                  value={attendeeTimezone}
-                  onChange={(e) => setAttendeeTimezone(e.target.value)}
-                  className="font-mono text-xs"
+              {/* Cookie settings & Privacy Policy Links */}
+              <div className="pt-4 border-t border-neutral-100 dark:border-neutral-800/80 flex items-center gap-4 text-xs font-medium text-blue-600 dark:text-blue-400">
+                <button
+                  type="button"
+                  onClick={() => toast.info("Cookie Preferences", "Default essential cookies active.")}
+                  className="hover:underline cursor-pointer"
                 >
-                  {availableTimezones.map((tz) => (
-                    <option key={tz} value={tz}>
-                      {tz}
-                    </option>
-                  ))}
-                </Select>
+                  Cookie settings
+                </button>
+                <Link href="/privacy" className="hover:underline">
+                  Privacy Policy
+                </Link>
               </div>
             </div>
 
-            {/* Middle Column: Calendar Month & Date Picker */}
+            {/* Middle Column: Calendar & Timezone */}
             <div
-              className={`p-6 sm:p-8 lg:col-span-4 space-y-6 ${
-                mobileStep !== "date" ? "hidden md:block" : "block"
+              className={`p-7 sm:p-8 lg:col-span-4 flex flex-col justify-between space-y-5 ${
+                mobileStep !== "date" ? "hidden md:flex" : "flex"
               }`}
             >
-              <div className="flex items-center justify-between">
-                <h2 className="text-sm font-semibold text-[var(--text-primary)]">{monthName}</h2>
-                <div className="flex items-center gap-1">
+              <div className="space-y-4">
+                <h2 className="text-lg font-bold text-neutral-900 dark:text-white">
+                  Select a Date & Time
+                </h2>
+
+                {/* Month Selector */}
+                <div className="flex items-center justify-between pt-1">
                   <Button
                     type="button"
                     variant="ghost"
                     size="icon"
                     onClick={handlePrevMonth}
-                    className="h-7 w-7 text-[var(--text-secondary)]"
+                    className="h-8 w-8 text-neutral-600 dark:text-neutral-300 hover:text-blue-600 dark:hover:text-blue-400 cursor-pointer"
                     title="Previous month"
                   >
                     <ChevronLeft className="h-4 w-4" />
                   </Button>
+
+                  <h3
+                    key={`title-${currentMonth.getFullYear()}-${currentMonth.getMonth()}`}
+                    className="text-sm font-bold text-neutral-900 dark:text-white animate-in fade-in-0 duration-200"
+                  >
+                    {monthName}
+                  </h3>
+
                   <Button
                     type="button"
                     variant="ghost"
                     size="icon"
                     onClick={handleNextMonth}
-                    className="h-7 w-7 text-[var(--text-secondary)]"
+                    className="h-8 w-8 text-neutral-600 dark:text-neutral-300 hover:text-blue-600 dark:hover:text-blue-400 cursor-pointer"
                     title="Next month"
                   >
                     <ChevronRight className="h-4 w-4" />
                   </Button>
                 </div>
-              </div>
 
-              {/* Day Labels */}
-              <div className="grid grid-cols-7 gap-1 text-center font-medium text-[11px] text-[var(--text-muted)]">
-                {["Su", "Mo", "Tu", "We", "Th", "Fr", "Sa"].map((dayName) => (
-                  <div key={dayName} className="py-1">
-                    {dayName}
+                {/* Weekday Labels (Mon - Sun) */}
+                <div className="grid grid-cols-7 gap-1 text-center font-medium text-[11px] text-neutral-500">
+                  {["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"].map((dayName) => (
+                    <div key={dayName} className="py-1">
+                      {dayName}
+                    </div>
+                  ))}
+                </div>
+
+                {/* Days Grid with Slide Animation & Circular Badges */}
+                <div className="overflow-hidden">
+                  <div
+                    key={`grid-${currentMonth.getFullYear()}-${currentMonth.getMonth()}`}
+                    className={`grid grid-cols-7 gap-1 text-center ${
+                      slideDirection === "next"
+                        ? "animate-in fade-in-0 slide-in-from-right-4 duration-200 ease-out"
+                        : slideDirection === "prev"
+                        ? "animate-in fade-in-0 slide-in-from-left-4 duration-200 ease-out"
+                        : "animate-in fade-in-0 duration-150"
+                    }`}
+                  >
+                    {daysMatrix.map((item, idx) => {
+                      if (!item) {
+                        return <div key={`empty-${idx}`} className="h-10 w-10 mx-auto" />;
+                      }
+
+                      const isSelected = selectedDate === item.dateString;
+                      const isPast =
+                        new Date(`${item.dateString}T23:59:59`).getTime() < new Date().setHours(0, 0, 0, 0);
+
+                      return (
+                        <button
+                          key={item.dateString}
+                          type="button"
+                          disabled={isPast}
+                          onClick={() => {
+                            setSelectedDate(item.dateString);
+                            setMobileStep("slots");
+                          }}
+                          className={`h-10 w-10 mx-auto rounded-full text-xs font-semibold tabular-nums font-sans transition-all duration-150 flex items-center justify-center cursor-pointer ${
+                            isSelected
+                              ? "bg-blue-600 text-white font-bold shadow-xs scale-105"
+                              : isPast
+                              ? "text-neutral-400 dark:text-neutral-600 cursor-not-allowed"
+                              : "bg-blue-50/90 hover:bg-blue-100 text-blue-600 font-bold dark:bg-blue-950/40 dark:text-blue-400 dark:hover:bg-blue-900/60"
+                          }`}
+                        >
+                          {item.day}
+                        </button>
+                      );
+                    })}
                   </div>
-                ))}
+                </div>
+
+                {/* Timezone Section below Calendar */}
+                <div className="pt-3 space-y-1.5">
+                  <div className="text-xs font-bold text-neutral-800 dark:text-neutral-200">
+                    Time zone
+                  </div>
+                  <TimezonePicker
+                    value={attendeeTimezone}
+                    onChange={(newTz) => setAttendeeTimezone(newTz)}
+                    variant="inline"
+                  />
+                </div>
               </div>
 
-              {/* Days Grid */}
-              <div className="grid grid-cols-7 gap-1 text-center">
-                {daysMatrix.map((item, idx) => {
-                  if (!item) {
-                    return <div key={`empty-${idx}`} className="h-9 w-full" />;
-                  }
-
-                  const isSelected = selectedDate === item.dateString;
-                  const isPast =
-                    new Date(`${item.dateString}T23:59:59`).getTime() < new Date().setHours(0, 0, 0, 0);
-
-                  return (
-                    <button
-                      key={item.dateString}
-                      type="button"
-                      disabled={isPast}
-                      onClick={() => {
-                        setSelectedDate(item.dateString);
-                        setMobileStep("slots");
-                      }}
-                      className={`h-9 w-full rounded-lg text-xs font-medium tabular-nums font-sans transition-all duration-150 cursor-pointer ${
-                        isSelected
-                          ? "bg-neutral-900 text-white font-bold shadow-xs dark:bg-neutral-100 dark:text-neutral-900"
-                          : isPast
-                          ? "text-neutral-300 dark:text-neutral-700 cursor-not-allowed"
-                          : "hover:bg-[var(--bg-subtle)] text-[var(--text-primary)]"
-                      }`}
-                    >
-                      {item.day}
-                    </button>
-                  );
-                })}
-              </div>
-
-              {/* Mobile next trigger */}
-              <div className="md:hidden pt-4">
-                <Button
+              {/* Troubleshoot Pill Button */}
+              <div className="pt-2">
+                <button
                   type="button"
-                  onClick={() => setMobileStep("slots")}
-                  className="w-full"
-                  size="sm"
+                  onClick={() => setTroubleshootOpen(true)}
+                  className="inline-flex items-center gap-1.5 rounded-full border border-neutral-300 dark:border-neutral-700 px-3.5 py-1.5 text-xs font-semibold text-neutral-700 dark:text-neutral-300 hover:bg-neutral-50 dark:hover:bg-neutral-900 transition-colors cursor-pointer"
                 >
-                  View Available Slots
-                </Button>
+                  <Clock className="h-3.5 w-3.5 text-neutral-500" />
+                  <span>Troubleshoot</span>
+                </button>
               </div>
             </div>
 
-            {/* Right Column: Time Slots & Attendee Form */}
+            {/* Right Column: Time Slots & Attendee Booking Form */}
             <div
-              className={`p-6 sm:p-8 lg:col-span-4 space-y-6 ${
+              className={`p-7 sm:p-8 lg:col-span-4 space-y-5 ${
                 mobileStep === "date" ? "hidden md:block" : "block"
               }`}
             >
               <div>
-                <h3 className="text-sm font-semibold text-[var(--text-primary)]">
+                <h3 className="text-sm font-medium text-neutral-800 dark:text-neutral-200">
                   {formattedSelectedDate}
                 </h3>
-                <p className="text-xs text-[var(--text-muted)] mt-0.5">
-                  Select a slot in your timezone ({attendeeTimezone})
-                </p>
               </div>
+
+              {/* Troubleshoot Modal Dialog */}
+              {troubleshootOpen && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
+                  <div className="bg-white dark:bg-neutral-950 rounded-2xl border border-neutral-200 dark:border-neutral-800 p-6 max-w-md w-full space-y-4 shadow-2xl animate-in fade-in-0 zoom-in-95">
+                    <h4 className="text-base font-bold text-neutral-900 dark:text-white">
+                      Troubleshooting Slot Availability
+                    </h4>
+                    <p className="text-xs text-neutral-600 dark:text-neutral-400 leading-relaxed">
+                      Available times are calculated live from the host&apos;s working hours, buffer times, and calendar conflicts, converted accurately to your timezone ({attendeeTimezone}).
+                    </p>
+                    <div className="pt-2">
+                      <Button
+                        type="button"
+                        onClick={() => setTroubleshootOpen(false)}
+                        className="w-full"
+                        size="sm"
+                      >
+                        Got it
+                      </Button>
+                    </div>
+                  </div>
+                </div>
+              )}
 
               {/* Duplicate Booking Detected Dialog or Slots / Form */}
               {existingBookingDuplicate ? (
-                <div className="space-y-4 rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-subtle)] p-5 animate-in fade-in-0 duration-150">
+                <div className="space-y-4 rounded-xl border border-neutral-200 dark:border-neutral-800 bg-neutral-50 dark:bg-neutral-900 p-5 animate-in fade-in-0 duration-150">
                   <div className="space-y-2">
-                    <h3 className="text-sm font-bold text-[var(--text-primary)]">
+                    <h3 className="text-sm font-bold text-neutral-900 dark:text-white">
                       You already have a booking for this meeting.
                     </h3>
-                    <div className="pt-2 text-xs space-y-1 text-[var(--text-secondary)]">
-                      <p className="font-semibold text-[var(--text-primary)]">Existing booking:</p>
+                    <div className="pt-2 text-xs space-y-1 text-neutral-600 dark:text-neutral-400">
+                      <p className="font-semibold text-neutral-900 dark:text-white">Existing booking:</p>
                       <p>
-                        <span className="text-[var(--text-muted)]">Date: </span>
-                        <span className="font-medium text-[var(--text-primary)]">
+                        <span className="text-neutral-500">Date: </span>
+                        <span className="font-medium text-neutral-900 dark:text-white">
                           {new Intl.DateTimeFormat("en-US", {
                             timeZone: attendeeTimezone,
                             weekday: "long",
@@ -541,8 +652,8 @@ export default function PublicBookingPage({
                         </span>
                       </p>
                       <p>
-                        <span className="text-[var(--text-muted)]">Time: </span>
-                        <span className="font-medium text-[var(--text-primary)]">
+                        <span className="text-neutral-500">Time: </span>
+                        <span className="font-medium text-neutral-900 dark:text-white">
                           {new Intl.DateTimeFormat("en-US", {
                             timeZone: attendeeTimezone,
                             hour: "numeric",
@@ -554,7 +665,7 @@ export default function PublicBookingPage({
                     </div>
                   </div>
 
-                  <p className="text-xs font-medium text-[var(--text-primary)] pt-2 border-t border-[var(--border-subtle)]">
+                  <p className="text-xs font-medium text-neutral-900 dark:text-white pt-2 border-t border-neutral-200 dark:border-neutral-800">
                     What would you like to do?
                   </p>
 
@@ -602,19 +713,20 @@ export default function PublicBookingPage({
                   )}
 
                   {isLoadingSlots ? (
-                    <div className="space-y-2">
-                      <Skeleton className="h-10 w-full rounded-lg" />
-                      <Skeleton className="h-10 w-full rounded-lg" />
-                      <Skeleton className="h-10 w-full rounded-lg" />
+                    <div className="space-y-2.5">
+                      <Skeleton className="h-12 w-full rounded-lg" />
+                      <Skeleton className="h-12 w-full rounded-lg" />
+                      <Skeleton className="h-12 w-full rounded-lg" />
+                      <Skeleton className="h-12 w-full rounded-lg" />
                     </div>
                   ) : slots.length === 0 ? (
-                    <div className="rounded-xl border border-dashed border-[var(--border-subtle)] p-6 text-center">
-                      <p className="text-xs text-[var(--text-muted)]">
+                    <div className="rounded-xl border border-dashed border-neutral-300 dark:border-neutral-700 p-8 text-center">
+                      <p className="text-xs text-neutral-500">
                         No available slots on this day. Please choose another date on the calendar.
                       </p>
                     </div>
                   ) : (
-                    <div className="space-y-2 max-h-80 overflow-y-auto pr-1">
+                    <div className="space-y-2.5 max-h-[440px] overflow-y-auto pr-1.5">
                       {slots.map((slot) => {
                         const dateObj = new Date(slot.startUtc);
                         const slotTimeStr = new Intl.DateTimeFormat("en-US", {
@@ -632,12 +744,9 @@ export default function PublicBookingPage({
                               setSelectedSlot(slot);
                               setMobileStep("details");
                             }}
-                            className="w-full flex items-center justify-between rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-surface)] px-4 py-2.5 text-xs font-semibold text-[var(--text-primary)] hover:border-neutral-900 hover:bg-neutral-900 hover:text-white dark:hover:bg-white dark:hover:text-neutral-900 dark:hover:border-white transition-[background-color,border-color,color] duration-150 ease-out cursor-pointer shadow-2xs group"
+                            className="w-full h-12 flex items-center justify-center rounded-lg border-2 border-blue-500 hover:border-blue-600 bg-white dark:bg-neutral-950 text-blue-600 dark:text-blue-400 hover:bg-blue-50/50 dark:hover:bg-blue-950/30 text-sm font-bold transition-all duration-150 cursor-pointer shadow-2xs group"
                           >
                             <span className="tabular-nums font-sans">{slotTimeStr}</span>
-                            <span className="text-[11px] font-medium text-[var(--text-muted)] group-hover:text-white/80 dark:group-hover:text-neutral-700">
-                              Select →
-                            </span>
                           </button>
                         );
                       })}
@@ -647,9 +756,9 @@ export default function PublicBookingPage({
               ) : (
                 /* Details Submission Form */
                 <form onSubmit={handleBookSubmit} className="space-y-4 animate-in fade-in-0 duration-150">
-                  <div className="rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-subtle)] p-3 flex items-center justify-between">
+                  <div className="rounded-xl border border-neutral-200 dark:border-neutral-800 bg-neutral-50 dark:bg-neutral-900 p-3.5 flex items-center justify-between">
                     <div>
-                      <p className="text-xs font-semibold text-[var(--text-primary)]">
+                      <p className="text-xs font-bold text-neutral-900 dark:text-white">
                         {new Intl.DateTimeFormat("en-US", {
                           timeZone: attendeeTimezone,
                           hour: "numeric",
@@ -657,14 +766,14 @@ export default function PublicBookingPage({
                           hour12: true,
                         }).format(new Date(selectedSlot.startUtc))}
                       </p>
-                      <p className="text-[11px] text-[var(--text-muted)] font-mono">
+                      <p className="text-[11px] text-neutral-500 font-mono">
                         {formattedSelectedDate}
                       </p>
                     </div>
                     <button
                       type="button"
                       onClick={() => setSelectedSlot(null)}
-                      className="text-[11px] text-[var(--text-secondary)] hover:text-[var(--text-primary)] underline cursor-pointer"
+                      className="text-[11px] font-semibold text-blue-600 hover:underline cursor-pointer"
                     >
                       Change slot
                     </button>
@@ -674,7 +783,7 @@ export default function PublicBookingPage({
                   <div className="space-y-1">
                     <Label htmlFor="attendeeName">Your Name</Label>
                     <div className="relative">
-                      <User className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-[var(--text-muted)]" />
+                      <User className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-neutral-400" />
                       <Input
                         id="attendeeName"
                         value={attendeeName}
@@ -686,7 +795,7 @@ export default function PublicBookingPage({
                       />
                     </div>
                     {fieldValidationErrors.attendeeName && (
-                      <p className="text-[11px] text-[var(--status-danger-text)]">
+                      <p className="text-[11px] text-red-500">
                         {fieldValidationErrors.attendeeName}
                       </p>
                     )}
@@ -696,7 +805,7 @@ export default function PublicBookingPage({
                   <div className="space-y-1">
                     <Label htmlFor="attendeeEmail">Your Email</Label>
                     <div className="relative">
-                      <Mail className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-[var(--text-muted)]" />
+                      <Mail className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-neutral-400" />
                       <Input
                         id="attendeeEmail"
                         type="email"
@@ -709,7 +818,7 @@ export default function PublicBookingPage({
                       />
                     </div>
                     {fieldValidationErrors.attendeeEmail && (
-                      <p className="text-[11px] text-[var(--status-danger-text)]">
+                      <p className="text-[11px] text-red-500">
                         {fieldValidationErrors.attendeeEmail}
                       </p>
                     )}
@@ -720,7 +829,7 @@ export default function PublicBookingPage({
                     <div className="space-y-1">
                       <Label htmlFor="attendeePhone">Your Phone Number</Label>
                       <div className="relative">
-                        <Phone className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-[var(--text-muted)]" />
+                        <Phone className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-neutral-400" />
                         <Input
                           id="attendeePhone"
                           type="tel"
@@ -732,11 +841,11 @@ export default function PublicBookingPage({
                           aria-invalid={Boolean(fieldValidationErrors.attendeePhoneNumber)}
                         />
                       </div>
-                      <p className="text-[10px] text-[var(--text-muted)]">
+                      <p className="text-[10px] text-neutral-500">
                         Include country code (e.g. +14155552671). The host will dial you directly.
                       </p>
                       {fieldValidationErrors.attendeePhoneNumber && (
-                        <p className="text-[11px] text-[var(--status-danger-text)]">
+                        <p className="text-[11px] text-red-500">
                           {fieldValidationErrors.attendeePhoneNumber}
                         </p>
                       )}
@@ -745,7 +854,7 @@ export default function PublicBookingPage({
 
                   {/* Custom Questions */}
                   {eventDetails.customQuestions && eventDetails.customQuestions.length > 0 && (
-                    <div className="space-y-3 pt-2 border-t border-[var(--border-subtle)]">
+                    <div className="space-y-3 pt-2 border-t border-neutral-200 dark:border-neutral-800">
                       {eventDetails.customQuestions.map((q) => {
                         const val = customAnswers[q.id];
 
@@ -798,7 +907,7 @@ export default function PublicBookingPage({
                                 value={typeof val === "string" ? val : ""}
                                 onChange={(e) => setCustomAnswer(q.id, e.target.value)}
                                 required={q.required}
-                                className="w-full h-9 rounded-md border border-neutral-300 bg-white px-3 py-1 text-xs text-neutral-900 shadow-xs focus:border-neutral-900 focus:outline-none dark:bg-neutral-950 dark:border-neutral-800 dark:text-neutral-100"
+                                className="w-full h-9 rounded-md border border-neutral-300 bg-white px-3 py-1 text-xs text-neutral-900 shadow-xs focus:border-blue-600 focus:outline-none dark:bg-neutral-950 dark:border-neutral-800 dark:text-neutral-100"
                               >
                                 <option value="">Select an option...</option>
                                 {q.options.map((opt) => (
@@ -821,9 +930,9 @@ export default function PublicBookingPage({
                                   checked={Boolean(val)}
                                   onChange={(e) => setCustomAnswer(q.id, e.target.checked)}
                                   required={q.required}
-                                  className="mt-0.5 rounded border-neutral-300 text-neutral-900 focus:ring-neutral-900 h-4 w-4"
+                                  className="mt-0.5 rounded border-neutral-300 text-blue-600 focus:ring-blue-600 h-4 w-4"
                                 />
-                                <span className="text-xs text-[var(--text-primary)] leading-tight">
+                                <span className="text-xs text-neutral-900 dark:text-neutral-100 leading-tight">
                                   {q.label}{" "}
                                   {q.required && <span className="text-red-500">*</span>}
                                 </span>
@@ -849,7 +958,7 @@ export default function PublicBookingPage({
                     />
                   </div>
 
-                  <Button type="submit" disabled={isSubmitting} className="w-full mt-2 gap-2">
+                  <Button type="submit" disabled={isSubmitting} className="w-full mt-2 gap-2 bg-blue-600 hover:bg-blue-700 text-white">
                     {isSubmitting ? (
                       <>
                         <Spinner size="sm" />
@@ -866,14 +975,14 @@ export default function PublicBookingPage({
         </div>
       </main>
 
-      <footer className="border-t border-[var(--border-subtle)] bg-[var(--bg-surface)] py-6 text-center mt-12">
+      <footer className="py-6 text-center">
         <Link
           href="/"
-          className="inline-flex items-center gap-1.5 text-xs text-[var(--text-muted)] hover:text-[var(--text-primary)] transition-colors duration-150"
+          className="inline-flex items-center gap-1.5 text-xs text-neutral-400 hover:text-neutral-700 dark:hover:text-neutral-200 transition-colors duration-150"
         >
           <span>Powered by</span>
           <Logo className="h-4 w-4" />
-          <span className="font-semibold text-[var(--text-secondary)]">Sched</span>
+          <span className="font-semibold text-neutral-600 dark:text-neutral-300">Sched</span>
         </Link>
       </footer>
     </div>
