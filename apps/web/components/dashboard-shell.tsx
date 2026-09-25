@@ -20,8 +20,6 @@ import {
   X,
   ChevronsLeft,
   ChevronsRight,
-  Sparkles,
-  UserPlus,
   CreditCard,
   Sliders,
 } from "lucide-react";
@@ -270,7 +268,7 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
               {isMobileMenuOpen ? <X className="h-4 w-4" /> : <Menu className="h-4 w-4" />}
             </button>
             <Link href="/dashboard" className="flex items-center gap-2">
-              <Logo className="h-6 w-6" />
+              <Logo className="h-7 w-7" />
               <span className="font-bold tracking-tight text-[var(--text-primary)] text-base">Sched</span>
             </Link>
           </div>
@@ -318,11 +316,11 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
           {/* Top Section: Logo & Toggle Button + Create CTA */}
           <div className={`flex flex-col flex-1 overflow-y-auto ${isCollapsed ? "px-2" : "px-4"} py-4 transition-[padding] duration-500`}>
             {/* Logo Row + Collapse Button */}
-            <div className={`flex items-center ${isCollapsed ? "justify-center" : "justify-between"} mb-5 px-1 min-h-[32px]`}>
+            <div className={`flex items-center ${isCollapsed ? "justify-center" : "justify-between"} mb-5 px-1 min-h-[40px]`}>
               <Link href="/dashboard" className="flex items-center gap-2.5 group">
-                <Logo className="h-7 w-7 transition-transform duration-150 group-hover:scale-105 shrink-0" />
+                <Logo className="h-10 w-10 transition-transform duration-150 group-hover:scale-105 shrink-0" />
                 {!isCollapsed && (
-                  <span className="font-bold tracking-tight text-[var(--text-primary)] text-lg whitespace-nowrap overflow-hidden transition-all duration-300">
+                  <span className="font-bold tracking-tight text-[var(--text-primary)] text-xl whitespace-nowrap overflow-hidden transition-all duration-300">
                     Sched
                   </span>
                 )}
@@ -358,7 +356,7 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
                   <Button
                     asChild
                     size="icon"
-                    className="h-11 w-11 rounded-full border border-neutral-300 bg-white text-neutral-800 hover:bg-neutral-50 shadow-2xs hover:border-neutral-400 transition-all cursor-pointer"
+                    className="h-10 w-10 rounded-full border border-neutral-300 bg-white text-neutral-800 hover:bg-neutral-50 shadow-2xs hover:border-neutral-400 transition-all cursor-pointer"
                     title="Create Event Type"
                   >
                     <Link href="/dashboard/event-types/new">
@@ -485,81 +483,65 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
               })}
             </nav>
           </div>
+        </aside>
 
-          {/* Bottom Profile Area */}
-          <div className={`border-t border-[var(--border-subtle)] bg-[var(--bg-surface)] ${isCollapsed ? "p-1.5" : "p-3"} transition-[padding] duration-300`}>
-            {!isCollapsed && user.timezone && (
-              <div className="flex items-center justify-between px-2.5 py-1 mb-1.5 rounded-lg bg-[var(--bg-subtle)] text-[11px] text-[var(--text-secondary)]">
-                <div className="flex items-center gap-1.5 truncate">
-                  <Globe className="h-3 w-3 text-[var(--text-muted)] shrink-0" />
-                  <span className="truncate font-mono text-[10px]">{user.timezone}</span>
-                </div>
+        {/* Main Content Area */}
+        <div className="flex-1 min-w-0 flex flex-col min-h-screen bg-[var(--bg-canvas)]">
+          {/* Top Bar with User Profile Dropdown */}
+          <header className="hidden md:flex h-14 items-center justify-end border-b border-[var(--border-subtle)] bg-[var(--bg-surface)] px-8 gap-4">
+            {/* Host Local Time & Timezone Pill */}
+            {user.timezone && (
+              <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-[var(--bg-subtle)] text-xs text-[var(--text-secondary)] border border-[var(--border-subtle)]">
+                <Globe className="h-3.5 w-3.5 text-[var(--text-muted)] shrink-0" />
+                <span className="font-mono text-[11px]">{user.timezone}</span>
                 {currentTime && (
-                  <span className="font-mono font-medium text-[var(--text-primary)] tabular-nums shrink-0 text-[10px]">
+                  <span className="font-mono font-medium text-[var(--text-primary)] tabular-nums pl-1 border-l border-[var(--border-subtle)]">
                     {currentTime}
                   </span>
                 )}
               </div>
             )}
 
-            {/* Profile Dropdown */}
+            {/* User Profile Dropdown Menu in Top Navbar */}
             <div className="relative" ref={dropdownRef}>
               <button
                 type="button"
                 onClick={() => setIsDropdownOpen((prev) => !prev)}
-                className={`flex w-full items-center ${
-                  isCollapsed ? "justify-center p-1.5" : "justify-between p-2"
-                } rounded-xl hover:bg-[var(--bg-subtle)] transition-colors cursor-pointer text-left`}
-                title={`${user.name} (@${user.username})`}
+                className="flex items-center gap-2 rounded-full p-1 pl-2 hover:bg-[var(--bg-subtle)] border border-transparent hover:border-[var(--border-subtle)] transition-all cursor-pointer"
+                aria-expanded={isDropdownOpen}
+                aria-label="User account menu"
               >
-                <div className="flex items-center gap-2.5 min-w-0">
-                  <div className="relative shrink-0">
-                    <div className="flex h-7 w-7 items-center justify-center rounded-full bg-blue-600 text-white text-[11px] font-bold select-none shadow-2xs">
-                      {user.name.charAt(0).toUpperCase()}
-                    </div>
-                    <span className="absolute bottom-0 right-0 h-2 w-2 rounded-full bg-emerald-500 ring-2 ring-white" />
+                <div className="relative">
+                  <div className="flex h-7 w-7 items-center justify-center rounded-full bg-blue-600 text-white text-[11px] font-bold select-none shadow-2xs">
+                    {user.name.charAt(0).toUpperCase()}
                   </div>
-                  {!isCollapsed && (
-                    <div className="min-w-0 flex-1">
-                      <p className="truncate text-xs font-semibold text-neutral-900 leading-tight">
-                        {user.name}
-                      </p>
-                      <p className="truncate text-[10px] font-mono text-neutral-500">
-                        @{user.username}
-                      </p>
-                    </div>
-                  )}
+                  <span className="absolute bottom-0 right-0 h-2 w-2 rounded-full bg-emerald-500 ring-2 ring-white" />
                 </div>
-                {!isCollapsed && (
-                  <ChevronDown
-                    className={`h-3.5 w-3.5 text-neutral-400 shrink-0 transition-transform duration-150 ${
-                      isDropdownOpen ? "rotate-180" : ""
-                    }`}
-                  />
-                )}
+                <ChevronDown
+                  className={`h-3.5 w-3.5 text-neutral-500 transition-transform duration-150 ${
+                    isDropdownOpen ? "rotate-180" : ""
+                  }`}
+                />
               </button>
 
-              {/* User Dropdown Menu */}
+              {/* User Dropdown Menu Card */}
               {isDropdownOpen && (
-                <div
-                  className={`absolute bottom-full mb-2 ${
-                    isCollapsed ? "left-0 w-60" : "left-0 w-full"
-                  } rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-surface)] p-2 shadow-xl z-50 animate-in fade-in-0 zoom-in-95 duration-150`}
-                >
-                  <div className="p-2 border-b border-[var(--border-subtle)] mb-1">
+                <div className="absolute right-0 mt-2 w-72 rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-surface)] p-2 shadow-xl z-50 animate-in fade-in-0 zoom-in-95 duration-150">
+                  <div className="p-2.5 rounded-lg bg-[var(--bg-subtle)] border border-[var(--border-subtle)] mb-1">
                     <p className="text-xs font-semibold text-neutral-900 truncate">{user.name}</p>
-                    <p className="text-[11px] text-neutral-500 truncate">{user.email}</p>
+                    <p className="text-[11px] font-mono text-neutral-500 truncate">@{user.username}</p>
+                    <p className="text-[10px] text-neutral-400 truncate">{user.email}</p>
                   </div>
 
                   <Link
                     href={`/public/${user.username}`}
                     target="_blank"
                     onClick={() => setIsDropdownOpen(false)}
-                    className="flex items-center justify-between rounded-lg px-2.5 py-1.5 text-xs font-medium text-neutral-700 hover:bg-[var(--bg-subtle)] hover:text-neutral-900 transition-colors"
+                    className="flex items-center justify-between rounded-lg px-2.5 py-2 text-xs font-medium text-neutral-700 hover:bg-[var(--bg-subtle)] hover:text-neutral-900 transition-colors"
                   >
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-2.5">
                       <UserIcon className="h-3.5 w-3.5 text-neutral-500" />
-                      <span>View Public Page</span>
+                      <span>Public Booking Profile</span>
                     </div>
                     <ExternalLink className="h-3 w-3 text-neutral-400" />
                   </Link>
@@ -567,7 +549,7 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
                   <Link
                     href="/dashboard/settings"
                     onClick={() => setIsDropdownOpen(false)}
-                    className="flex items-center gap-2 rounded-lg px-2.5 py-1.5 text-xs font-medium text-neutral-700 hover:bg-[var(--bg-subtle)] hover:text-neutral-900 transition-colors"
+                    className="flex items-center gap-2.5 rounded-lg px-2.5 py-2 text-xs font-medium text-neutral-700 hover:bg-[var(--bg-subtle)] hover:text-neutral-900 transition-colors"
                   >
                     <Settings className="h-3.5 w-3.5 text-neutral-500" />
                     <span>Account Settings</span>
@@ -581,46 +563,13 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
                       setIsDropdownOpen(false);
                       void logout();
                     }}
-                    className="flex w-full items-center gap-2 rounded-lg px-2.5 py-1.5 text-xs font-medium text-rose-600 hover:bg-rose-50 transition-colors cursor-pointer"
+                    className="flex w-full items-center gap-2.5 rounded-lg px-2.5 py-2 text-xs font-medium text-rose-600 hover:bg-rose-50 transition-colors cursor-pointer"
                   >
                     <LogOut className="h-3.5 w-3.5" />
                     <span>Sign out</span>
                   </button>
                 </div>
               )}
-            </div>
-          </div>
-        </aside>
-
-        {/* Main Content Area */}
-        <div className="flex-1 min-w-0 flex flex-col min-h-screen bg-[var(--bg-canvas)]">
-          {/* Top Bar (Calendly Style with AI Assistant Pill and User Quick Menu) */}
-          <header className="hidden md:flex h-14 items-center justify-end border-b border-[var(--border-subtle)] bg-[var(--bg-surface)] px-8 gap-3">
-            {/* AI Assistant Pill (Ask Callie Style) */}
-            <button
-              type="button"
-              className="inline-flex items-center gap-1.5 rounded-full border border-purple-200 bg-gradient-to-r from-purple-50 to-pink-50 px-3 py-1 text-xs font-medium text-purple-900 shadow-2xs hover:from-purple-100 hover:to-pink-100 transition-all cursor-pointer"
-              title="AI Assistant"
-            >
-              <Sparkles className="h-3.5 w-3.5 text-purple-600" />
-              <span>Ask AI</span>
-            </button>
-
-            {/* Invite / Add Member Icon */}
-            <button
-              type="button"
-              className="flex h-8 w-8 items-center justify-center rounded-full text-neutral-500 hover:bg-neutral-100 hover:text-neutral-800 transition-colors"
-              title="Invite members"
-            >
-              <UserPlus className="h-4 w-4" />
-            </button>
-
-            {/* Quick Profile Avatar Pill */}
-            <div className="flex items-center gap-1.5 pl-1">
-              <div className="flex h-7 w-7 items-center justify-center rounded-full bg-blue-600 text-white text-[11px] font-bold select-none">
-                {user.name.charAt(0).toUpperCase()}
-              </div>
-              <ChevronDown className="h-3 w-3 text-neutral-400" />
             </div>
           </header>
 
