@@ -298,37 +298,48 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
 
         {/* Dynamic Collapsible Sidebar Navigation */}
         <aside
-          className={`fixed inset-y-0 left-0 z-50 flex flex-col justify-between border-r border-[var(--border-subtle)] bg-[var(--bg-surface)] transition-all duration-200 ease-in-out md:static md:translate-x-0 ${
-            isMobileMenuOpen ? "translate-x-0 w-[230px]" : "-translate-x-full md:translate-x-0"
-          } ${isCollapsed ? "md:w-[72px]" : "md:w-[230px]"}`}
+          className={`fixed inset-y-0 left-0 z-50 flex flex-col justify-between border-r border-[var(--border-subtle)] bg-[var(--bg-surface)] transition-[width,transform] duration-300 ease-in-out md:static md:translate-x-0 relative ${
+            isMobileMenuOpen ? "translate-x-0 w-[240px]" : "-translate-x-full md:translate-x-0"
+          } ${isCollapsed ? "md:w-[76px]" : "md:w-[240px]"}`}
         >
+          {/* Floating Expand Button on Right Border (When Collapsed) */}
+          {isCollapsed && (
+            <button
+              type="button"
+              onClick={toggleSidebar}
+              className="hidden md:flex absolute -right-4 top-3.5 z-50 h-8 w-8 items-center justify-center rounded-full border border-neutral-200 bg-white shadow-md text-neutral-900 hover:bg-neutral-50 hover:scale-110 active:scale-95 transition-all cursor-pointer"
+              title="Expand sidebar"
+              aria-label="Expand sidebar"
+            >
+              <ChevronsRight className="h-4 w-4 stroke-[2.5] text-neutral-800" />
+            </button>
+          )}
+
           {/* Top Section: Logo & Toggle Button + Create CTA */}
-          <div className="flex flex-col flex-1 overflow-y-auto px-3 py-4">
-            {/* Logo Row + Collapse/Expand Button */}
-            <div className={`flex items-center ${isCollapsed ? "justify-center" : "justify-between"} mb-5 px-1`}>
+          <div className={`flex flex-col flex-1 overflow-y-auto ${isCollapsed ? "px-2" : "px-4"} py-4 transition-[padding] duration-300`}>
+            {/* Logo Row + Collapse Button */}
+            <div className={`flex items-center ${isCollapsed ? "justify-center" : "justify-between"} mb-5 px-1 min-h-[32px]`}>
               <Link href="/dashboard" className="flex items-center gap-2.5 group">
                 <Logo className="h-7 w-7 transition-transform duration-150 group-hover:scale-105 shrink-0" />
                 {!isCollapsed && (
-                  <span className="font-bold tracking-tight text-[var(--text-primary)] text-lg">
+                  <span className="font-bold tracking-tight text-[var(--text-primary)] text-lg whitespace-nowrap overflow-hidden transition-all duration-200">
                     Sched
                   </span>
                 )}
               </Link>
 
-              {/* Desktop Collapse / Expand Double Chevron Toggle */}
-              <button
-                type="button"
-                onClick={toggleSidebar}
-                className="hidden md:flex h-7 w-7 items-center justify-center rounded-lg text-[var(--text-muted)] hover:bg-[var(--bg-subtle)] hover:text-[var(--text-primary)] transition-colors cursor-pointer"
-                title={isCollapsed ? "Expand sidebar" : "Collapse sidebar"}
-                aria-label={isCollapsed ? "Expand sidebar" : "Collapse sidebar"}
-              >
-                {isCollapsed ? (
-                  <ChevronsRight className="h-4 w-4 stroke-[2.5]" />
-                ) : (
+              {/* Desktop Collapse Button (When Expanded) */}
+              {!isCollapsed && (
+                <button
+                  type="button"
+                  onClick={toggleSidebar}
+                  className="hidden md:flex h-7 w-7 items-center justify-center rounded-lg text-[var(--text-muted)] hover:bg-[var(--bg-subtle)] hover:text-[var(--text-primary)] transition-colors cursor-pointer"
+                  title="Collapse sidebar"
+                  aria-label="Collapse sidebar"
+                >
                   <ChevronsLeft className="h-4 w-4 stroke-[2.5]" />
-                )}
-              </button>
+                </button>
+              )}
 
               {/* Mobile Close Button */}
               <button
@@ -347,7 +358,7 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
                   <Button
                     asChild
                     size="icon"
-                    className="h-10 w-10 rounded-full border border-neutral-300 bg-white text-neutral-800 hover:bg-neutral-50 shadow-2xs hover:border-neutral-400 transition-all"
+                    className="h-11 w-11 rounded-full border border-neutral-300 bg-white text-neutral-800 hover:bg-neutral-50 shadow-2xs hover:border-neutral-400 transition-all cursor-pointer"
                     title="Create Event Type"
                   >
                     <Link href="/dashboard/event-types/new">
@@ -363,7 +374,7 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
                 >
                   <Link href="/dashboard/event-types/new">
                     <Plus className="h-4 w-4 stroke-[2.5]" />
-                    <span>Create</span>
+                    <span className="whitespace-nowrap">Create</span>
                   </Link>
                 </Button>
               )}
@@ -380,7 +391,7 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
                       href={item.href}
                       className={`flex flex-col items-center justify-center py-2.5 px-1 rounded-xl text-center transition-all ${
                         item.active
-                          ? "bg-blue-50 text-blue-600 font-semibold"
+                          ? "bg-blue-50 text-blue-600 font-semibold shadow-2xs"
                           : "text-neutral-600 hover:bg-[var(--bg-subtle)] hover:text-neutral-900"
                       }`}
                       title={item.label}
@@ -395,7 +406,7 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
                   <Link
                     key={item.label}
                     href={item.href}
-                    className={`flex items-center gap-3 rounded-xl px-3 py-2.5 text-xs font-medium transition-[background-color,color] duration-150 ${
+                    className={`flex items-center gap-3 rounded-xl px-3.5 py-2.5 text-xs font-medium transition-[background-color,color] duration-150 ${
                       item.active
                         ? "bg-blue-50 text-blue-600 font-semibold"
                         : "text-neutral-600 hover:bg-[var(--bg-subtle)] hover:text-neutral-900"
@@ -406,7 +417,7 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
                         item.active ? "text-blue-600" : "text-neutral-500"
                       }`}
                     />
-                    <span>{item.label}</span>
+                    <span className="whitespace-nowrap overflow-hidden text-ellipsis">{item.label}</span>
                   </Link>
                 );
               })}
@@ -421,10 +432,10 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
               {!isCollapsed ? (
                 <Link
                   href="/dashboard/settings"
-                  className="flex items-center gap-3 rounded-full border border-neutral-200 px-3 py-2 text-xs font-medium text-neutral-700 hover:bg-neutral-50 hover:border-neutral-300 transition-colors mb-2"
+                  className="flex items-center gap-3 rounded-full border border-neutral-200 px-3.5 py-2 text-xs font-medium text-neutral-700 hover:bg-neutral-50 hover:border-neutral-300 transition-colors mb-2"
                 >
                   <CreditCard className="h-4 w-4 text-neutral-500 shrink-0" />
-                  <span>Upgrade plan</span>
+                  <span className="whitespace-nowrap">Upgrade plan</span>
                 </Link>
               ) : (
                 <Link
@@ -461,14 +472,14 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
                   <Link
                     key={item.label}
                     href={item.href}
-                    className={`flex items-center gap-3 rounded-xl px-3 py-2 text-xs font-medium transition-colors ${
+                    className={`flex items-center gap-3 rounded-xl px-3.5 py-2 text-xs font-medium transition-colors ${
                       item.active
                         ? "bg-blue-50 text-blue-600 font-semibold"
                         : "text-neutral-600 hover:bg-[var(--bg-subtle)] hover:text-neutral-900"
                     }`}
                   >
                     <Icon className={`h-4 w-4 shrink-0 ${item.active ? "text-blue-600" : "text-neutral-500"}`} />
-                    <span>{item.label}</span>
+                    <span className="whitespace-nowrap overflow-hidden text-ellipsis">{item.label}</span>
                   </Link>
                 );
               })}
@@ -476,7 +487,7 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
           </div>
 
           {/* Bottom Profile Area */}
-          <div className="border-t border-[var(--border-subtle)] bg-[var(--bg-surface)] p-2">
+          <div className={`border-t border-[var(--border-subtle)] bg-[var(--bg-surface)] ${isCollapsed ? "p-1.5" : "p-3"} transition-[padding] duration-300`}>
             {!isCollapsed && user.timezone && (
               <div className="flex items-center justify-between px-2.5 py-1 mb-1.5 rounded-lg bg-[var(--bg-subtle)] text-[11px] text-[var(--text-secondary)]">
                 <div className="flex items-center gap-1.5 truncate">
