@@ -298,7 +298,7 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
 
         {/* Dynamic Collapsible Sidebar Navigation */}
         <aside
-          className={`fixed inset-y-0 left-0 z-50 flex flex-col justify-between border-r border-[var(--border-subtle)] bg-[var(--bg-surface)] transition-[width,transform] duration-300 ease-in-out md:static md:translate-x-0 relative ${
+          className={`fixed inset-y-0 left-0 z-50 flex flex-col justify-between border-r border-[var(--border-subtle)] bg-[var(--bg-surface)] transition-[width,transform] duration-500 ease-in-out md:static md:translate-x-0 relative ${
             isMobileMenuOpen ? "translate-x-0 w-[240px]" : "-translate-x-full md:translate-x-0"
           } ${isCollapsed ? "md:w-[76px]" : "md:w-[240px]"}`}
         >
@@ -316,24 +316,24 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
           )}
 
           {/* Top Section: Logo & Toggle Button + Create CTA */}
-          <div className={`flex flex-col flex-1 overflow-y-auto ${isCollapsed ? "px-2" : "px-4"} py-4 transition-[padding] duration-300`}>
+          <div className={`flex flex-col flex-1 overflow-y-auto ${isCollapsed ? "px-2" : "px-4"} py-4 transition-[padding] duration-500`}>
             {/* Logo Row + Collapse Button */}
             <div className={`flex items-center ${isCollapsed ? "justify-center" : "justify-between"} mb-5 px-1 min-h-[32px]`}>
               <Link href="/dashboard" className="flex items-center gap-2.5 group">
                 <Logo className="h-7 w-7 transition-transform duration-150 group-hover:scale-105 shrink-0" />
                 {!isCollapsed && (
-                  <span className="font-bold tracking-tight text-[var(--text-primary)] text-lg whitespace-nowrap overflow-hidden transition-all duration-200">
+                  <span className="font-bold tracking-tight text-[var(--text-primary)] text-lg whitespace-nowrap overflow-hidden transition-all duration-300">
                     Sched
                   </span>
                 )}
               </Link>
 
-              {/* Desktop Collapse Button (When Expanded) */}
+              {/* Desktop Collapse Button (When Expanded) - No border, circular hover */}
               {!isCollapsed && (
                 <button
                   type="button"
                   onClick={toggleSidebar}
-                  className="hidden md:flex h-7 w-7 items-center justify-center rounded-full border border-neutral-200 bg-white shadow-xs text-neutral-800 hover:bg-neutral-50 hover:scale-105 active:scale-95 transition-all cursor-pointer"
+                  className="hidden md:flex h-7 w-7 items-center justify-center rounded-full text-neutral-500 hover:bg-neutral-100 hover:text-neutral-900 transition-colors cursor-pointer"
                   title="Collapse sidebar"
                   aria-label="Collapse sidebar"
                 >

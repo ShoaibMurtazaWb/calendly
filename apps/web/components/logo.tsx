@@ -16,9 +16,9 @@ export function Logo({ className = "h-8 w-8", size, ...props }: LogoProps) {
       className={className}
       {...props}
     >
-      {/* Outer container with subtle border */}
-      <rect width="64" height="64" rx="16" fill="#0F172A" />
-      <rect x="1" y="1" width="62" height="62" rx="15" stroke="#334155" strokeOpacity="0.6" strokeWidth="1.5" />
+      {/* Outer circular container */}
+      <circle cx="32" cy="32" r="31" fill="#0F172A" />
+      <circle cx="32" cy="32" r="30.5" stroke="#334155" strokeOpacity="0.6" strokeWidth="1.5" />
 
       {/* Calendar pins / temporal anchors at top */}
       <rect x="22" y="10" width="4" height="8" rx="2" fill="#94A3B8" />
