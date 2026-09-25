@@ -7,9 +7,11 @@ import { AppModule } from "./app.module";
 import { JSON_BODY_LIMIT } from "./shared/constants";
 import { HttpErrorFilter } from "./shared/filters/http-error.filter";
 import { RequestIdInterceptor } from "./shared/interceptors/request-id.interceptor";
+import { StructuredLoggerService } from "./shared/services/structured-logger.service";
 
 async function bootstrap(): Promise<void> {
-  const app = await NestFactory.create(AppModule, { rawBody: false });
+  const logger = new StructuredLoggerService();
+  const app = await NestFactory.create(AppModule, { rawBody: false, logger });
   const expressApp = app.getHttpAdapter().getInstance();
   if (process.env.TRUST_PROXY === "true") {
     expressApp.set("trust proxy", 1);

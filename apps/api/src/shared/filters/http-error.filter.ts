@@ -4,12 +4,12 @@ import {
   ExceptionFilter,
   HttpException,
   HttpStatus,
-  Logger,
 } from "@nestjs/common";
 import { Prisma } from "@prisma/client";
 import type { Request, Response } from "express";
 import { ZodError } from "zod";
 import { AppError } from "../errors/app-error";
+import { StructuredLoggerService } from "../services/structured-logger.service";
 
 function requestIdOf(request: Request): string {
   const header = request.header("x-request-id");
@@ -18,7 +18,7 @@ function requestIdOf(request: Request): string {
 
 @Catch()
 export class HttpErrorFilter implements ExceptionFilter {
-  private readonly logger = new Logger(HttpErrorFilter.name);
+  private readonly logger = new StructuredLoggerService();
 
   catch(exception: unknown, host: ArgumentsHost): void {
     const ctx = host.switchToHttp();
@@ -28,6 +28,12 @@ export class HttpErrorFilter implements ExceptionFilter {
 
     if (exception instanceof AppError) {
       const details = exception.details || {};
+      this.logger.warn(`AppError: ${exception.code} - ${exception.message}`, "HttpErrorFilter", {
+        code: exception.code,
+        details,
+        requestId,
+        status: exception.httpStatus,
+      });
       response.status(exception.httpStatus).json({
         error: {
           code: exception.code,
@@ -44,6 +50,10 @@ export class HttpErrorFilter implements ExceptionFilter {
     }
 
     if (exception instanceof ZodError) {
+      this.logger.warn("Validation error", "HttpErrorFilter", {
+        code: "VALIDATION_ERROR",
+        requestId,
+      });
       response.status(HttpStatus.BAD_REQUEST).json({
         error: {
           code: "VALIDATION_ERROR",
@@ -56,6 +66,10 @@ export class HttpErrorFilter implements ExceptionFilter {
 
     if (exception instanceof Prisma.PrismaClientKnownRequestError && exception.code === "P2002") {
       const conflict = mapUniqueConstraint(exception);
+      this.logger.warn("Unique constraint conflict", "HttpErrorFilter", {
+        conflict,
+        requestId,
+      });
       response.status(HttpStatus.CONFLICT).json({
         error: conflict,
       });
@@ -65,13 +79,16 @@ export class HttpErrorFilter implements ExceptionFilter {
     if (
       exception &&
       typeof exception === "object" &&
-      ("code" in exception && (exception as { code: string }).code === "23P01" ||
-       "message" in exception && (
-         String((exception as { message: string }).message).includes("23P01") ||
-         String((exception as { message: string }).message).includes("no_overlapping_confirmed_bookings") ||
-         String((exception as { message: string }).message).includes("exclusion constraint")
-       ))
+      (("code" in exception && (exception as { code: string }).code === "23P01") ||
+        ("message" in exception &&
+          (String((exception as { message: string }).message).includes("23P01") ||
+            String((exception as { message: string }).message).includes("no_overlapping_confirmed_bookings") ||
+            String((exception as { message: string }).message).includes("exclusion constraint"))))
     ) {
+      this.logger.warn("Booking slot collision caught by exclusion constraint", "HttpErrorFilter", {
+        code: "SLOT_ALREADY_BOOKED",
+        requestId,
+      });
       response.status(HttpStatus.CONFLICT).json({
         error: {
           code: "SLOT_ALREADY_BOOKED",
@@ -91,19 +108,50 @@ export class HttpErrorFilter implements ExceptionFilter {
           : payload && typeof payload === "object" && "message" in payload
             ? String((payload as { message: unknown }).message)
             : exception.message;
+
+      const code =
+        status === 429
+          ? "RATE_LIMIT_EXCEEDED"
+          : status === 401
+            ? "UNAUTHENTICATED"
+            : status === 403
+              ? "FORBIDDEN"
+              : status === 404
+                ? "NOT_FOUND"
+                : "HTTP_ERROR";
+
+      if (status >= 500) {
+        this.logger.error(
+          `HttpException ${status}: ${message}`,
+          exception.stack,
+          "HttpErrorFilter",
+          { status, code, requestId },
+        );
+      } else {
+        this.logger.warn(`HttpException ${status}: ${message}`, "HttpErrorFilter", {
+          status,
+          code,
+          requestId,
+        });
+      }
+
       response.status(status).json({
         error: {
-          code: status === 401 ? "UNAUTHENTICATED" : "HTTP_ERROR",
-          message,
+          code,
+          message: status === 429 ? "Too many requests. Please slow down." : message,
           details: {},
         },
       });
       return;
     }
 
-    this.logger.error(
-      `Unhandled error requestId=${requestId} ${exception instanceof Error ? exception.stack : String(exception)}`,
-    );
+    const errMessage = exception instanceof Error ? exception.message : String(exception);
+    const errStack = exception instanceof Error ? exception.stack : undefined;
+    this.logger.error(`Unhandled error: ${errMessage}`, errStack, "HttpErrorFilter", {
+      requestId,
+      error: { message: errMessage, stack: errStack },
+    });
+
     response.status(HttpStatus.INTERNAL_SERVER_ERROR).json({
       error: {
         code: "INTERNAL_ERROR",

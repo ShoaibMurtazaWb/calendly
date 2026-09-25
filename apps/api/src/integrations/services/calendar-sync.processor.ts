@@ -321,7 +321,7 @@ export class CalendarSyncProcessor implements OnModuleInit, OnModuleDestroy {
     await this.prisma.calendarSyncJob.update({
       where: { id: job.id },
       data: {
-        status: isExhausted ? CalendarSyncJobStatus.FAILED : CalendarSyncJobStatus.PENDING,
+        status: isExhausted ? CalendarSyncJobStatus.DEAD_LETTER : CalendarSyncJobStatus.PENDING,
         attempts,
         nextRunAt: isExhausted ? job.nextRunAt : nextRunAt,
         lockedAt: null,
@@ -338,9 +338,32 @@ export class CalendarSyncProcessor implements OnModuleInit, OnModuleDestroy {
       },
     });
 
-    this.logger.error(
-      `CalendarSyncJob ${job.id} failed (attempt ${attempts}/${job.maxAttempts}). ` +
-        (isExhausted ? "Marked as FAILED." : `Scheduled retry at ${nextRunAt.toISOString()}`)
-    );
+    if (isExhausted) {
+      this.logger.error(
+        JSON.stringify({
+          event: "WORKER_DEAD_LETTER",
+          worker: "CalendarSyncProcessor",
+          jobId: job.id,
+          bookingId: job.bookingId,
+          integrationId: job.integrationId,
+          attempts: `${attempts}/${job.maxAttempts}`,
+          error: errorMsg,
+        })
+      );
+    } else {
+      this.logger.warn(
+        JSON.stringify({
+          event: "WORKER_RETRY_SCHEDULED",
+          worker: "CalendarSyncProcessor",
+          jobId: job.id,
+          bookingId: job.bookingId,
+          integrationId: job.integrationId,
+          attempts: `${attempts}/${job.maxAttempts}`,
+          nextRetryInSeconds: Math.round(backoffMs / 1000),
+          nextRunAt: nextRunAt.toISOString(),
+          error: errorMsg,
+        })
+      );
+    }
   }
 }

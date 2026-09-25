@@ -15,6 +15,7 @@ import {
   ChevronDown,
   Globe,
   User as UserIcon,
+  Settings,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Spinner } from "@/components/ui/spinner";
@@ -140,6 +141,13 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
         active: pathname.startsWith("/dashboard/integrations"),
         disabled: false,
         icon: Puzzle,
+      },
+      {
+        label: "Settings",
+        href: "/dashboard/settings",
+        active: pathname.startsWith("/dashboard/settings"),
+        disabled: false,
+        icon: Settings,
       },
     ],
     [pathname]
@@ -306,6 +314,15 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
                       >
                         <Layers className="h-3.5 w-3.5 text-[var(--text-muted)]" />
                         <span>Event Types Dashboard</span>
+                      </Link>
+
+                      <Link
+                        href="/dashboard/settings"
+                        onClick={() => setIsDropdownOpen(false)}
+                        className="flex items-center gap-2.5 rounded-lg px-2.5 py-1.5 text-xs font-medium text-[var(--text-secondary)] hover:bg-[var(--bg-subtle)] hover:text-[var(--text-primary)] transition-colors duration-150"
+                      >
+                        <Settings className="h-3.5 w-3.5 text-[var(--text-muted)]" />
+                        <span>Account & Preferences</span>
                       </Link>
 
                       <Link

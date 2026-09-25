@@ -6,10 +6,28 @@ export type CurrentUser = {
   name: string;
   username: string;
   timezone: string;
+  avatarUrl?: string | null;
   createdAt: string;
 };
 
-import type { CustomQuestion, EventTypeLocationConfig, PublicLocationMetadata } from "@sched/api-contract";
+import type {
+  CustomQuestion,
+  EventTypeLocationConfig,
+  PublicLocationMetadata,
+  UserSettingsResponse,
+  ProfileSettings,
+  NotificationPreferences,
+  SchedulingPreferences,
+  AuditLogEntry,
+} from "@sched/api-contract";
+
+export type {
+  UserSettingsResponse,
+  ProfileSettings,
+  NotificationPreferences,
+  SchedulingPreferences,
+  AuditLogEntry,
+};
 
 export type EventType = {
   id: string;

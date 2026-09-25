@@ -4,3 +4,5 @@ export * from "./schedules";
 export * from "./bookings";
 export * from "./integrations";
 export * from "./analytics";
+export * from "./settings";
+

@@ -7,10 +7,14 @@ import { rethrowUnique } from "../shared/prisma/unique";
 import { reconcileCustomQuestions } from "../shared/utils/custom-questions-parser";
 import { parseEventTypeLocation } from "../shared/utils/location-parser";
 import { toOwnerEventType, toPublicEventType, type OwnerEventTypeResponse, type PublicEventTypeResponse } from "./event-type.types";
+import { AuditService } from "../audit/audit.service";
 
 @Injectable()
 export class EventTypesService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly audit: AuditService,
+  ) {}
 
   async list(userId: string, query: ListEventTypesQuery): Promise<OwnerEventTypeResponse[]> {
     const rows = await this.prisma.eventType.findMany({
@@ -57,6 +61,15 @@ export class EventTypesService {
           },
         },
       });
+
+      await this.audit.log({
+        userId,
+        action: "EVENT_TYPE_CREATED",
+        entityType: "EventType",
+        entityId: row.id,
+        metadata: { title: row.title, slug: row.slug, duration: row.durationMinutes },
+      });
+
       return toOwnerEventType(row);
     } catch (error) {
       rethrowUnique(error, () => {
@@ -124,6 +137,14 @@ export class EventTypesService {
           },
         },
       });
+      await this.audit.log({
+        userId,
+        action: "EVENT_TYPE_UPDATED",
+        entityType: "EventType",
+        entityId: row.id,
+        metadata: { title: row.title, slug: row.slug },
+      });
+
       return toOwnerEventType(row);
     } catch (error) {
       rethrowUnique(error, () => {
@@ -146,6 +167,15 @@ export class EventTypesService {
         },
       },
     });
+
+    await this.audit.log({
+      userId,
+      action: "EVENT_TYPE_ARCHIVED",
+      entityType: "EventType",
+      entityId: row.id,
+      metadata: { title: row.title, slug: row.slug },
+    });
+
     return toOwnerEventType(row);
   }
 
@@ -163,6 +193,15 @@ export class EventTypesService {
         },
       },
     });
+
+    await this.audit.log({
+      userId,
+      action: "EVENT_TYPE_UNARCHIVED",
+      entityType: "EventType",
+      entityId: row.id,
+      metadata: { title: row.title, slug: row.slug },
+    });
+
     return toOwnerEventType(row);
   }
 
@@ -179,6 +218,14 @@ export class EventTypesService {
     }
     await this.prisma.eventType.delete({
       where: { id: existing.id },
+    });
+
+    await this.audit.log({
+      userId,
+      action: "EVENT_TYPE_DELETED",
+      entityType: "EventType",
+      entityId: existing.id,
+      metadata: { title: existing.title, slug: existing.slug },
     });
   }
 

@@ -350,7 +350,7 @@ export class NotificationsProcessor implements OnModuleInit, OnModuleDestroy {
     await this.prisma.notificationJob.update({
       where: { id: job.id },
       data: {
-        status: isExhausted ? NotificationStatus.FAILED : NotificationStatus.PENDING,
+        status: isExhausted ? NotificationStatus.DEAD_LETTER : NotificationStatus.PENDING,
         attempts,
         nextRunAt: isExhausted ? job.nextRunAt : nextRunAt,
         lockedAt: null,
@@ -358,10 +358,32 @@ export class NotificationsProcessor implements OnModuleInit, OnModuleDestroy {
       },
     });
 
-    this.logger.error(
-      `Notification job ${job.id} failed (attempt ${attempts}/${job.maxAttempts}). ` +
-        (isExhausted ? "Max attempts exceeded; marked as FAILED." : `Scheduled retry at ${nextRunAt.toISOString()}`)
-    );
+    if (isExhausted) {
+      this.logger.error(
+        JSON.stringify({
+          event: "WORKER_DEAD_LETTER",
+          worker: "NotificationsProcessor",
+          jobId: job.id,
+          bookingId: job.bookingId,
+          recipientEmail: job.recipientEmail,
+          attempts: `${attempts}/${job.maxAttempts}`,
+          error: errorMsg,
+        })
+      );
+    } else {
+      this.logger.warn(
+        JSON.stringify({
+          event: "WORKER_RETRY_SCHEDULED",
+          worker: "NotificationsProcessor",
+          jobId: job.id,
+          bookingId: job.bookingId,
+          attempts: `${attempts}/${job.maxAttempts}`,
+          nextRetryInSeconds: Math.round(backoffMs / 1000),
+          nextRunAt: nextRunAt.toISOString(),
+          error: errorMsg,
+        })
+      );
+    }
   }
 
   private buildIcsContent(snapshot: SnapshotPayload, method: "REQUEST" | "CANCEL" = "REQUEST"): string {

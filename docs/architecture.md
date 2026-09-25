@@ -1,102 +1,96 @@
-# Architecture — Sched Platform
+# Sched Architecture & System Overview
 
-Modular monolith: Next.js frontend, NestJS backend API with background notification worker, one PostgreSQL database, unified domain contracts.
+## 1. High-Level System Architecture
 
-```text
-Browser → Next.js (apps/web :3000)
-            └── rewrite /api/v1/* → NestJS (apps/api :3001)
-                                      ├── Prisma ORM → PostgreSQL 16 (GiST exclusion constraints)
-                                      └── Background Processor (Transactional Outbox SKIP LOCKED)
+Sched is a high-performance, production-grade scheduling and calendar integration platform built on a modern TypeScript monorepo with Next.js (App Router), NestJS (Modular API), PostgreSQL with Prisma ORM, and background workers.
+
+```
+                  ┌────────────────────────────────────────────────┐
+                  │                 Next.js Frontend                │
+                  │         (App Router, Dashboard, Public)        │
+                  └───────────────────────┬────────────────────────┘
+                                          │
+                        HTTPS + Request Correlation ID
+                        (x-request-id: req_8x92hd)
+                                          │
+                                          ▼
+                  ┌────────────────────────────────────────────────┐
+                  │                 NestJS API Core                │
+                  │   ├── RequestContextMiddleware (AsyncLocal)    │
+                  │   ├── Helmet, Cookies (HttpOnly/Secure/Lax)    │
+                  │   ├── ThrottlerGuard (Rate Limiting)           │
+                  │   ├── StructuredLogger (JSON Logs)             │
+                  │   └── Global HttpErrorFilter                   │
+                  └───────┬────────────────────────┬───────────────┘
+                          │                        │
+         Transactional Persistence            Outbox Pattern
+                          │                        │
+                          ▼                        ▼
+                  ┌───────────────┐        ┌───────────────┐
+                  │  PostgreSQL   │        │ Outbox Tables │
+                  │  (b-tree/gist)│        │- Notification │
+                  └───────────────┘        │- CalendarSync │
+                                           └───────┬───────┘
+                                                   │
+                                          SKIP LOCKED Sweep
+                                                   │
+                                                   ▼
+                                           ┌───────────────┐
+                                           │ Worker Queue  │
+                                           │ ├── Resilient │
+                                           │ └── DLQ State │
+                                           └───────────────┘
 ```
 
-## Why this shape
+---
 
-- **NestJS** owns identity, authentication, authorization, validation, scheduling logic, and persistence.
-- **Next.js** acts as the browser origin. Rewriting `/api/v1` to NestJS keeps session cookies host-only and `SameSite=Lax`.
-- **Prisma + PostgreSQL** live in `apps/api` with engine-level GiST exclusion constraints preventing double bookings.
-- **Background Worker** claims notification jobs asynchronously using PostgreSQL `FOR UPDATE SKIP LOCKED` inside atomic CTEs.
+## 2. Request Correlation & Observability
 
-## Nest Modules
+Every incoming HTTP request is assigned a unique Correlation ID (`req_<hex>` or forwarded `x-request-id`). 
 
-| Module | Owns | Must not own |
-|---|---|---|
-| **Identity** | User records, uniqueness of email/username | Cookies, session state |
-| **Auth** | Password verification (Argon2id/bcrypt), sessions, cookies, guards, auth throttling | Event-type or scheduling rules |
-| **Event Types** | CRUD, slugs, durations, notice/buffer rules, public event projections | Slot calculation, booking state |
-| **Schedules** | Weekly recurring hours, split shifts, date overrides, timezone-aware slot engine | Booking persistence |
-| **Bookings** | Booking lifecycle (`CONFIRMED`, `CANCELLED`), concurrency locks, cancellation metadata | Email delivery mechanics |
-| **Notifications** | Transactional outbox, `SKIP LOCKED` worker, email providers (`Dev`/`SMTP`), ICS generation | Booking business logic |
-| **Shared** | Prisma, config, filters, Zod pipe, request ids, HTML escaping, security | Feature rules |
+1. **Propagation**: Handled through Node.js `AsyncLocalStorage` in `RequestContext`.
+2. **Context Enrichment**: All service invocations, database operations, structured log statements, and outbox job payloads automatically capture the active `requestId` and `userId`.
+3. **Structured Logs**:
+   ```json
+   {
+     "timestamp": "2026-09-24T22:30:00.000Z",
+     "level": "info",
+     "event": "BOOKING_CREATED",
+     "bookingId": "c56a4180-65aa-42ec-a945-5fd21dec0538",
+     "userId": "93b2a249-1db7-4c7a-8f1d-bca7fa1dbb4e",
+     "durationMs": 118,
+     "duration": "118ms",
+     "requestId": "req_8x92hd",
+     "context": "Event"
+   }
+   ```
 
-Controllers parse HTTP and map DTOs. Application services enforce domain rules and persistence transactions.
+---
 
-## Shared Contract
+## 3. Database Design & Relational Model
 
-`packages/api-contract` holds Zod schemas and inferred TypeScript types. Nest validates at the HTTP boundary with those schemas. The web app reuses them for forms and API client calls. The server remains authoritative.
+The PostgreSQL database enforces relational integrity, optimistic locking, and mathematical concurrency constraints.
 
-## Persistence & Concurrency Invariants
+### Core Tables & Indexes:
+- `users`: Core identity, password hash (Argon2id), notification preferences, scheduling defaults, and avatar URL.
+- `event_types`: Meeting definitions (duration, buffer before/after, minimum notice, location type, custom questions).
+  - Indexes: `[userId, slug]` (unique), `[userId, archivedAt]`.
+- `schedules`: Weekly recurring availability and date overrides.
+- `bookings`: Active and past reservations.
+  - Multi-column index: `[hostId, startTime, status]`, `[eventTypeId, startTime, status]`.
+  - Date & status indexes: `[hostId, status, createdAt]`, `[startTime]`, `[status]`, `[createdAt]`.
+  - GiST exclusion constraint: `no_overlapping_confirmed_bookings` preventing physical double-booking at the database engine level.
+- `audit_logs`: Enterprise-grade audit trail with indexed querying `[userId, createdAt]` and `[entityType, entityId]`.
+- `notification_jobs`: Transactional outbox table for email notifications with retry counts, next run time, and `DEAD_LETTER` state.
+- `calendar_sync_jobs`: Outbox table for two-way Google Calendar synchronization with retry counts and `DEAD_LETTER` state.
 
-PostgreSQL 16 with native extensions:
-- **`citext`**: Case-insensitive email uniqueness.
-- **`btree_gist`**: GiST exclusion constraint on `bookings` table:
-  ```sql
-  ALTER TABLE bookings
-  ADD CONSTRAINT no_overlapping_confirmed_bookings
-  EXCLUDE USING gist (
-    host_id WITH =,
-    tstzrange(start_time, end_time) WITH &&
-  )
-  WHERE (status = 'CONFIRMED');
-  ```
-  This mathematically prevents overlapping confirmed appointments for the same host regardless of transaction isolation levels.
-- **Timestamps**: Strictly `timestamptz(6)` in UTC.
-- **Timezones**: Validated IANA identifiers.
+---
 
-## Transactional Outbox Pattern
+## 4. Worker Architecture & Dead-Letter Handling
 
-All state-changing booking operations (`createBooking`, `cancelBooking`) write business records and `NotificationJob` rows in the exact same database transaction.
+Background processors run independently of the synchronous HTTP request path using the Transactional Outbox pattern:
 
-```sql
-WITH claimed AS (
-  SELECT id FROM notification_jobs
-  WHERE status = 'PENDING'::"NotificationStatus" AND next_run_at <= NOW()
-  ORDER BY next_run_at ASC
-  LIMIT 10
-  FOR UPDATE SKIP LOCKED
-)
-UPDATE notification_jobs
-SET status = 'PROCESSING'::"NotificationStatus", locked_at = NOW()
-WHERE id IN (SELECT id FROM claimed)
-RETURNING *;
-```
-
-- **Stale Lock Sweeper**: Automatically resets abandoned `PROCESSING` jobs (`lockedAt < NOW() - 5m`) back to `PENDING`.
-- **Idempotency**: Deterministic keys (`booking:${id}:confirmed:attendee`) prevent duplicate emails.
-- **HTML Sanitization**: Untrusted user inputs (`attendeeName`, `attendeeNotes`, `cancellationReason`) are escaped at the template rendering boundary without mutating stored domain values.
-
-## Rate Limiting & Proxy Semantics
-
-- Protected via `@nestjs/throttler` with `ThrottlerGuard`.
-- In-memory fixed-window counter per IP (e.g. 10 booking requests/min, 60 slot requests/min).
-- `TRUST_PROXY=true` configures Express `trust proxy: 1` to inspect `X-Forwarded-For` from reverse proxies.
-- *Note for Multi-Instance Deployments*: The current in-memory store is instance-local. When horizontally scaling the API across multiple nodes, a shared Redis store or edge proxy rate limiter (e.g., Cloudflare) must be configured.
-
-## AuthN / AuthZ
-
-- Opaque 32-byte session token in `HttpOnly`, `SameSite=Lax` cookie (`sched_session`).
-- SHA-256 hash stored in `sessions.token_hash`.
-- User-scoped queries prevent cross-user existence leaks (returns 404).
-
-## Errors
-
-Standard JSON error envelope:
-```json
-{
-  "error": {
-    "code": "SLOT_ALREADY_BOOKED",
-    "message": "This time slot has already been booked by someone else.",
-    "details": {}
-  }
-}
-```
-Exclusion constraint failures (`23P01`) normalize deterministically to `409 Conflict` (`SLOT_ALREADY_BOOKED`).
+1. **Transactional Enqueue**: During booking creation/cancellation/rescheduling, notification and sync jobs are created inside the same atomic database transaction as the booking.
+2. **Deterministic Claiming**: Workers use PostgreSQL `FOR UPDATE SKIP LOCKED` inside a Common Table Expression (CTE) to safely claim pending jobs across multiple worker replicas without lock contention.
+3. **Exponential Backoff**: Failed jobs are retried with exponential backoff ($2^n \times 2\text{s}$ up to 60s).
+4. **Dead Letter Queue (DLQ)**: Once `attempts >= maxAttempts`, jobs transition to `DEAD_LETTER` status rather than silently dropping, with full error logging and structured alerting.

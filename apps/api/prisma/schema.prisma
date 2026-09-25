@@ -8,20 +8,27 @@ datasource db {
 }
 
 model User {
-  id           String      @id @default(uuid()) @db.Uuid
-  email        String      @unique @db.Citext
-  passwordHash String      @map("password_hash")
-  name         String
-  username     String      @unique
-  timezone     String
-  createdAt    DateTime    @default(now()) @map("created_at") @db.Timestamptz(6)
-  updatedAt    DateTime    @updatedAt @map("updated_at") @db.Timestamptz(6)
-  sessions     Session[]
-  eventTypes   EventType[]
-  schedules    Schedule[]
-  bookings     Booking[]
+  id                     String                @id @default(uuid()) @db.Uuid
+  email                  String                @unique @db.Citext
+  passwordHash           String                @map("password_hash")
+  name                   String
+  username               String                @unique
+  timezone               String
+  avatarUrl              String?               @map("avatar_url")
+  emailReminders         Boolean               @default(true) @map("email_reminders")
+  bookingConfirmations   Boolean               @default(true) @map("booking_confirmations")
+  marketingEmails        Boolean               @default(false) @map("marketing_emails")
+  defaultMeetingDuration Int                   @default(30) @map("default_meeting_duration")
+  defaultBufferMinutes   Int                   @default(0) @map("default_buffer_minutes")
+  createdAt              DateTime              @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt              DateTime              @updatedAt @map("updated_at") @db.Timestamptz(6)
+  sessions               Session[]
+  eventTypes             EventType[]
+  schedules              Schedule[]
+  bookings               Booking[]
 
   calendarIntegrations CalendarIntegration[]
+  auditLogs            AuditLog[]
 
   @@map("users")
 }
@@ -136,6 +143,7 @@ enum NotificationStatus {
   SENT
   FAILED
   CANCELLED
+  DEAD_LETTER
 }
 
 enum CalendarProviderType {
@@ -159,6 +167,7 @@ enum CalendarSyncJobStatus {
   PROCESSING
   COMPLETED
   FAILED
+  DEAD_LETTER
 }
 
 model CalendarIntegration {
@@ -277,6 +286,11 @@ model Booking {
 
   @@index([hostId, startTime, status])
   @@index([eventTypeId, startTime, status])
+  @@index([hostId, status, createdAt])
+  @@index([hostId, createdAt])
+  @@index([startTime])
+  @@index([status])
+  @@index([createdAt])
   @@map("bookings")
 }
 
@@ -319,4 +333,23 @@ model NotificationJob {
   @@index([status, nextRunAt])
   @@index([bookingId])
   @@map("notification_jobs")
+}
+
+model AuditLog {
+  id         String   @id @default(uuid()) @db.Uuid
+  userId     String?  @map("user_id") @db.Uuid
+  user       User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+  action     String   // e.g. "EVENT_TYPE_CREATED", "BOOKING_CREATED", "GOOGLE_CALENDAR_CONNECTED", etc.
+  entityType String   @map("entity_type")
+  entityId   String?  @map("entity_id")
+  metadata   Json?
+  requestId  String?  @map("request_id")
+  ipAddress  String?  @map("ip_address")
+  userAgent  String?  @map("user_agent")
+  createdAt  DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  @@index([userId, createdAt])
+  @@index([entityType, entityId])
+  @@index([action, createdAt])
+  @@map("audit_logs")
 }
