@@ -333,7 +333,7 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
                 <button
                   type="button"
                   onClick={toggleSidebar}
-                  className="hidden md:flex h-7 w-7 items-center justify-center rounded-lg text-[var(--text-muted)] hover:bg-[var(--bg-subtle)] hover:text-[var(--text-primary)] transition-colors cursor-pointer"
+                  className="hidden md:flex h-7 w-7 items-center justify-center rounded-full border border-neutral-200 bg-white shadow-xs text-neutral-800 hover:bg-neutral-50 hover:scale-105 active:scale-95 transition-all cursor-pointer"
                   title="Collapse sidebar"
                   aria-label="Collapse sidebar"
                 >
