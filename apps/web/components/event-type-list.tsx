@@ -3,8 +3,6 @@
 import Link from "next/link";
 import { useEffect, useMemo, useRef, useState } from "react";
 import {
-  Clock,
-  Copy,
   Check,
   Edit2,
   Archive,
@@ -16,6 +14,10 @@ import {
   Inbox,
   ExternalLink,
   Trash2,
+  Calendar,
+  ChevronDown,
+  Info,
+  MoreVertical,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -143,269 +145,288 @@ export function EventTypeList() {
   }, [currentList, searchQuery]);
 
   return (
-    <div className="space-y-6">
-      {/* Page Header Area */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-6 border-b border-[var(--border-subtle)]">
-        <div>
-          <div className="flex items-center gap-2.5">
-            <h1 className="text-2xl font-bold tracking-tight text-[var(--text-primary)]">Event Types</h1>
-          </div>
-          <p className="mt-1 text-sm text-[var(--text-secondary)]">
-            Create and manage your personal booking links.
-          </p>
+    <div className="w-full space-y-6">
+      {/* Calendly Secondary Header Row (Directly under Top Navbar) */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div className="flex items-center gap-2">
+          <h1 className="text-2xl font-bold tracking-tight text-black">Scheduling</h1>
+          <Tooltip content="Manage your event types, booking links, and scheduling options.">
+            <Info className="h-4 w-4 text-neutral-400 cursor-pointer hover:text-neutral-700 transition-colors" />
+          </Tooltip>
         </div>
 
-        {/* Tab Switcher & Search Bar */}
-        <div className="flex flex-wrap items-center gap-3">
-          {/* Segmented Active / Archived Tab Toggle */}
-          <div className="flex items-center rounded-lg bg-[var(--bg-subtle)] p-1 border border-[var(--border-subtle)] shadow-2xs">
-            <button
-              type="button"
-              onClick={() => setTab("active")}
-              className={`flex items-center gap-2 rounded-md px-3 py-1.5 text-xs font-medium transition-[background-color,color,box-shadow] duration-150 ease-out cursor-pointer ${
-                tab === "active"
-                  ? "bg-[var(--bg-surface)] text-[var(--text-primary)] font-semibold shadow-xs"
-                  : "text-[var(--text-secondary)] hover:text-[var(--text-primary)]"
-              }`}
-            >
-              <span>Active</span>
-              <span
-                className={`rounded-full px-1.5 py-0.2 text-[10px] tabular-nums font-sans ${
-                  tab === "active"
-                    ? "bg-[var(--bg-subtle)] text-[var(--text-primary)] font-semibold"
-                    : "bg-[var(--bg-muted)] text-[var(--text-muted)]"
-                }`}
-              >
-                {activeItems.length}
-              </span>
-            </button>
-            <button
-              type="button"
-              onClick={() => setTab("archived")}
-              className={`flex items-center gap-2 rounded-md px-3 py-1.5 text-xs font-medium transition-[background-color,color,box-shadow] duration-150 ease-out cursor-pointer ${
-                tab === "archived"
-                  ? "bg-[var(--bg-surface)] text-[var(--text-primary)] font-semibold shadow-xs"
-                  : "text-[var(--text-secondary)] hover:text-[var(--text-primary)]"
-              }`}
-            >
-              <span>Archived</span>
-              <span
-                className={`rounded-full px-1.5 py-0.2 text-[10px] tabular-nums font-sans ${
-                  tab === "archived"
-                    ? "bg-[var(--bg-subtle)] text-[var(--text-primary)] font-semibold"
-                    : "bg-[var(--bg-muted)] text-[var(--text-muted)]"
-                }`}
-              >
-                {archivedItems.length}
-              </span>
-            </button>
-          </div>
+        {/* Right Header Actions: Manage Availability & Create Pill */}
+        <div className="flex items-center gap-3 shrink-0">
+          <Button
+            asChild
+            variant="outline"
+            className="rounded-full border-neutral-300 bg-white hover:bg-neutral-50 px-4 py-2 text-xs font-semibold text-neutral-800 shadow-2xs gap-2 transition-all cursor-pointer"
+          >
+            <Link href="/dashboard/availability">
+              <Calendar className="h-3.5 w-3.5 text-neutral-600" />
+              <span>Manage availability</span>
+            </Link>
+          </Button>
 
-          {/* Search Filter Input */}
-          <div className="relative min-w-[220px]">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-[var(--text-muted)]" />
-            <Input
-              ref={searchInputRef}
-              type="text"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="Filter event types..."
-              className="h-9 pl-9 pr-9 text-xs"
-            />
-            <button
-              type="button"
-              onClick={() => searchInputRef.current?.focus()}
-              className="absolute right-2.5 top-1/2 -translate-y-1/2 rounded border border-[var(--border-subtle)] bg-[var(--bg-subtle)] px-1 py-0.5 text-[10px] font-mono text-[var(--text-muted)] hover:text-[var(--text-primary)] hover:border-[var(--border-strong)] transition-colors cursor-pointer"
-              title="Focus search (⌘K or Ctrl+K)"
-            >
-              ⌘K
-            </button>
-          </div>
+          <Button
+            asChild
+            className="rounded-full bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 text-xs font-semibold shadow-2xs gap-1.5 transition-all cursor-pointer"
+          >
+            <Link href="/dashboard/event-types/new">
+              <Plus className="h-3.5 w-3.5 stroke-[2.5]" />
+              <span>Create</span>
+              <ChevronDown className="h-3 w-3" />
+            </Link>
+          </Button>
         </div>
       </div>
 
+      {/* Subtabs Bar (Calendly Style) */}
+      <div className="flex items-center gap-8 border-b border-neutral-200 text-xs font-semibold">
+        <button
+          type="button"
+          onClick={() => setTab("active")}
+          className={`pb-3 border-b-2 transition-colors cursor-pointer ${
+            tab === "active"
+              ? "border-blue-600 text-blue-600 font-bold"
+              : "border-transparent text-neutral-600 hover:text-black"
+          }`}
+        >
+          Event types ({activeItems.length})
+        </button>
+
+        <button
+          type="button"
+          onClick={() => setTab("archived")}
+          className={`pb-3 border-b-2 transition-colors cursor-pointer ${
+            tab === "archived"
+              ? "border-blue-600 text-blue-600 font-bold"
+              : "border-transparent text-neutral-600 hover:text-black"
+          }`}
+        >
+          Archived ({archivedItems.length})
+        </button>
+
+        <button
+          type="button"
+          disabled
+          className="pb-3 border-b-2 border-transparent text-neutral-400 cursor-not-allowed hidden sm:inline-flex items-center gap-1.5"
+        >
+          <span>Single-use links</span>
+          <span className="text-[9px] uppercase px-1 py-0.2 rounded bg-neutral-100 text-neutral-400">Soon</span>
+        </button>
+
+        <button
+          type="button"
+          disabled
+          className="pb-3 border-b-2 border-transparent text-neutral-400 cursor-not-allowed hidden sm:inline-flex items-center gap-1.5"
+        >
+          <span>Meeting polls</span>
+          <span className="text-[9px] uppercase px-1 py-0.2 rounded bg-neutral-100 text-neutral-400">Soon</span>
+        </button>
+      </div>
+
+      {/* Search Bar Input */}
+      <div className="max-w-md relative">
+        <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-neutral-400" />
+        <Input
+          ref={searchInputRef}
+          type="text"
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
+          placeholder="Search event types"
+          className="h-10 pl-10 pr-9 rounded-xl border-neutral-200 bg-white text-xs shadow-2xs focus:border-neutral-400"
+        />
+        <button
+          type="button"
+          onClick={() => searchInputRef.current?.focus()}
+          className="absolute right-2.5 top-1/2 -translate-y-1/2 rounded border border-neutral-200 bg-neutral-50 px-1 py-0.5 text-[10px] font-mono text-neutral-500 hover:text-black transition-colors cursor-pointer"
+          title="Focus search (⌘K or Ctrl+K)"
+        >
+          ⌘K
+        </button>
+      </div>
+
+      {/* Host User Identity Strip (Calendly Style) */}
+      {user && (
+        <div className="flex items-center justify-between py-1 px-1">
+          <div className="flex items-center gap-2.5">
+            <div className="flex h-6 w-6 items-center justify-center rounded-full bg-blue-100 text-blue-700 text-[11px] font-bold select-none">
+              {user.name.charAt(0).toUpperCase()}
+            </div>
+            <span className="text-xs font-bold text-black">{user.name}</span>
+          </div>
+
+          <div className="flex items-center gap-3">
+            <Link
+              href={`/public/${user.username}`}
+              target="_blank"
+              className="text-xs font-semibold text-blue-600 hover:underline flex items-center gap-1"
+            >
+              <span>View landing page</span>
+              <ExternalLink className="h-3 w-3" />
+            </Link>
+            <button
+              type="button"
+              className="text-neutral-400 hover:text-neutral-700 p-1 rounded-md transition-colors"
+              title="More options"
+            >
+              <MoreVertical className="h-4 w-4" />
+            </button>
+          </div>
+        </div>
+      )}
+
       {error && (
-        <div className="mt-4 rounded-xl bg-[var(--status-danger-bg)] border border-[var(--status-danger-border)] p-3.5 text-xs text-[var(--status-danger-text)] font-medium">
+        <div className="rounded-xl bg-red-50 border border-red-200 p-3.5 text-xs text-red-700 font-medium">
           {error}
         </div>
       )}
 
       {/* Loading Skeletons */}
       {isLoading && (
-        <div className="mt-8 grid grid-cols-1 md:grid-cols-2 gap-5">
-          <Skeleton className="h-56 rounded-xl border border-[var(--border-subtle)]" />
-          <Skeleton className="h-56 rounded-xl border border-[var(--border-subtle)]" />
+        <div className="space-y-4 pt-2">
+          <Skeleton className="h-28 w-full rounded-xl border border-neutral-200" />
+          <Skeleton className="h-28 w-full rounded-xl border border-neutral-200" />
         </div>
       )}
 
-      {/* 2-Column Event Type Cards Grid */}
+      {/* Full-Width Event Cards List (Calendly Style) */}
       {!isLoading && filteredItems.length > 0 && (
-        <div className="mt-8 grid grid-cols-1 md:grid-cols-2 gap-5">
+        <div className="space-y-4">
           {filteredItems.map((item) => {
             const isCopied = copiedId === item.id;
-            const displayUrl = user
-              ? `sched.com/public/@${user.username}/${item.slug}`
-              : `/public/.../${item.slug}`;
-
             return (
               <Card
                 key={item.id}
-                className="group relative flex flex-col justify-between rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-surface)] p-6 shadow-xs hover:border-[var(--border-strong)] transition-[border-color,box-shadow] duration-150 ease-out"
+                className="group relative flex flex-col md:flex-row md:items-center justify-between gap-4 rounded-xl border border-neutral-200 bg-white p-5 shadow-2xs hover:border-neutral-300 hover:shadow-xs transition-all border-l-[5px] border-l-purple-600 w-full"
               >
-                <div>
-                  {/* Top Row: Active status indicator & Duration pill */}
-                  <div className="flex items-center justify-between gap-2">
-                    <div className="flex items-center gap-2">
-                      <span
-                        className={`h-2 w-2 rounded-full ${
-                          tab === "active" ? "bg-emerald-500" : "bg-neutral-400"
-                        }`}
-                      />
-                      <span className="text-xs font-medium text-[var(--text-secondary)]">
-                        {tab === "active" ? "Active" : "Archived"}
-                      </span>
+                {/* Left: Checkbox + Event Meta */}
+                <div className="flex items-start gap-4 min-w-0">
+                  <input
+                    type="checkbox"
+                    className="mt-1 h-4 w-4 rounded border-neutral-300 text-blue-600 focus:ring-blue-500 cursor-pointer shrink-0"
+                    aria-label={`Select ${item.title}`}
+                  />
+
+                  <div className="min-w-0">
+                    <Link
+                      href={`/dashboard/event-types/${item.id}/edit`}
+                      className="text-base font-bold text-black hover:text-blue-600 transition-colors inline-block"
+                    >
+                      {item.title}
+                    </Link>
+
+                    <div className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-neutral-600 font-medium">
+                      <span>{item.durationMinutes} min</span>
+                      <span>•</span>
+                      <span>{item.location?.type ? item.location.type.replace(/_/g, " ") : "Video Call"}</span>
+                      <span>•</span>
+                      <span>One-on-One</span>
                     </div>
 
-                    {/* Duration Pill */}
-                    <div className="flex items-center gap-1 rounded-full bg-[var(--bg-subtle)] border border-[var(--border-subtle)] px-2.5 py-0.5 text-xs font-medium text-[var(--text-secondary)]">
-                      <Clock className="h-3 w-3 text-[var(--text-muted)]" />
-                      <span className="tabular-nums font-sans">{item.durationMinutes} min</span>
-                    </div>
-                  </div>
-
-                  {/* Event Title */}
-                  <h2 className="mt-3 text-lg font-semibold tracking-tight text-[var(--text-primary)]">
-                    {item.title}
-                  </h2>
-
-                  {/* Event Description */}
-                  <p className="mt-2 text-sm text-[var(--text-secondary)] line-clamp-2 leading-relaxed min-h-[2.5rem]">
-                    {item.description || "No description provided."}
-                  </p>
-
-                  {/* Public URL Container Box */}
-                  <div
-                    onClick={() => handleCopy(item.slug, item.id)}
-                    title="Click to copy public link"
-                    className="mt-4 flex items-center justify-between rounded-lg bg-[var(--bg-subtle)] hover:bg-[var(--bg-muted)]/50 border border-[var(--border-subtle)] px-3 py-2 text-xs text-[var(--text-secondary)] font-mono transition-colors duration-150 cursor-pointer select-all"
-                  >
-                    <div className="flex items-center gap-2 truncate pr-2">
-                      <Link2 className="h-3.5 w-3.5 text-[var(--text-muted)] shrink-0" />
-                      <span className="truncate">{displayUrl}</span>
-                    </div>
-                    <span className="shrink-0 text-[var(--text-muted)] group-hover:text-[var(--text-primary)] transition-colors">
-                      {isCopied ? (
-                        <span className="flex items-center gap-1 text-emerald-600 font-sans font-medium text-[11px]">
-                          <Check className="h-3.5 w-3.5" /> Copied
-                        </span>
-                      ) : (
-                        <Copy className="h-3.5 w-3.5" />
-                      )}
-                    </span>
+                    <p className="mt-0.5 text-xs text-neutral-500 font-normal">
+                      Weekdays, hours vary
+                    </p>
                   </div>
                 </div>
 
-                {/* Action Toolbar Footer */}
-                <div className="mt-6 pt-4 border-t border-[var(--border-subtle)] flex items-center justify-between gap-3">
-                  <div className="flex items-center gap-2">
-                    {tab === "archived" ? (
+                {/* Right: Actions (Copy Link, Preview, Edit, Archive, Delete) */}
+                <div className="flex flex-wrap items-center gap-2 self-end md:self-center shrink-0">
+                  {tab === "active" ? (
+                    <>
+                      {/* Copy Link Pill Button */}
                       <Button
                         type="button"
                         variant="outline"
                         size="sm"
-                        onClick={() => void handleUnarchive(item.id)}
-                        className="gap-1.5"
+                        onClick={() => handleCopy(item.slug, item.id)}
+                        className="rounded-full border-neutral-300 bg-white hover:bg-neutral-50 px-3.5 py-1.5 text-xs font-semibold text-neutral-800 shadow-2xs gap-1.5 transition-all cursor-pointer"
                       >
-                        <ArchiveRestore className="h-3.5 w-3.5" />
-                        <span>Restore</span>
+                        {isCopied ? (
+                          <>
+                            <Check className="h-3.5 w-3.5 text-emerald-600" />
+                            <span className="text-emerald-700">Copied!</span>
+                          </>
+                        ) : (
+                          <>
+                            <Link2 className="h-3.5 w-3.5 text-neutral-500" />
+                            <span>Copy link</span>
+                          </>
+                        )}
                       </Button>
-                    ) : (
-                      <>
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => handleCopy(item.slug, item.id)}
-                          className="gap-1.5"
-                        >
-                          {isCopied ? (
-                            <>
-                              <Check className="h-3.5 w-3.5 text-emerald-600" />
-                              <span className="text-emerald-700 font-semibold">Copied!</span>
-                            </>
-                          ) : (
-                            <>
-                              <Copy className="h-3.5 w-3.5 text-[var(--text-muted)]" />
-                              <span>Copy Booking Page Link</span>
-                            </>
-                          )}
-                        </Button>
 
+                      {/* Direct Preview Link in New Tab */}
+                      {user && (
                         <Button
                           asChild
-                          variant="outline"
-                          size="sm"
-                          className="gap-1.5"
+                          variant="ghost"
+                          size="icon"
+                          className="h-8 w-8 rounded-full text-neutral-500 hover:text-black hover:bg-neutral-100"
+                          title="Preview public page"
                         >
-                          <Link href={`/dashboard/event-types/${item.id}/edit`}>
-                            <Edit2 className="h-3.5 w-3.5 text-[var(--text-muted)]" />
-                            <span>Edit</span>
+                          <Link href={`/public/${user.username}/${item.slug}`} target="_blank">
+                            <ExternalLink className="h-3.5 w-3.5" />
                           </Link>
                         </Button>
+                      )}
 
-                        {user && (
-                          <Button
-                            asChild
-                            variant="ghost"
-                            size="sm"
-                            className="gap-1 text-[var(--text-secondary)] hover:text-[var(--text-primary)]"
-                          >
-                            <Link href={`/public/${user.username}/${item.slug}`} target="_blank">
-                              <ExternalLink className="h-3.5 w-3.5" />
-                              <span className="hidden sm:inline">Preview</span>
-                            </Link>
-                          </Button>
-                        )}
-                      </>
-                    )}
-                  </div>
+                      {/* Edit Button */}
+                      <Button
+                        asChild
+                        variant="ghost"
+                        size="icon"
+                        className="h-8 w-8 rounded-full text-neutral-500 hover:text-black hover:bg-neutral-100"
+                        title="Edit event type"
+                      >
+                        <Link href={`/dashboard/event-types/${item.id}/edit`}>
+                          <Edit2 className="h-3.5 w-3.5" />
+                        </Link>
+                      </Button>
 
-                  <div className="flex items-center gap-2">
-                    {tab === "active" && (
+                      {/* Archive Button */}
                       <Button
                         type="button"
-                        size="sm"
+                        variant="ghost"
+                        size="icon"
                         onClick={() => void handleArchive(item.id)}
-                        className="gap-1.5 border border-orange-500 bg-orange-500 text-white hover:bg-white hover:text-orange-600 hover:border-orange-500 disabled:opacity-40 disabled:cursor-not-allowed shadow-2xs transition-[background-color,border-color,color] duration-150 ease-out"
+                        className="h-8 w-8 rounded-full text-neutral-500 hover:text-amber-600 hover:bg-amber-50"
                         title="Archive event type"
-                        aria-label="Archive event type"
                       >
                         <Archive className="h-3.5 w-3.5" />
-                        <span>Archive</span>
                       </Button>
-                    )}
-
-                    {/* Delete Action (Always visible on both Active and Archived) */}
-                    <Tooltip
-                      content="Cannot delete this event type because it has existing bookings."
-                      disabled={(item.bookingCount ?? 0) === 0}
+                    </>
+                  ) : (
+                    /* Restore Button for Archived items */
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={() => void handleUnarchive(item.id)}
+                      className="rounded-full border-neutral-300 gap-1.5 text-xs font-semibold"
                     >
-                      <Button
-                        type="button"
-                        size="sm"
-                        disabled={(item.bookingCount ?? 0) > 0}
-                        onClick={() => void handleDelete(item.id)}
-                        className="gap-1.5 bg-white border border-red-500 text-red-600 hover:bg-red-600 hover:text-white hover:border-transparent disabled:bg-white disabled:border-red-200 disabled:text-red-300 disabled:cursor-not-allowed disabled:pointer-events-auto disabled:hover:bg-white disabled:hover:text-red-300 disabled:hover:border-red-200 shadow-2xs transition-[background-color,border-color,color] duration-150 ease-out"
-                        aria-label={
-                          (item.bookingCount ?? 0) > 0
-                            ? "Cannot delete this event type because it has existing bookings."
-                            : "Permanently delete event type"
-                        }
-                      >
-                        <Trash2 className="h-3.5 w-3.5" />
-                        <span>Delete</span>
-                      </Button>
-                    </Tooltip>
-                  </div>
+                      <ArchiveRestore className="h-3.5 w-3.5" />
+                      <span>Restore</span>
+                    </Button>
+                  )}
+
+                  {/* Delete Button */}
+                  <Tooltip
+                    content="Cannot delete this event type because it has existing bookings."
+                    disabled={(item.bookingCount ?? 0) === 0}
+                  >
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="icon"
+                      disabled={(item.bookingCount ?? 0) > 0}
+                      onClick={() => void handleDelete(item.id)}
+                      className="h-8 w-8 rounded-full text-neutral-400 hover:text-red-600 hover:bg-red-50 disabled:opacity-40 disabled:cursor-not-allowed"
+                      title="Delete event type"
+                    >
+                      <Trash2 className="h-3.5 w-3.5" />
+                    </Button>
+                  </Tooltip>
                 </div>
               </Card>
             );
@@ -416,18 +437,18 @@ export function EventTypeList() {
       {/* Empty State when no active event types exist */}
       {!isLoading && filteredItems.length === 0 && tab === "active" && !searchQuery && (
         <div className="mt-8">
-          <div className="flex flex-col items-center justify-center rounded-xl border border-dashed border-[var(--border-subtle)] bg-[var(--bg-surface)] p-12 text-center shadow-xs">
-            <div className="flex h-12 w-12 items-center justify-center rounded-full bg-[var(--bg-subtle)] border border-[var(--border-subtle)] text-[var(--text-secondary)] shadow-2xs mb-4">
+          <div className="flex flex-col items-center justify-center rounded-xl border border-dashed border-neutral-300 bg-white p-12 text-center shadow-xs">
+            <div className="flex h-12 w-12 items-center justify-center rounded-full bg-neutral-100 text-neutral-600 shadow-2xs mb-4">
               <Plus className="h-5 w-5" />
             </div>
-            <h3 className="text-lg font-semibold tracking-tight text-[var(--text-primary)]">
+            <h3 className="text-lg font-bold tracking-tight text-black">
               Welcome to Sched
             </h3>
-            <p className="mt-1.5 text-xs text-[var(--text-secondary)] max-w-sm leading-relaxed">
-              Create your first event type and share your booking page.
+            <p className="mt-1.5 text-xs text-neutral-600 max-w-sm leading-relaxed">
+              Create your first event type and start sharing your booking page with clients and teammates.
             </p>
             <div className="mt-6">
-              <Button asChild size="sm" className="gap-2">
+              <Button asChild size="sm" className="rounded-full bg-blue-600 hover:bg-blue-700 text-white font-semibold gap-2">
                 <Link href="/dashboard/event-types/new">
                   <Plus className="h-3.5 w-3.5" />
                   <span>Create Event Type</span>
@@ -440,16 +461,16 @@ export function EventTypeList() {
 
       {/* Empty State for Search Filter or Archived Tab */}
       {!isLoading && filteredItems.length === 0 && (searchQuery || tab === "archived") && (
-        <div className="mt-8 rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-surface)] p-12 text-center shadow-2xs">
-          <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-xl bg-[var(--bg-subtle)] text-[var(--text-muted)] mb-3">
+        <div className="mt-8 rounded-xl border border-neutral-200 bg-white p-12 text-center shadow-2xs">
+          <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-xl bg-neutral-100 text-neutral-500 mb-3">
             <Inbox className="h-5 w-5" />
           </div>
-          <h3 className="text-base font-semibold text-[var(--text-primary)]">
+          <h3 className="text-base font-bold text-black">
             {searchQuery ? "No matching event types" : "No archived event types"}
           </h3>
-          <p className="mt-1 text-xs text-[var(--text-secondary)] max-w-sm mx-auto">
+          <p className="mt-1 text-xs text-neutral-600 max-w-sm mx-auto">
             {searchQuery
-              ? `No results for "${searchQuery}". Try a different keyword.`
+              ? `No results for "${searchQuery}". Try a different search keyword.`
               : "Archived event types will appear here."}
           </p>
         </div>
@@ -457,15 +478,15 @@ export function EventTypeList() {
 
       {/* Archived Notice Banner */}
       {!isLoading && tab === "active" && archivedItems.length > 0 && (
-        <div className="mt-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4 rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-surface)] p-5 shadow-2xs">
+        <div className="mt-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4 rounded-xl border border-neutral-200 bg-white p-5 shadow-2xs">
           <div className="flex items-center gap-3.5">
-            <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-[var(--bg-subtle)] text-[var(--text-secondary)] shrink-0">
+            <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-neutral-100 text-neutral-600 shrink-0">
               <Inbox className="h-5 w-5" />
             </div>
             <div>
-              <p className="text-sm font-semibold text-[var(--text-primary)]">Looking for archived links?</p>
-              <p className="text-xs text-[var(--text-secondary)]">
-                {archivedItems.length} archived event type{archivedItems.length > 1 ? "s are" : " is"} currently inactive and hidden from your public booker.
+              <p className="text-sm font-bold text-black">Looking for archived links?</p>
+              <p className="text-xs text-neutral-600">
+                {archivedItems.length} archived event type{archivedItems.length > 1 ? "s are" : " is"} currently inactive.
               </p>
             </div>
           </div>
@@ -474,7 +495,7 @@ export function EventTypeList() {
             variant="outline"
             size="sm"
             onClick={() => setTab("archived")}
-            className="self-start sm:self-center shrink-0"
+            className="rounded-full border-neutral-300 self-start sm:self-center shrink-0 font-semibold text-xs"
           >
             View Archived
             <ArrowRight className="ml-1.5 h-3.5 w-3.5" />

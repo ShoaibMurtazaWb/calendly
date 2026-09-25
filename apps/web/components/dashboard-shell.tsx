@@ -466,8 +466,8 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
 
         {/* Main Content Area */}
         <div className="flex-1 min-w-0 flex flex-col min-h-screen bg-[var(--bg-canvas)]">
-          {/* Top Bar with User Profile Dropdown */}
-          <header className="hidden md:flex h-14 items-center justify-end border-b border-[var(--border-subtle)] bg-[var(--bg-surface)] px-8 gap-4">
+          {/* Top Bar with User Profile Dropdown (Borderless, Seamless Header) */}
+          <header className="hidden md:flex h-14 items-center justify-end bg-[var(--bg-surface)] px-8 gap-4">
             {/* User Profile Dropdown Menu in Top Navbar */}
             <div className="relative" ref={dropdownRef}>
               <button
@@ -551,8 +551,8 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
             </div>
           </header>
 
-          {/* Dynamic Page Body */}
-          <main className="flex-1 px-4 sm:px-8 py-6 sm:py-8 max-w-7xl w-full mx-auto">
+          {/* Dynamic Page Body (Full Width) */}
+          <main className="flex-1 w-full px-6 sm:px-10 py-4 sm:py-6">
             {children}
           </main>
         </div>
