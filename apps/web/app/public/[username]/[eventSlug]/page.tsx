@@ -7,7 +7,6 @@ import {
   Clock,
   ChevronLeft,
   ChevronRight,
-  ChevronDown,
   ArrowLeft,
   User,
   Mail,
@@ -17,6 +16,7 @@ import {
   PhoneForwarded,
   Link2,
   Phone,
+  Home,
 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
@@ -28,7 +28,7 @@ import { Spinner } from "@/components/ui/spinner";
 import { toast } from "@/components/ui/toast";
 import { Logo } from "@/components/logo";
 import { TimezonePicker } from "@/components/timezone-picker";
-import { api } from "@/lib/api";
+import { api, type CurrentUser } from "@/lib/api";
 import { ApiError, fieldErrors, getExistingBookingFromError } from "@/lib/api-error";
 import type { BookingResponse, CustomQuestion, PublicLocationMetadata, TimeSlot } from "@sched/api-contract";
 
@@ -57,6 +57,7 @@ export default function PublicBookingPage({
   const [eventDetails, setEventDetails] = useState<PublicEventDetails | null>(null);
   const [isLoadingEvent, setIsLoadingEvent] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [homeHref, setHomeHref] = useState<string>("/");
 
   // Timezone state
   const [attendeeTimezone, setAttendeeTimezone] = useState<string>("UTC");
@@ -95,12 +96,23 @@ export default function PublicBookingPage({
   const [customAnswers, setCustomAnswers] = useState<Record<string, string | boolean>>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [fieldValidationErrors, setFieldValidationErrors] = useState<Record<string, string>>({});
-  const [isMenuOpen, setIsMenuOpen] = useState(false);
-  const [troubleshootOpen, setTroubleshootOpen] = useState(false);
 
   const setCustomAnswer = (qId: string, val: string | boolean) => {
     setCustomAnswers((prev) => ({ ...prev, [qId]: val }));
   };
+
+  // Check auth to route Home button to /dashboard or /
+  useEffect(() => {
+    api<CurrentUser>("/auth/me")
+      .then((user) => {
+        if (user?.id) {
+          setHomeHref("/dashboard");
+        }
+      })
+      .catch(() => {
+        setHomeHref("/");
+      });
+  }, []);
 
   // Initialize browser timezone
   useEffect(() => {
@@ -286,8 +298,8 @@ export default function PublicBookingPage({
 
   return (
     <div className="min-h-screen flex flex-col justify-between bg-neutral-100/70 dark:bg-neutral-900 font-sans text-neutral-900 dark:text-neutral-100 selection:bg-blue-600 selection:text-white">
-      {/* Top Bar with Menu and Copy Link */}
-      <header className="w-full max-w-[1040px] mx-auto px-4 pt-6 pb-2 flex items-center justify-between">
+      {/* Top Bar with Home and Copy Link */}
+      <header className="w-full max-w-[1100px] mx-auto px-4 pt-6 pb-2 flex items-center justify-between">
         <Link
           href={`/public/${username}`}
           className="inline-flex items-center gap-1.5 text-xs font-semibold text-neutral-600 dark:text-neutral-400 hover:text-neutral-900 dark:hover:text-white transition-colors duration-150 group"
@@ -296,39 +308,15 @@ export default function PublicBookingPage({
           <span>All events with {eventDetails.host.name}</span>
         </Link>
 
-        <div className="flex items-center gap-2 relative">
-          {/* Menu Dropdown */}
-          <div className="relative">
-            <button
-              type="button"
-              onClick={() => setIsMenuOpen((prev) => !prev)}
-              className="inline-flex items-center gap-1 text-xs font-semibold text-neutral-700 dark:text-neutral-300 hover:text-neutral-900 dark:hover:text-white px-2.5 py-1.5 rounded-lg hover:bg-white/60 dark:hover:bg-neutral-800 transition-colors cursor-pointer"
-            >
-              <span>Menu</span>
-              <ChevronDown className="h-3.5 w-3.5" />
-            </button>
-            {isMenuOpen && (
-              <div className="absolute right-0 top-full mt-1.5 z-40 w-44 rounded-xl border border-neutral-200 bg-white dark:bg-neutral-950 dark:border-neutral-800 p-1 shadow-lg text-xs animate-in fade-in-0 zoom-in-95">
-                <Link
-                  href={`/public/${username}`}
-                  className="block px-3 py-2 rounded-lg hover:bg-neutral-100 dark:hover:bg-neutral-900 text-neutral-700 dark:text-neutral-300 font-medium"
-                  onClick={() => setIsMenuOpen(false)}
-                >
-                  Host Profile
-                </Link>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setIsMenuOpen(false);
-                    setTroubleshootOpen(true);
-                  }}
-                  className="w-full text-left px-3 py-2 rounded-lg hover:bg-neutral-100 dark:hover:bg-neutral-900 text-neutral-700 dark:text-neutral-300 font-medium cursor-pointer"
-                >
-                  Troubleshooting
-                </button>
-              </div>
-            )}
-          </div>
+        <div className="flex items-center gap-2">
+          {/* Home Link */}
+          <Link
+            href={homeHref}
+            className="inline-flex items-center gap-1.5 text-xs font-semibold text-neutral-700 dark:text-neutral-300 hover:text-neutral-900 dark:hover:text-white px-3 py-1.5 rounded-lg hover:bg-white/60 dark:hover:bg-neutral-800 transition-colors"
+          >
+            <Home className="h-3.5 w-3.5" />
+            <span>Home</span>
+          </Link>
 
           {/* Copy Link Button */}
           <button
@@ -344,7 +332,7 @@ export default function PublicBookingPage({
 
       {/* Main Container */}
       <main className="flex-1 flex flex-col justify-center items-center py-4 px-4 sm:px-6 w-full">
-        <div className="w-full max-w-[1040px] my-auto">
+        <div className="w-full max-w-[1100px] my-auto">
           {/* Mobile Tab Stepper */}
           <div className="flex md:hidden items-center justify-between border-b border-neutral-200 dark:border-neutral-800 pb-2 mb-3 gap-2">
             <button
@@ -394,8 +382,8 @@ export default function PublicBookingPage({
               </div>
             </div>
 
-            {/* Left Column: Host & Event Details */}
-            <div className="p-7 sm:p-8 lg:col-span-4 flex flex-col justify-between space-y-6">
+            {/* Left Column: Host & Event Details (3 cols) */}
+            <div className="p-7 sm:p-8 lg:col-span-3 flex flex-col justify-start space-y-6">
               <div className="space-y-4">
                 <div>
                   <p className="text-xs font-bold text-neutral-500 uppercase tracking-wider">
@@ -455,25 +443,11 @@ export default function PublicBookingPage({
                   </p>
                 )}
               </div>
-
-              {/* Cookie settings & Privacy Policy Links */}
-              <div className="pt-4 border-t border-neutral-100 dark:border-neutral-800/80 flex items-center gap-4 text-xs font-medium text-blue-600 dark:text-blue-400">
-                <button
-                  type="button"
-                  onClick={() => toast.info("Cookie Preferences", "Default essential cookies active.")}
-                  className="hover:underline cursor-pointer"
-                >
-                  Cookie settings
-                </button>
-                <Link href="/privacy" className="hover:underline">
-                  Privacy Policy
-                </Link>
-              </div>
             </div>
 
-            {/* Middle Column: Calendar & Timezone */}
+            {/* Middle Column: Calendar & Timezone (Expanded to 5 cols) */}
             <div
-              className={`p-7 sm:p-8 lg:col-span-4 flex flex-col justify-between space-y-5 ${
+              className={`p-7 sm:p-8 lg:col-span-5 flex flex-col justify-start space-y-6 ${
                 mobileStep !== "date" ? "hidden md:flex" : "flex"
               }`}
             >
@@ -515,7 +489,7 @@ export default function PublicBookingPage({
                 </div>
 
                 {/* Weekday Labels (Mon - Sun) */}
-                <div className="grid grid-cols-7 gap-1 text-center font-medium text-[11px] text-neutral-500">
+                <div className="grid grid-cols-7 gap-2 text-center font-medium text-[11px] sm:text-xs text-neutral-500 mb-2 pb-1">
                   {["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"].map((dayName) => (
                     <div key={dayName} className="py-1">
                       {dayName}
@@ -523,11 +497,11 @@ export default function PublicBookingPage({
                   ))}
                 </div>
 
-                {/* Days Grid with Slide Animation & Circular Badges */}
-                <div className="overflow-hidden">
+                {/* Days Grid with Generous Gaps and Circular Badges */}
+                <div className="overflow-hidden py-3 px-1.5">
                   <div
                     key={`grid-${currentMonth.getFullYear()}-${currentMonth.getMonth()}`}
-                    className={`grid grid-cols-7 gap-1 text-center ${
+                    className={`grid grid-cols-7 gap-x-2.5 sm:gap-x-3.5 gap-y-3.5 sm:gap-y-4 text-center ${
                       slideDirection === "next"
                         ? "animate-in fade-in-0 slide-in-from-right-4 duration-200 ease-out"
                         : slideDirection === "prev"
@@ -537,7 +511,7 @@ export default function PublicBookingPage({
                   >
                     {daysMatrix.map((item, idx) => {
                       if (!item) {
-                        return <div key={`empty-${idx}`} className="h-10 w-10 mx-auto" />;
+                        return <div key={`empty-${idx}`} className="h-10 w-10 sm:h-11 sm:w-11 mx-auto" />;
                       }
 
                       const isSelected = selectedDate === item.dateString;
@@ -553,7 +527,7 @@ export default function PublicBookingPage({
                             setSelectedDate(item.dateString);
                             setMobileStep("slots");
                           }}
-                          className={`h-10 w-10 mx-auto rounded-full text-xs font-semibold tabular-nums font-sans transition-all duration-150 flex items-center justify-center cursor-pointer ${
+                          className={`h-10 w-10 sm:h-11 sm:w-11 mx-auto rounded-full text-xs sm:text-sm font-semibold tabular-nums font-sans transition-all duration-150 flex items-center justify-center cursor-pointer ${
                             isSelected
                               ? "bg-blue-600 text-white font-bold shadow-xs scale-105"
                               : isPast
@@ -569,7 +543,7 @@ export default function PublicBookingPage({
                 </div>
 
                 {/* Timezone Section below Calendar */}
-                <div className="pt-3 space-y-1.5">
+                <div className="pt-4 space-y-1.5">
                   <div className="text-xs font-bold text-neutral-800 dark:text-neutral-200">
                     Time zone
                   </div>
@@ -580,21 +554,9 @@ export default function PublicBookingPage({
                   />
                 </div>
               </div>
-
-              {/* Troubleshoot Pill Button */}
-              <div className="pt-2">
-                <button
-                  type="button"
-                  onClick={() => setTroubleshootOpen(true)}
-                  className="inline-flex items-center gap-1.5 rounded-full border border-neutral-300 dark:border-neutral-700 px-3.5 py-1.5 text-xs font-semibold text-neutral-700 dark:text-neutral-300 hover:bg-neutral-50 dark:hover:bg-neutral-900 transition-colors cursor-pointer"
-                >
-                  <Clock className="h-3.5 w-3.5 text-neutral-500" />
-                  <span>Troubleshoot</span>
-                </button>
-              </div>
             </div>
 
-            {/* Right Column: Time Slots & Attendee Booking Form */}
+            {/* Right Column: Time Slots & Attendee Booking Form (4 cols) */}
             <div
               className={`p-7 sm:p-8 lg:col-span-4 space-y-5 ${
                 mobileStep === "date" ? "hidden md:block" : "block"
@@ -605,30 +567,6 @@ export default function PublicBookingPage({
                   {formattedSelectedDate}
                 </h3>
               </div>
-
-              {/* Troubleshoot Modal Dialog */}
-              {troubleshootOpen && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
-                  <div className="bg-white dark:bg-neutral-950 rounded-2xl border border-neutral-200 dark:border-neutral-800 p-6 max-w-md w-full space-y-4 shadow-2xl animate-in fade-in-0 zoom-in-95">
-                    <h4 className="text-base font-bold text-neutral-900 dark:text-white">
-                      Troubleshooting Slot Availability
-                    </h4>
-                    <p className="text-xs text-neutral-600 dark:text-neutral-400 leading-relaxed">
-                      Available times are calculated live from the host&apos;s working hours, buffer times, and calendar conflicts, converted accurately to your timezone ({attendeeTimezone}).
-                    </p>
-                    <div className="pt-2">
-                      <Button
-                        type="button"
-                        onClick={() => setTroubleshootOpen(false)}
-                        className="w-full"
-                        size="sm"
-                      >
-                        Got it
-                      </Button>
-                    </div>
-                  </div>
-                </div>
-              )}
 
               {/* Duplicate Booking Detected Dialog or Slots / Form */}
               {existingBookingDuplicate ? (
