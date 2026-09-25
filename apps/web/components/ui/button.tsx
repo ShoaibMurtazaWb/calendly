@@ -4,22 +4,22 @@ import { cva, type VariantProps } from "class-variance-authority";
 import { cn } from "@/lib/utils";
 
 const buttonVariants = cva(
-  "inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-lg text-sm font-medium transition-[background-color,border-color,color,box-shadow,opacity,transform] duration-150 ease-out focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-[var(--focus-ring)] focus-visible:ring-offset-1 disabled:pointer-events-none disabled:opacity-40 select-none cursor-pointer",
+  "inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-lg text-sm font-medium transition-[background-color,border-color,color,box-shadow,opacity,transform] duration-150 ease-out focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600 focus-visible:ring-offset-1 disabled:pointer-events-none disabled:opacity-40 select-none cursor-pointer",
   {
     variants: {
       variant: {
         default:
-          "bg-neutral-900 text-white hover:bg-neutral-800 shadow-xs active:scale-[0.98]",
+          "bg-blue-600 text-white hover:bg-blue-700 shadow-xs active:scale-[0.98]",
         secondary:
-          "bg-[var(--bg-subtle)] text-[var(--text-primary)] hover:bg-[var(--bg-muted)] shadow-2xs active:scale-[0.98]",
+          "bg-blue-50 text-blue-700 hover:bg-blue-100 shadow-2xs active:scale-[0.98]",
         outline:
-          "border border-[var(--border-subtle)] bg-[var(--bg-surface)] text-[var(--text-primary)] hover:bg-[var(--bg-subtle)] hover:border-[var(--border-strong)] shadow-2xs active:scale-[0.98]",
+          "border border-neutral-300 bg-white text-neutral-800 hover:bg-neutral-50 hover:border-neutral-400 shadow-2xs active:scale-[0.98]",
         destructive:
           "bg-rose-600 text-white hover:bg-rose-700 shadow-xs active:scale-[0.98]",
         ghost:
-          "text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-subtle)]",
+          "text-neutral-700 hover:text-blue-600 hover:bg-blue-50/50",
         link:
-          "text-[var(--text-primary)] underline-offset-4 hover:underline p-0 h-auto",
+          "text-blue-600 underline-offset-4 hover:underline p-0 h-auto",
       },
       size: {
         default: "h-9 px-4 py-2",

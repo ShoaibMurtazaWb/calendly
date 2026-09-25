@@ -245,8 +245,8 @@ export default function SettingsPage() {
           onClick={() => setActiveTab("profile")}
           className={`flex items-center gap-2 px-3.5 py-2.5 text-xs font-medium border-b-2 transition-colors cursor-pointer ${
             activeTab === "profile"
-              ? "border-neutral-900 text-neutral-900"
-              : "border-transparent text-[var(--text-secondary)] hover:text-[var(--text-primary)]"
+              ? "border-blue-600 text-blue-600 font-bold"
+              : "border-transparent text-neutral-600 hover:text-neutral-900"
           }`}
         >
           <UserIcon className="h-3.5 w-3.5" />
@@ -257,8 +257,8 @@ export default function SettingsPage() {
           onClick={() => setActiveTab("notifications")}
           className={`flex items-center gap-2 px-3.5 py-2.5 text-xs font-medium border-b-2 transition-colors cursor-pointer ${
             activeTab === "notifications"
-              ? "border-neutral-900 text-neutral-900"
-              : "border-transparent text-[var(--text-secondary)] hover:text-[var(--text-primary)]"
+              ? "border-blue-600 text-blue-600 font-bold"
+              : "border-transparent text-neutral-600 hover:text-neutral-900"
           }`}
         >
           <Bell className="h-3.5 w-3.5" />
@@ -269,8 +269,8 @@ export default function SettingsPage() {
           onClick={() => setActiveTab("scheduling")}
           className={`flex items-center gap-2 px-3.5 py-2.5 text-xs font-medium border-b-2 transition-colors cursor-pointer ${
             activeTab === "scheduling"
-              ? "border-neutral-900 text-neutral-900"
-              : "border-transparent text-[var(--text-secondary)] hover:text-[var(--text-primary)]"
+              ? "border-blue-600 text-blue-600 font-bold"
+              : "border-transparent text-neutral-600 hover:text-neutral-900"
           }`}
         >
           <Clock className="h-3.5 w-3.5" />
@@ -281,8 +281,8 @@ export default function SettingsPage() {
           onClick={() => setActiveTab("audit")}
           className={`flex items-center gap-2 px-3.5 py-2.5 text-xs font-medium border-b-2 transition-colors cursor-pointer ${
             activeTab === "audit"
-              ? "border-neutral-900 text-neutral-900"
-              : "border-transparent text-[var(--text-secondary)] hover:text-[var(--text-primary)]"
+              ? "border-blue-600 text-blue-600 font-bold"
+              : "border-transparent text-neutral-600 hover:text-neutral-900"
           }`}
         >
           <Shield className="h-3.5 w-3.5" />
@@ -294,7 +294,7 @@ export default function SettingsPage() {
       {activeTab === "profile" && (
         <form onSubmit={handleSaveProfile} className="space-y-5 rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-surface)] p-6 shadow-2xs">
           <div className="flex items-center gap-4 pb-4 border-b border-[var(--border-subtle)]">
-            <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-full bg-neutral-900 text-white font-bold text-lg select-none overflow-hidden">
+            <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-full bg-blue-600 text-white font-bold text-lg select-none overflow-hidden">
               {avatarUrl ? (
                 <img src={avatarUrl} alt={name} className="h-full w-full object-cover" />
               ) : (

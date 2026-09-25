@@ -243,30 +243,30 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
       {/* Main App Container */}
       <div className="flex flex-1 min-h-0">
         {/* Mobile Header Bar (< md) */}
-        <header className="md:hidden sticky top-0 z-40 flex w-full items-center justify-between border-b border-[var(--border-subtle)] bg-[var(--bg-surface)] px-4 py-2.5">
-          <div className="flex items-center gap-2.5">
+        <header className="md:hidden sticky top-0 z-40 flex w-full items-center justify-between border-b border-neutral-200 bg-white px-5 py-3.5 shadow-2xs">
+          <div className="flex items-center gap-3">
             <button
               type="button"
               onClick={() => setIsMobileMenuOpen((prev) => !prev)}
-              className="flex h-8 w-8 items-center justify-center rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-surface)] text-[var(--text-secondary)] hover:bg-[var(--bg-subtle)]"
+              className="flex h-9 w-9 items-center justify-center rounded-lg border border-neutral-200 bg-white text-neutral-700 hover:bg-neutral-50 cursor-pointer transition-colors"
               aria-label="Toggle navigation menu"
             >
-              {isMobileMenuOpen ? <X className="h-4 w-4" /> : <Menu className="h-4 w-4" />}
+              {isMobileMenuOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
             </button>
-            <Link href="/dashboard" className="flex items-center gap-2">
+            <Link href="/dashboard" className="flex items-center gap-2.5">
               <Logo className="h-7 w-7" />
-              <span className="font-bold tracking-tight text-[var(--text-primary)] text-lg">Sched</span>
+              <span className="font-bold tracking-tight text-neutral-900 text-lg">Sched</span>
             </Link>
           </div>
 
-          <div className="flex items-center gap-2">
-            <Button asChild size="sm" className="h-7 px-2.5 text-xs rounded-full bg-blue-600 hover:bg-blue-700 text-white font-medium gap-1">
+          <div className="flex items-center gap-2.5">
+            <Button asChild size="sm" className="h-8 px-3 text-xs rounded-full bg-blue-600 hover:bg-blue-700 text-white font-semibold gap-1.5 shadow-2xs cursor-pointer">
               <Link href="/dashboard/event-types/new">
-                <Plus className="h-3 w-3" />
+                <Plus className="h-3.5 w-3.5 stroke-[2.5]" />
                 <span>Create</span>
               </Link>
             </Button>
-            <div className="flex h-7 w-7 items-center justify-center rounded-full bg-blue-600 text-white text-[11px] font-bold">
+            <div className="flex h-8 w-8 items-center justify-center rounded-full bg-blue-600 text-white text-xs font-bold shadow-2xs">
               {user.name.charAt(0).toUpperCase()}
             </div>
           </div>
@@ -342,7 +342,7 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
                   <Button
                     asChild
                     size="icon"
-                    className="h-10 w-10 rounded-full border border-neutral-300 bg-white text-neutral-800 hover:bg-neutral-50 shadow-2xs hover:border-neutral-400 transition-all cursor-pointer"
+                    className="h-10 w-10 rounded-full bg-blue-600 hover:bg-blue-700 text-white shadow-2xs transition-all cursor-pointer"
                     title="Create Event Type"
                   >
                     <Link href="/dashboard/event-types/new">
@@ -353,8 +353,7 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
               ) : (
                 <Button
                   asChild
-                  variant="outline"
-                  className="w-full justify-center gap-2 h-10 rounded-full border-neutral-300 bg-white text-neutral-900 hover:bg-neutral-50 shadow-2xs font-semibold text-sm hover:border-neutral-400 transition-all cursor-pointer"
+                  className="w-full justify-center gap-2 h-10 rounded-full bg-blue-600 hover:bg-blue-700 text-white shadow-xs font-semibold text-sm transition-all cursor-pointer"
                 >
                   <Link href="/dashboard/event-types/new">
                     <Plus className="h-4 w-4 stroke-[2.5]" />
@@ -376,12 +375,14 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
                       className={`flex flex-col items-center justify-center py-2.5 px-1 rounded-xl text-center transition-all ${
                         item.active
                           ? "bg-blue-50 text-blue-600 font-semibold shadow-2xs"
-                          : "text-black hover:bg-[var(--bg-subtle)] hover:text-black"
+                          : "text-neutral-700 hover:bg-neutral-100 hover:text-blue-600"
                       }`}
                       title={item.label}
                     >
-                      <Icon className={`h-5 w-5 mb-1 shrink-0 ${item.active ? "text-blue-600" : "text-black"}`} />
-                      <span className="text-[10px] leading-tight line-clamp-1 font-semibold text-black">{item.label}</span>
+                      <Icon className={`h-5 w-5 mb-1 shrink-0 ${item.active ? "text-blue-600" : "text-neutral-600"}`} />
+                      <span className={`text-[10px] leading-tight line-clamp-1 font-semibold ${item.active ? "text-blue-600 font-bold" : "text-neutral-700"}`}>
+                        {item.label}
+                      </span>
                     </Link>
                   );
                 }
@@ -393,15 +394,17 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
                     className={`flex items-center gap-3 rounded-xl px-3.5 py-2.5 text-xs font-semibold transition-[background-color,color] duration-150 ${
                       item.active
                         ? "bg-blue-50 text-blue-600 font-semibold"
-                        : "text-black hover:bg-[var(--bg-subtle)] hover:text-black"
+                        : "text-neutral-700 hover:bg-neutral-100 hover:text-blue-600"
                     }`}
                   >
                     <Icon
                       className={`h-4 w-4 shrink-0 ${
-                        item.active ? "text-blue-600" : "text-black"
+                        item.active ? "text-blue-600" : "text-neutral-600"
                       }`}
                     />
-                    <span className="whitespace-nowrap overflow-hidden text-ellipsis text-black">{item.label}</span>
+                    <span className={`whitespace-nowrap overflow-hidden text-ellipsis ${item.active ? "text-blue-600 font-bold" : "text-neutral-800"}`}>
+                      {item.label}
+                    </span>
                   </Link>
                 );
               })}
@@ -422,12 +425,14 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
                       className={`flex flex-col items-center justify-center py-2 px-1 rounded-xl text-center transition-all ${
                         item.active
                           ? "bg-blue-50 text-blue-600 font-semibold"
-                          : "text-black hover:bg-[var(--bg-subtle)] hover:text-black"
+                          : "text-neutral-700 hover:bg-neutral-100 hover:text-blue-600"
                       }`}
                       title={item.label}
                     >
-                      <Icon className={`h-5 w-5 mb-0.5 shrink-0 ${item.active ? "text-blue-600" : "text-black"}`} />
-                      <span className="text-[9px] leading-tight line-clamp-1 font-semibold text-black">{item.label}</span>
+                      <Icon className={`h-5 w-5 mb-0.5 shrink-0 ${item.active ? "text-blue-600" : "text-neutral-600"}`} />
+                      <span className={`text-[9px] leading-tight line-clamp-1 font-semibold ${item.active ? "text-blue-600 font-bold" : "text-neutral-700"}`}>
+                        {item.label}
+                      </span>
                     </Link>
                   );
                 }
@@ -439,11 +444,13 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
                     className={`flex items-center gap-3 rounded-xl px-3.5 py-2 text-xs font-semibold transition-colors ${
                       item.active
                         ? "bg-blue-50 text-blue-600 font-semibold"
-                        : "text-black hover:bg-[var(--bg-subtle)] hover:text-black"
+                        : "text-neutral-700 hover:bg-neutral-100 hover:text-blue-600"
                     }`}
                   >
-                    <Icon className={`h-4 w-4 shrink-0 ${item.active ? "text-blue-600" : "text-black"}`} />
-                    <span className="whitespace-nowrap overflow-hidden text-ellipsis text-black">{item.label}</span>
+                    <Icon className={`h-4 w-4 shrink-0 ${item.active ? "text-blue-600" : "text-neutral-600"}`} />
+                    <span className={`whitespace-nowrap overflow-hidden text-ellipsis ${item.active ? "text-blue-600 font-bold" : "text-neutral-800"}`}>
+                      {item.label}
+                    </span>
                   </Link>
                 );
               })}
@@ -453,25 +460,25 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
 
         {/* Main Content Area */}
         <div className="flex-1 min-w-0 flex flex-col min-h-screen bg-[var(--bg-canvas)]">
-          {/* Top Bar with User Profile Dropdown (Borderless, Seamless Header) */}
-          <header className="hidden md:flex h-14 items-center justify-end bg-[var(--bg-surface)] px-8 sm:px-12 md:px-16 gap-4">
+          {/* Top Bar with User Profile Dropdown (Full Width, Pure White Header with increased height) */}
+          <header className="hidden md:flex h-20 w-full items-center justify-end bg-white border-b border-neutral-200 px-8 sm:px-12 md:px-16 gap-4">
             {/* User Profile Dropdown Menu in Top Navbar */}
             <div className="relative" ref={dropdownRef}>
               <button
                 type="button"
                 onClick={() => setIsDropdownOpen((prev) => !prev)}
-                className="flex items-center gap-2 rounded-full p-1 pl-2 hover:bg-[var(--bg-subtle)] border border-transparent hover:border-[var(--border-subtle)] transition-all cursor-pointer"
+                className="flex items-center gap-2.5 rounded-full p-1.5 pl-2.5 hover:bg-neutral-50 border border-transparent hover:border-neutral-200 transition-all cursor-pointer"
                 aria-expanded={isDropdownOpen}
                 aria-label="User account menu"
               >
                 <div className="relative">
-                  <div className="flex h-7 w-7 items-center justify-center rounded-full bg-blue-600 text-white text-[11px] font-bold select-none shadow-2xs">
+                  <div className="flex h-8 w-8 items-center justify-center rounded-full bg-blue-600 text-white text-xs font-bold select-none shadow-2xs">
                     {user.name.charAt(0).toUpperCase()}
                   </div>
-                  <span className="absolute bottom-0 right-0 h-2 w-2 rounded-full bg-emerald-500 ring-2 ring-white" />
+                  <span className="absolute bottom-0 right-0 h-2.5 w-2.5 rounded-full bg-emerald-500 ring-2 ring-white" />
                 </div>
                 <ChevronDown
-                  className={`h-3.5 w-3.5 text-black transition-transform duration-150 ${
+                  className={`h-4 w-4 text-neutral-700 transition-transform duration-150 ${
                     isDropdownOpen ? "rotate-180" : ""
                   }`}
                 />

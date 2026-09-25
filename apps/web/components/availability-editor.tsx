@@ -5,10 +5,8 @@ import {
   Globe,
   Plus,
   Trash2,
-  Calendar as CalendarIcon,
   Check,
 } from "lucide-react";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -71,12 +69,6 @@ export function AvailabilityEditor() {
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
 
-  // New Override form state
-  const [newOverrideDate, setNewOverrideDate] = useState<string>("");
-  const [newOverrideUnavailable, setNewOverrideUnavailable] = useState(true);
-  const [newOverrideStart, setNewOverrideStart] = useState("09:00");
-  const [newOverrideEnd, setNewOverrideEnd] = useState("17:00");
-
   const [availableTimezones, setAvailableTimezones] = useState<string[]>([]);
 
   useEffect(() => {
@@ -121,10 +113,9 @@ export function AvailabilityEditor() {
     return (
       name !== initialState.name ||
       timeZone !== initialState.timeZone ||
-      JSON.stringify(cleanDays(days)) !== JSON.stringify(cleanDays(initialState.days)) ||
-      JSON.stringify(overrides) !== JSON.stringify(initialState.overrides)
+      JSON.stringify(cleanDays(days)) !== JSON.stringify(cleanDays(initialState.days))
     );
-  }, [name, timeZone, days, overrides, initialState]);
+  }, [name, timeZone, days, initialState]);
 
   const handleDiscard = () => {
     if (!initialState) return;
@@ -185,34 +176,6 @@ export function AvailabilityEditor() {
     );
   };
 
-  const handleAddOverride = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!newOverrideDate) return;
-
-    const existingIndex = overrides.findIndex((o) => o.date === newOverrideDate);
-    const newEntry: ScheduleOverride = {
-      date: newOverrideDate,
-      isUnavailable: newOverrideUnavailable,
-      startTime: newOverrideUnavailable ? null : newOverrideStart,
-      endTime: newOverrideUnavailable ? null : newOverrideEnd,
-    };
-
-    if (existingIndex >= 0) {
-      setOverrides((prev) => prev.map((o, idx) => (idx === existingIndex ? newEntry : o)));
-      toast.info("Date override updated", newOverrideDate);
-    } else {
-      setOverrides((prev) => [...prev, newEntry].sort((a, b) => a.date.localeCompare(b.date)));
-      toast.success("Date override added", newOverrideDate);
-    }
-
-    setNewOverrideDate("");
-  };
-
-  const removeOverride = (date: string) => {
-    setOverrides((prev) => prev.filter((o) => o.date !== date));
-    toast.info("Date override removed", date);
-  };
-
   const handleSave = async () => {
     setIsSaving(true);
     try {
@@ -265,7 +228,7 @@ export function AvailabilityEditor() {
         <div>
           <h1 className="text-2xl font-bold tracking-tight text-[var(--text-primary)]">Availability</h1>
           <p className="mt-1 text-sm text-[var(--text-secondary)]">
-            Configure your default working hours, recurring weekly schedules, and date overrides.
+            Configure your default working hours and recurring weekly schedules.
           </p>
         </div>
           <Button
@@ -338,7 +301,7 @@ export function AvailabilityEditor() {
                       id={`day-${day}`}
                       checked={enabled}
                       onChange={() => toggleDay(day)}
-                      className="h-4 w-4 rounded border-[var(--border-strong)] text-neutral-900 focus:ring-[var(--focus-ring)] cursor-pointer"
+                      className="h-4 w-4 rounded border-[var(--border-strong)] text-blue-600 focus:ring-blue-500 cursor-pointer"
                     />
                     <label
                       htmlFor={`day-${day}`}
@@ -428,143 +391,6 @@ export function AvailabilityEditor() {
               );
             })}
           </div>
-        </Card>
-
-        {/* Date Overrides Section */}
-        <Card className="p-6 bg-[var(--bg-surface)] border-[var(--border-subtle)] shadow-xs space-y-6">
-          <div>
-            <div className="flex items-center gap-2">
-              <CalendarIcon className="h-4 w-4 text-[var(--text-secondary)]" />
-              <h2 className="text-base font-semibold text-[var(--text-primary)]">Date-Specific Overrides</h2>
-            </div>
-            <p className="text-xs text-[var(--text-secondary)] mt-0.5">
-              Add vacation days, holidays, or specific dates with custom working hours.
-            </p>
-          </div>
-
-          {/* Add Override Form */}
-          <form onSubmit={handleAddOverride} className="rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-subtle)] p-4 space-y-4">
-            <p className="text-xs font-semibold uppercase tracking-wider text-[var(--text-secondary)]">Add Date Override</p>
-
-            <div className="flex flex-wrap items-end gap-3">
-              <div className="space-y-1">
-                <Label htmlFor="override-date">Select Date</Label>
-                <Input
-                  id="override-date"
-                  type="date"
-                  size="sm"
-                  value={newOverrideDate}
-                  onChange={(e) => setNewOverrideDate(e.target.value)}
-                  className="w-40"
-                  required
-                />
-              </div>
-
-              <div className="space-y-1">
-                <Label>Type</Label>
-                <div className="flex items-center gap-2">
-                  <button
-                    type="button"
-                    onClick={() => setNewOverrideUnavailable(true)}
-                    className={`h-8 rounded-lg px-3 text-xs font-medium border transition-[background-color,border-color,color] duration-150 cursor-pointer ${
-                      newOverrideUnavailable
-                        ? "border-neutral-900 bg-neutral-900 text-white"
-                        : "border-[var(--border-subtle)] bg-[var(--bg-surface)] text-[var(--text-secondary)] hover:bg-[var(--bg-muted)]"
-                    }`}
-                  >
-                    Unavailable (All day)
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setNewOverrideUnavailable(false)}
-                    className={`h-8 rounded-lg px-3 text-xs font-medium border transition-[background-color,border-color,color] duration-150 cursor-pointer ${
-                      !newOverrideUnavailable
-                        ? "border-neutral-900 bg-neutral-900 text-white"
-                        : "border-[var(--border-subtle)] bg-[var(--bg-surface)] text-[var(--text-secondary)] hover:bg-[var(--bg-muted)]"
-                    }`}
-                  >
-                    Custom Hours
-                  </button>
-                </div>
-              </div>
-
-              {!newOverrideUnavailable && (
-                <div className="flex items-center gap-2">
-                  <div className="w-28 space-y-1">
-                    <Label>Start</Label>
-                    <Select
-                      size="sm"
-                      value={newOverrideStart}
-                      onChange={(e) => setNewOverrideStart(e.target.value)}
-                      className="tabular-nums font-sans"
-                    >
-                      {TIME_OPTIONS.map((t) => (
-                        <option key={t.value} value={t.value}>
-                          {t.label}
-                        </option>
-                      ))}
-                    </Select>
-                  </div>
-                  <span className="text-xs text-[var(--text-muted)] mt-5">—</span>
-                  <div className="w-28 space-y-1">
-                    <Label>End</Label>
-                    <Select
-                      size="sm"
-                      value={newOverrideEnd}
-                      onChange={(e) => setNewOverrideEnd(e.target.value)}
-                      className="tabular-nums font-sans"
-                    >
-                      {TIME_OPTIONS.map((t) => (
-                        <option key={t.value} value={t.value}>
-                          {t.label}
-                        </option>
-                      ))}
-                    </Select>
-                  </div>
-                </div>
-              )}
-
-              <Button
-                type="submit"
-                size="sm"
-                className="gap-1"
-              >
-                <Plus className="h-3.5 w-3.5" />
-                <span>Add Override</span>
-              </Button>
-            </div>
-          </form>
-
-          {/* List Existing Overrides */}
-          {overrides.length === 0 ? (
-            <p className="text-xs text-[var(--text-muted)] py-2">No date overrides configured.</p>
-          ) : (
-            <div className="divide-y divide-[var(--border-subtle)] border border-[var(--border-subtle)] rounded-xl overflow-hidden">
-              {overrides.map((override) => (
-                <div key={override.date} className="flex items-center justify-between p-3.5 bg-[var(--bg-surface)] hover:bg-[var(--bg-subtle)] transition-colors duration-150">
-                  <div className="flex items-center gap-3">
-                    <span className="font-mono text-xs font-semibold text-[var(--text-primary)]">{override.date}</span>
-                    {override.isUnavailable ? (
-                      <Badge variant="danger">Unavailable (Blackout)</Badge>
-                    ) : (
-                      <Badge variant="success">Custom: {override.startTime} – {override.endTime}</Badge>
-                    )}
-                  </div>
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="icon"
-                    onClick={() => removeOverride(override.date)}
-                    className="text-[var(--text-muted)] hover:text-rose-600 hover:bg-rose-50"
-                    title="Delete override"
-                    aria-label="Delete override"
-                  >
-                    <Trash2 className="h-3.5 w-3.5" />
-                  </Button>
-                </div>
-              ))}
-            </div>
-          )}
         </Card>
 
         {/* Minimal Floating Dirty-State Unsaved Changes Bar */}

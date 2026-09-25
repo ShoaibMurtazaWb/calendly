@@ -332,11 +332,12 @@ export class BookingsService {
       },
     });
 
-    if (!booking || !token || !this.tokenService.verifyToken(booking.id, token, booking.tokenVersion)) {
+    if (!booking || (token && !this.tokenService.verifyToken(booking.id, token, booking.tokenVersion))) {
       throw new NotFoundError("Booking not found or this link is no longer valid.");
     }
 
-    const manageToken = this.tokenService.generateToken(booking.id, booking.tokenVersion);
+    const isValidToken = Boolean(token && this.tokenService.verifyToken(booking.id, token, booking.tokenVersion));
+    const manageToken = isValidToken && token ? this.tokenService.generateToken(booking.id, booking.tokenVersion) : undefined;
     return {
       ...this.mapToResponse(booking),
       manageToken,

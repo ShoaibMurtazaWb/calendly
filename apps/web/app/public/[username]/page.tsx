@@ -99,7 +99,7 @@ export default function PublicHostPage({
         </p>
         <Link
           href="/"
-          className="mt-6 inline-flex items-center gap-1.5 rounded-lg bg-neutral-900 px-4 py-2 text-xs font-semibold text-white hover:bg-neutral-800 transition-colors duration-150"
+          className="mt-6 inline-flex items-center gap-1.5 rounded-lg bg-blue-600 px-4 py-2 text-xs font-semibold text-white hover:bg-blue-700 transition-colors duration-150 shadow-xs"
         >
           <span>Return Home</span>
         </Link>
@@ -134,7 +134,7 @@ export default function PublicHostPage({
         <main className="mx-auto max-w-4xl px-6 py-12 space-y-10">
           {/* Host Profile Card */}
           <Card className="p-8 bg-[var(--bg-surface)] border-[var(--border-subtle)] shadow-xs flex flex-col sm:flex-row items-center sm:items-start gap-6 text-center sm:text-left rounded-xl">
-            <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-full bg-neutral-900 text-xl font-bold text-white shadow-2xs">
+            <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-full bg-blue-600 text-xl font-bold text-white shadow-2xs">
               {initials}
             </div>
 
@@ -176,19 +176,19 @@ export default function PublicHostPage({
                     href={`/public/${profile.user.username}/${et.slug}`}
                     className="group block"
                   >
-                    <Card className="h-full p-6 bg-[var(--bg-surface)] border-[var(--border-subtle)] rounded-xl shadow-2xs hover:border-[var(--border-strong)] hover:shadow-xs transition-[border-color,box-shadow] duration-150 ease-out flex flex-col justify-between space-y-4 cursor-pointer">
+                    <Card className="h-full p-6 bg-[var(--bg-surface)] border-[var(--border-subtle)] rounded-xl shadow-2xs hover:border-blue-500 hover:shadow-xs transition-[border-color,box-shadow] duration-150 ease-out flex flex-col justify-between space-y-4 cursor-pointer">
                       <div>
                         <div className="flex items-center justify-between">
-                          <span className="rounded-full bg-[var(--bg-subtle)] border border-[var(--border-subtle)] px-2.5 py-0.5 text-xs font-medium tabular-nums font-sans text-[var(--text-secondary)]">
+                          <span className="rounded-full bg-blue-50 border border-blue-200 px-2.5 py-0.5 text-xs font-semibold tabular-nums font-sans text-blue-700">
                             {et.durationMinutes} min meeting
                           </span>
-                          <div className="flex items-center gap-1 text-xs text-[var(--text-muted)] group-hover:text-[var(--text-primary)] transition-colors duration-150">
+                          <div className="flex items-center gap-1 text-xs text-neutral-500 group-hover:text-blue-600 transition-colors duration-150 font-semibold">
                             <span>Select</span>
                             <ArrowRight className="h-3.5 w-3.5 transition-transform duration-150 group-hover:translate-x-0.5" />
                           </div>
                         </div>
 
-                        <h3 className="mt-3 text-base font-semibold text-[var(--text-primary)]">
+                        <h3 className="mt-3 text-base font-semibold text-[var(--text-primary)] group-hover:text-blue-600 transition-colors">
                           {et.title}
                         </h3>
 

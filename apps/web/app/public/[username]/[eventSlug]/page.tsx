@@ -201,8 +201,17 @@ export default function PublicBookingPage({
         }),
       });
 
+      if (result.manageToken && typeof window !== "undefined") {
+        try {
+          sessionStorage.setItem(`booking_token_${result.id}`, result.manageToken);
+        } catch {
+          // Ignore storage errors
+        }
+      }
+
       toast.success("Booking Confirmed!", "Your meeting has been scheduled.");
-      router.push(`/public/bookings/${result.id}`);
+      const tokenParam = result.manageToken ? `?token=${encodeURIComponent(result.manageToken)}` : "";
+      router.push(`/public/bookings/${result.id}${tokenParam}`);
     } catch (err) {
       if (err instanceof ApiError) {
         const code = err.body?.error?.code || err.body?.code;

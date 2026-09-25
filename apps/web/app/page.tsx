@@ -173,11 +173,11 @@ export default function HomePage() {
   }
 
   return (
-    <div className="min-h-screen bg-[var(--bg-canvas)] font-sans text-[var(--text-primary)] selection:bg-neutral-900 selection:text-white">
+    <div className="min-h-screen bg-[var(--bg-canvas)] font-sans text-[var(--text-primary)] selection:bg-blue-600 selection:text-white">
       {/* Top Announcement Bar */}
       <div className="border-b border-[var(--border-subtle)] bg-[var(--bg-surface)] px-4 py-2 text-center text-xs font-medium text-[var(--text-secondary)]">
         <span className="inline-flex items-center gap-1.5">
-          <Sparkles className="h-3.5 w-3.5 text-[var(--text-primary)]" />
+          <Sparkles className="h-3.5 w-3.5 text-blue-600" />
           High-precision scheduling infrastructure for modern teams and hosts
         </span>
       </div>
@@ -198,19 +198,19 @@ export default function HomePage() {
           <nav className="hidden items-center gap-6 md:flex text-sm font-medium text-[var(--text-secondary)]">
             <a
               href="#features"
-              className="transition-[color] duration-150 hover:text-[var(--text-primary)]"
+              className="transition-[color] duration-150 hover:text-blue-600"
             >
               Features
             </a>
             <a
               href="#interactive-demo"
-              className="transition-[color] duration-150 hover:text-[var(--text-primary)]"
+              className="transition-[color] duration-150 hover:text-blue-600"
             >
               Live Preview
             </a>
             <a
               href="#how-it-works"
-              className="transition-[color] duration-150 hover:text-[var(--text-primary)]"
+              className="transition-[color] duration-150 hover:text-blue-600"
             >
               How it Works
             </a>
@@ -219,7 +219,7 @@ export default function HomePage() {
           <div className="flex items-center gap-3">
             {user ? (
               <div className="flex items-center gap-2.5">
-                <Button asChild variant="ghost" size="sm" className="hidden sm:inline-flex text-xs text-[var(--text-secondary)] hover:text-[var(--text-primary)] gap-1.5">
+                <Button asChild variant="ghost" size="sm" className="hidden sm:inline-flex text-xs text-[var(--text-secondary)] hover:text-blue-600 gap-1.5">
                   <Link href={`/public/${user.username}`} target="_blank">
                     <span>Public Profile</span>
                     <ExternalLink className="h-3 w-3 text-[var(--text-muted)]" />
@@ -233,7 +233,7 @@ export default function HomePage() {
                 </Button>
                 <Link
                   href="/dashboard"
-                  className="flex h-7 w-7 items-center justify-center rounded-full bg-neutral-900 text-white text-[11px] font-bold shadow-2xs select-none hover:scale-105 transition-transform"
+                  className="flex h-7 w-7 items-center justify-center rounded-full bg-blue-600 text-white text-[11px] font-bold shadow-2xs select-none hover:scale-105 transition-transform"
                   title={`${user.name} (@${user.username})`}
                 >
                   {user.name.charAt(0).toUpperCase()}
@@ -259,14 +259,14 @@ export default function HomePage() {
       {/* Hero Section */}
       <section className="relative pt-16 pb-14 md:pt-24 md:pb-20">
         <div className="mx-auto max-w-5xl px-6 text-center">
-          <Badge variant="default" className="rounded-full px-3 py-1 text-xs shadow-2xs">
-            <span className="h-2 w-2 rounded-full bg-emerald-500 mr-1.5" />
+          <Badge variant="default" className="rounded-full px-3 py-1 text-xs shadow-2xs bg-blue-50 text-blue-700 border border-blue-200">
+            <span className="h-2 w-2 rounded-full bg-blue-600 mr-1.5" />
             <span>Autonomous Scheduling · Zero Double-Bookings</span>
           </Badge>
 
           <h1 className="mx-auto mt-6 max-w-3xl text-4xl font-bold tracking-tight text-[var(--text-primary)] sm:text-5xl sm:leading-[1.15]">
             Share your page. <br className="hidden sm:inline" />
-            <span>Book effortlessly.</span>
+            <span className="text-blue-600">Book effortlessly.</span>
           </h1>
 
           <p className="mx-auto mt-5 max-w-2xl text-base text-[var(--text-secondary)] sm:text-lg leading-relaxed">
@@ -283,7 +283,7 @@ export default function HomePage() {
                     <ArrowRight className="h-4 w-4" />
                   </Link>
                 </Button>
-                <Button asChild variant="outline" size="lg" className="w-full sm:w-auto">
+                <Button asChild variant="outline" size="lg" className="w-full sm:w-auto hover:text-blue-600">
                   <Link href={`/public/${user.username}`} target="_blank">
                     <span>View your public profile (@{user.username})</span>
                     <ExternalLink className="h-3.5 w-3.5 ml-1.5" />
@@ -298,7 +298,7 @@ export default function HomePage() {
                     <ArrowRight className="h-4 w-4" />
                   </Link>
                 </Button>
-                <Button asChild variant="outline" size="lg" className="w-full sm:w-auto">
+                <Button asChild variant="outline" size="lg" className="w-full sm:w-auto hover:text-blue-600">
                   <a href="#interactive-demo">View live demo</a>
                 </Button>
               </>
@@ -307,15 +307,15 @@ export default function HomePage() {
 
           <div className="mt-10 flex flex-wrap items-center justify-center gap-6 text-xs text-[var(--text-muted)]">
             <div className="flex items-center gap-1.5">
-              <CheckCircle2 className="h-4 w-4 text-emerald-600 shrink-0" />
+              <CheckCircle2 className="h-4 w-4 text-blue-600 shrink-0" />
               <span>No credit card required</span>
             </div>
             <div className="flex items-center gap-1.5">
-              <CheckCircle2 className="h-4 w-4 text-emerald-600 shrink-0" />
+              <CheckCircle2 className="h-4 w-4 text-blue-600 shrink-0" />
               <span>Instant slot projection</span>
             </div>
             <div className="flex items-center gap-1.5">
-              <CheckCircle2 className="h-4 w-4 text-emerald-600 shrink-0" />
+              <CheckCircle2 className="h-4 w-4 text-blue-600 shrink-0" />
               <span>Automatic IANA timezone sync</span>
             </div>
           </div>
@@ -327,7 +327,7 @@ export default function HomePage() {
         <div className="mx-auto max-w-5xl px-6">
           <div className="mb-6 flex flex-col sm:flex-row sm:items-end sm:justify-between gap-2">
             <div>
-              <p className="text-xs font-semibold uppercase tracking-wider text-[var(--text-muted)]">
+              <p className="text-xs font-semibold uppercase tracking-wider text-blue-600">
                 Interactive Preview
               </p>
               <h2 className="text-xl font-bold tracking-tight text-[var(--text-primary)]">
@@ -365,7 +365,7 @@ export default function HomePage() {
               <div className="p-6 md:col-span-5 flex flex-col justify-between space-y-6">
                 <div>
                   <div className="flex items-center gap-3">
-                    <div className="flex h-11 w-11 items-center justify-center rounded-full bg-neutral-900 text-sm font-semibold text-white select-none">
+                    <div className="flex h-11 w-11 items-center justify-center rounded-full bg-blue-600 text-sm font-semibold text-white select-none shadow-sm">
                       SM
                     </div>
                     <div>
@@ -388,13 +388,15 @@ export default function HomePage() {
                             onClick={() => setSelectedEvent(event)}
                             className={`w-full text-left rounded-xl p-3 transition-[background-color,border-color,box-shadow] duration-150 border cursor-pointer ${
                               isSelected
-                                ? "border-neutral-900 bg-[var(--bg-subtle)] text-[var(--text-primary)] shadow-2xs"
-                                : "border-[var(--border-subtle)] bg-[var(--bg-surface)] text-[var(--text-secondary)] hover:border-[var(--border-strong)] hover:bg-[var(--bg-subtle)]/50"
+                                ? "border-blue-600 bg-blue-50/50 text-[var(--text-primary)] shadow-2xs"
+                                : "border-[var(--border-subtle)] bg-[var(--bg-surface)] text-[var(--text-secondary)] hover:border-blue-300 hover:bg-[var(--bg-subtle)]/50"
                             }`}
                           >
                             <div className="flex items-center justify-between">
                               <span className="text-sm font-medium text-[var(--text-primary)]">{event.title}</span>
-                              <span className="rounded-md bg-[var(--bg-muted)] px-1.5 py-0.5 text-[10px] font-medium text-[var(--text-secondary)] tabular-nums font-sans">
+                              <span className={`rounded-md px-1.5 py-0.5 text-[10px] font-medium tabular-nums font-sans ${
+                                isSelected ? "bg-blue-100 text-blue-700" : "bg-[var(--bg-muted)] text-[var(--text-secondary)]"
+                              }`}>
                                 {event.duration}m
                               </span>
                             </div>
@@ -408,7 +410,7 @@ export default function HomePage() {
 
                 <div className="rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-subtle)]/50 p-3 text-xs text-[var(--text-secondary)]">
                   <div className="flex items-center gap-2 font-medium text-[var(--text-primary)]">
-                    <Globe className="h-4 w-4 text-[var(--text-muted)]" />
+                    <Globe className="h-4 w-4 text-blue-600" />
                     <span>Google Meet / Zoom</span>
                   </div>
                   <p className="mt-1 text-[11px] text-[var(--text-muted)]">
@@ -425,7 +427,7 @@ export default function HomePage() {
                       <h3 className="text-sm font-semibold text-[var(--text-primary)]">Select a Time Slot</h3>
                       <p className="text-xs text-[var(--text-muted)] font-mono">Today · Asia/Karachi (GMT+5)</p>
                     </div>
-                    <Badge variant="secondary" className="tabular-nums font-sans">
+                    <Badge variant="secondary" className="tabular-nums font-sans bg-blue-50 text-blue-700 border-blue-100">
                       {SAMPLE_SLOTS.length} slots available
                     </Badge>
                   </div>
@@ -440,12 +442,12 @@ export default function HomePage() {
                           onClick={() => handleBookSlot(slot)}
                           className={`flex items-center justify-between rounded-lg border px-3 py-2 text-xs font-medium transition-[background-color,border-color,color,box-shadow,transform] duration-150 active:scale-[0.98] cursor-pointer ${
                             isSelected
-                              ? "border-neutral-900 bg-neutral-900 text-white shadow-2xs"
-                              : "border-[var(--border-subtle)] bg-[var(--bg-surface)] text-[var(--text-primary)] hover:border-[var(--border-strong)] hover:bg-[var(--bg-subtle)]"
+                              ? "border-blue-600 bg-blue-600 text-white shadow-2xs"
+                              : "border-[var(--border-subtle)] bg-[var(--bg-surface)] text-[var(--text-primary)] hover:border-blue-400 hover:bg-blue-50/30"
                           }`}
                         >
                           <span className="tabular-nums font-sans">{slot}</span>
-                          <span className={isSelected ? "text-neutral-200 text-[11px]" : "text-[var(--text-muted)] text-[11px]"}>
+                          <span className={isSelected ? "text-blue-100 text-[11px]" : "text-[var(--text-muted)] text-[11px]"}>
                             {isSelected ? "Selected ✓" : "Book →"}
                           </span>
                         </button>
@@ -456,7 +458,7 @@ export default function HomePage() {
 
                 {/* Instant Feedback Notice */}
                 {bookedState ? (
-                  <div className="mt-6 rounded-xl border border-[var(--status-success-border)] bg-[var(--status-success-bg)] p-3 text-center text-xs font-medium text-[var(--status-success-text)] transition-[opacity,transform] duration-150">
+                  <div className="mt-6 rounded-xl border border-blue-200 bg-blue-50 p-3 text-center text-xs font-medium text-blue-700 transition-[opacity,transform] duration-150">
                     ✓ Simulated booking confirmed for <span className="font-semibold">{selectedEvent.title}</span> at{" "}
                     <span className="font-semibold tabular-nums font-sans">{selectedSlot}</span>
                   </div>
@@ -465,7 +467,7 @@ export default function HomePage() {
                     <span>Instant calendar synchronization</span>
                     <Link
                       href="/register"
-                      className="font-medium text-[var(--text-primary)] hover:underline"
+                      className="font-medium text-blue-600 hover:underline"
                     >
                       Create your own link →
                     </Link>
@@ -481,7 +483,7 @@ export default function HomePage() {
       <section id="features" className="py-16 border-t border-[var(--border-subtle)] bg-[var(--bg-surface)]">
         <div className="mx-auto max-w-5xl px-6">
           <div className="mb-12 text-center">
-            <p className="text-xs font-semibold uppercase tracking-wider text-[var(--text-muted)]">High Reliability</p>
+            <p className="text-xs font-semibold uppercase tracking-wider text-blue-600">High Reliability</p>
             <h2 className="mt-1 text-2xl font-bold tracking-tight text-[var(--text-primary)] sm:text-3xl">
               Engineered for seamless calendar operations
             </h2>
@@ -494,13 +496,13 @@ export default function HomePage() {
             {FEATURES.map((feature, i) => (
               <div
                 key={i}
-                className="rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-canvas)] p-5 transition-[border-color,background-color,box-shadow] duration-150 hover:border-[var(--border-strong)] hover:bg-[var(--bg-surface)] hover:shadow-2xs"
+                className="rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-canvas)] p-5 transition-[border-color,background-color,box-shadow] duration-150 hover:border-blue-300 hover:bg-[var(--bg-surface)] hover:shadow-2xs"
               >
                 <div className="flex items-center justify-between mb-3">
-                  <div className="flex h-9 w-9 items-center justify-center rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-surface)] shadow-2xs">
+                  <div className="flex h-9 w-9 items-center justify-center rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-surface)] shadow-2xs text-blue-600">
                     {feature.icon}
                   </div>
-                  <Badge variant="secondary">{feature.tag}</Badge>
+                  <Badge variant="secondary" className="bg-blue-50 text-blue-700 border-blue-100">{feature.tag}</Badge>
                 </div>
                 <h3 className="text-sm font-semibold text-[var(--text-primary)]">{feature.title}</h3>
                 <p className="mt-1.5 text-xs text-[var(--text-secondary)] leading-relaxed">{feature.description}</p>
@@ -514,7 +516,7 @@ export default function HomePage() {
       <section id="how-it-works" className="py-16 border-t border-[var(--border-subtle)] bg-[var(--bg-canvas)]">
         <div className="mx-auto max-w-5xl px-6">
           <div className="mb-12 text-center">
-            <p className="text-xs font-semibold uppercase tracking-wider text-[var(--text-muted)]">Fast Setup</p>
+            <p className="text-xs font-semibold uppercase tracking-wider text-blue-600">Fast Setup</p>
             <h2 className="mt-1 text-2xl font-bold tracking-tight text-[var(--text-primary)] sm:text-3xl">
               Get started in three simple steps
             </h2>
@@ -524,9 +526,9 @@ export default function HomePage() {
             {STEPS.map((s, idx) => (
               <div
                 key={idx}
-                className="rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-surface)] p-6 shadow-2xs"
+                className="rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-surface)] p-6 shadow-2xs hover:border-blue-200 transition-colors"
               >
-                <span className="font-mono text-2xl font-bold text-[var(--text-muted)]">{s.step}</span>
+                <span className="font-mono text-2xl font-bold text-blue-600">{s.step}</span>
                 <h3 className="mt-3 text-base font-semibold text-[var(--text-primary)]">{s.title}</h3>
                 <p className="mt-1.5 text-xs text-[var(--text-secondary)] leading-relaxed">{s.description}</p>
               </div>
@@ -538,25 +540,25 @@ export default function HomePage() {
       {/* Bottom CTA Banner */}
       <section className="py-14 border-t border-[var(--border-subtle)] bg-[var(--bg-surface)]">
         <div className="mx-auto max-w-4xl px-6">
-          <div className="rounded-2xl border border-neutral-800 bg-neutral-900 p-8 sm:p-10 text-center text-white shadow-sm">
+          <div className="rounded-2xl border border-blue-700 bg-gradient-to-br from-blue-600 to-blue-700 p-8 sm:p-10 text-center text-white shadow-md">
             {user ? (
               <>
                 <h2 className="text-2xl font-bold sm:text-3xl">Ready to manage your schedule, {user.name}?</h2>
-                <p className="mx-auto mt-2 max-w-lg text-xs sm:text-sm text-neutral-400">
+                <p className="mx-auto mt-2 max-w-lg text-xs sm:text-sm text-blue-100">
                   Jump back into your dashboard to configure event types, review bookings, or update working hours.
                 </p>
                 <div className="mt-6 flex flex-col items-center justify-center gap-3 sm:flex-row">
                   <Button
                     asChild
                     size="lg"
-                    className="w-full sm:w-auto bg-white text-neutral-900 hover:bg-neutral-100 font-semibold"
+                    className="w-full sm:w-auto bg-white text-blue-600 hover:bg-blue-50 font-semibold shadow-sm"
                   >
                     <Link href="/dashboard">Open Host Dashboard</Link>
                   </Button>
                   <Button
                     asChild
                     size="lg"
-                    className="w-full sm:w-auto border border-neutral-700 bg-neutral-800 text-neutral-200 hover:bg-neutral-700 hover:text-white"
+                    className="w-full sm:w-auto border border-blue-400/40 bg-blue-800/40 text-white hover:bg-blue-800/60"
                   >
                     <Link href={`/public/${user.username}`} target="_blank">
                       <span>View public page</span>
@@ -568,21 +570,21 @@ export default function HomePage() {
             ) : (
               <>
                 <h2 className="text-2xl font-bold sm:text-3xl">Ready to streamline your scheduling?</h2>
-                <p className="mx-auto mt-2 max-w-lg text-xs sm:text-sm text-neutral-400">
+                <p className="mx-auto mt-2 max-w-lg text-xs sm:text-sm text-blue-100">
                   Create your custom booking page, manage availability, and let attendees book slots directly.
                 </p>
                 <div className="mt-6 flex flex-col items-center justify-center gap-3 sm:flex-row">
                   <Button
                     asChild
                     size="lg"
-                    className="w-full sm:w-auto bg-white text-neutral-900 hover:bg-neutral-100 font-semibold"
+                    className="w-full sm:w-auto bg-white text-blue-600 hover:bg-blue-50 font-semibold shadow-sm"
                   >
                     <Link href="/register">Create your page free</Link>
                   </Button>
                   <Button
                     asChild
                     size="lg"
-                    className="w-full sm:w-auto border border-neutral-700 bg-neutral-800 text-neutral-200 hover:bg-neutral-700 hover:text-white"
+                    className="w-full sm:w-auto border border-blue-400/40 bg-blue-800/40 text-white hover:bg-blue-800/60"
                   >
                     <Link href="/login">Sign in to Dashboard</Link>
                   </Button>

@@ -111,8 +111,8 @@ export default function AnalyticsPage() {
               onClick={() => setRange(r)}
               className={`rounded-md px-3 py-1 text-xs font-medium transition-colors cursor-pointer ${
                 range === r
-                  ? "bg-neutral-900 text-white dark:bg-neutral-100 dark:text-neutral-900 font-semibold"
-                  : "text-[var(--text-muted)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-subtle)]"
+                  ? "bg-blue-600 text-white font-semibold shadow-xs"
+                  : "text-neutral-600 hover:text-neutral-900 hover:bg-neutral-100"
               }`}
             >
               {rangeLabels[r]}

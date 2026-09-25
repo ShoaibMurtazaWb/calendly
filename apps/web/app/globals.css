@@ -9,11 +9,16 @@
   --bg-subtle: #F4F4F5;
   --bg-muted: #E4E4E7;
 
+  /* Brand Primary Accent (Calendly Signature Blue) */
+  --brand-primary: #0069ff;
+  --brand-hover: #0056d6;
+  --brand-subtle: #EFF6FF;
+
   /* Borders & Outlines */
   --border-subtle: #E4E4E7;
   --border-strong: #D4D4D8;
-  --border-focus: #18181B;
-  --focus-ring: #18181B;
+  --border-focus: #0069ff;
+  --focus-ring: #0069ff;
 
   /* Typography */
   --text-primary: #09090B;
@@ -36,7 +41,7 @@
 
   --status-info-bg: #EFF6FF;
   --status-info-border: #BFDBFE;
-  --status-info-text: #1E40AF;
+  --status-info-text: #0069ff;
 }
 
 body {
@@ -45,6 +50,11 @@ body {
   color: var(--text-primary);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+}
+
+::selection {
+  background-color: #0069ff;
+  color: #ffffff;
 }
 
 /* Reduced-motion accessibility fallback */
@@ -67,4 +77,3 @@ body {
     transform: scaleX(0);
   }
 }
-

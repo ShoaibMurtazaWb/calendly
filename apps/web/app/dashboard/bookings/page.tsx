@@ -258,14 +258,14 @@ export default function BookingsPage() {
         </div>
 
         {/* Filter Tabs */}
-        <div className="flex items-center gap-2 border-b border-[var(--border-subtle)] pb-2">
+        <div className="flex items-center gap-6 border-b border-[var(--border-subtle)] pb-2 text-xs">
           <button
             type="button"
             onClick={() => setTab("upcoming")}
-            className={`px-3 py-1.5 text-xs rounded-md transition-colors cursor-pointer ${
+            className={`pb-2 border-b-2 transition-colors cursor-pointer ${
               tab === "upcoming"
-                ? "text-[var(--text-primary)] font-semibold"
-                : "text-[var(--text-muted)] hover:text-[var(--text-primary)] font-medium"
+                ? "border-blue-600 text-blue-600 font-bold"
+                : "border-transparent text-neutral-600 hover:text-neutral-900 font-medium"
             }`}
           >
             <span>Upcoming</span>
@@ -274,10 +274,10 @@ export default function BookingsPage() {
           <button
             type="button"
             onClick={() => setTab("past")}
-            className={`px-3 py-1.5 text-xs rounded-md transition-colors cursor-pointer ${
+            className={`pb-2 border-b-2 transition-colors cursor-pointer ${
               tab === "past"
-                ? "text-[var(--text-primary)] font-semibold"
-                : "text-[var(--text-muted)] hover:text-[var(--text-primary)] font-medium"
+                ? "border-blue-600 text-blue-600 font-bold"
+                : "border-transparent text-neutral-600 hover:text-neutral-900 font-medium"
             }`}
           >
             <span>Past</span>
@@ -286,10 +286,10 @@ export default function BookingsPage() {
           <button
             type="button"
             onClick={() => setTab("cancelled")}
-            className={`px-3 py-1.5 text-xs rounded-md transition-colors cursor-pointer ${
+            className={`pb-2 border-b-2 transition-colors cursor-pointer ${
               tab === "cancelled"
-                ? "text-[var(--text-primary)] font-semibold"
-                : "text-[var(--text-muted)] hover:text-[var(--text-primary)] font-medium"
+                ? "border-blue-600 text-blue-600 font-bold"
+                : "border-transparent text-neutral-600 hover:text-neutral-900 font-medium"
             }`}
           >
             <span>Cancelled</span>
@@ -704,7 +704,7 @@ export default function BookingsPage() {
                         onClick={() => setRescheduleDate(item.dateStr)}
                         className={`h-7 w-full rounded text-xs font-medium transition-colors ${
                           isSelected
-                            ? "bg-neutral-900 text-white dark:bg-neutral-100 dark:text-neutral-900 font-bold"
+                            ? "bg-blue-600 text-white font-bold"
                             : isPast
                             ? "text-neutral-300 dark:text-neutral-700 cursor-not-allowed"
                             : "hover:bg-[var(--bg-subtle)] text-[var(--text-primary)] cursor-pointer"
@@ -750,8 +750,8 @@ export default function BookingsPage() {
                           onClick={() => setSelectedSlot(s)}
                           className={`px-2.5 py-1.5 text-xs rounded-md border font-medium transition-colors cursor-pointer ${
                             isSelected
-                              ? "border-neutral-900 bg-neutral-900 text-white dark:bg-white dark:text-neutral-900"
-                              : "border-[var(--border-subtle)] bg-[var(--bg-surface)] text-[var(--text-primary)] hover:border-neutral-400"
+                              ? "border-blue-600 bg-blue-600 text-white"
+                              : "border-[var(--border-subtle)] bg-[var(--bg-surface)] text-[var(--text-primary)] hover:border-blue-400 hover:text-blue-600"
                           }`}
                         >
                           {timeLabel}

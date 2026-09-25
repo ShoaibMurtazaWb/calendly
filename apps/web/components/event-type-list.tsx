@@ -172,7 +172,7 @@ function EventTypeListContent() {
   return (
     <div className="w-full flex flex-col lg:flex-row items-start gap-6 relative">
       {/* Left/Main Content Section (Smoothly shrinks when Right Sidebar Drawer is open) */}
-      <div className="flex-1 min-w-0 w-full space-y-6 transition-all duration-300">
+      <div className="flex-1 min-w-0 w-full space-y-6 transition-all duration-500 ease-in-out">
         {/* Calendly Secondary Header Row (Directly under Top Navbar) */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div className="flex items-center gap-2">
@@ -214,24 +214,6 @@ function EventTypeListContent() {
             className="pb-3 border-b-2 border-blue-600 text-blue-600 font-bold"
           >
             Event types
-          </button>
-
-          <button
-            type="button"
-            disabled
-            className="pb-3 border-b-2 border-transparent text-neutral-400 cursor-not-allowed hidden sm:inline-flex items-center gap-1.5"
-          >
-            <span>Single-use links</span>
-            <span className="text-[9px] uppercase px-1 py-0.2 rounded bg-neutral-100 text-neutral-400">Soon</span>
-          </button>
-
-          <button
-            type="button"
-            disabled
-            className="pb-3 border-b-2 border-transparent text-neutral-400 cursor-not-allowed hidden sm:inline-flex items-center gap-1.5"
-          >
-            <span>Meeting polls</span>
-            <span className="text-[9px] uppercase px-1 py-0.2 rounded bg-neutral-100 text-neutral-400">Soon</span>
           </button>
         </div>
 
@@ -314,7 +296,7 @@ function EventTypeListContent() {
                   className={`group relative flex flex-col md:flex-row md:items-center justify-between gap-4 rounded-xl border bg-white p-5 shadow-2xs hover:shadow-xs transition-all duration-200 border-l-[8px] w-full ${
                     isCurrentlyEditing
                       ? "border-blue-400 ring-2 ring-blue-500/20 border-l-blue-600"
-                      : "border-neutral-200 hover:border-neutral-300 border-l-neutral-300 hover:border-l-purple-600"
+                      : "border-neutral-200 hover:border-neutral-300 border-l-blue-500 hover:border-l-blue-600"
                   }`}
                 >
                   {/* Left: Event Meta Details */}
