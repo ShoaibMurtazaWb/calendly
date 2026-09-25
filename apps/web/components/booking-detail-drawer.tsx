@@ -18,8 +18,6 @@ import {
   Copy,
   MoreVertical,
   User,
-  FileText,
-  Plus,
   Pencil,
   ChevronDown,
   Calendar,
@@ -140,11 +138,6 @@ export function BookingDetailDrawer({
 
   const hostInitial = booking.host.name.charAt(0).toLowerCase() || "h";
 
-  const handleCopyEmail = () => {
-    void navigator.clipboard.writeText(booking.attendeeEmail);
-    toast.success("Email copied to clipboard", booking.attendeeEmail);
-  };
-
   const handleCopyPhone = () => {
     if (!booking.attendeePhoneNumber) return;
     void navigator.clipboard.writeText(booking.attendeePhoneNumber);
@@ -183,10 +176,6 @@ export function BookingDetailDrawer({
     }
   };
 
-  const handleAddNotetaker = () => {
-    toast.success("AI Notetaker requested", "A notetaker has been assigned to attend this session.");
-  };
-
   // Determine video/meeting location details
   const isVideoLocation = !booking.location || booking.location.type === "STATIC_VIDEO" || booking.location.type === "CUSTOM_LINK";
   const locationLabel = booking.location
@@ -209,13 +198,19 @@ export function BookingDetailDrawer({
         />
       )}
 
-      {/* Slide-in Drawer matching Calendly sidebar */}
-      <aside
-        className={`w-full md:w-[440px] lg:w-[480px] rounded-2xl border border-neutral-200 bg-white shadow-xl flex flex-col h-full min-h-[620px] max-h-[calc(100vh-7rem)] sticky top-6 z-40 transition-transform duration-500 ease-in-out ${
-          isOpen ? "translate-x-0" : "translate-x-full hidden lg:flex"
+      {/* Slide-in Drawer matching Calendly sidebar with smooth animation */}
+      <div
+        className={`transition-[width,opacity] duration-500 ease-in-out shrink-0 overflow-hidden ${
+          isOpen
+            ? "w-full md:w-[440px] lg:w-[480px] opacity-100"
+            : "w-0 opacity-0 pointer-events-none"
         }`}
-        style={{ display: isOpen ? "flex" : "none" }}
       >
+        <aside
+          className={`w-full md:w-[440px] lg:w-[480px] rounded-2xl border border-neutral-200 bg-white shadow-xl flex flex-col h-full min-h-[620px] max-h-[calc(100vh-7rem)] sticky top-6 z-40 transition-transform duration-500 ease-in-out ${
+            isOpen ? "translate-x-0" : "translate-x-full"
+          }`}
+        >
         {/* Drawer Header matching screenshot */}
         <div className="px-6 pt-5 pb-3 border-b border-neutral-200 sticky top-0 bg-white z-10 rounded-t-2xl space-y-3.5">
           <div className="flex items-start justify-between gap-3">
@@ -241,20 +236,10 @@ export function BookingDetailDrawer({
             </button>
           </div>
 
-          {/* Action Buttons: Add Notetaker, Reschedule & Cancel matching screenshot */}
+          {/* Action Buttons: Reschedule & Cancel matching screenshot */}
           <div className="flex flex-wrap items-center gap-2 pt-1">
             {!isCancelled && (
               <>
-                <Button
-                  type="button"
-                  size="sm"
-                  onClick={handleAddNotetaker}
-                  className="rounded-full bg-blue-600 hover:bg-blue-700 text-white px-3.5 py-1.5 text-xs font-semibold gap-1.5 shadow-2xs cursor-pointer"
-                >
-                  <Plus className="h-3.5 w-3.5" />
-                  <span>Add Notetaker</span>
-                </Button>
-
                 <Button
                   type="button"
                   variant="outline"
@@ -606,6 +591,7 @@ export function BookingDetailDrawer({
           )}
         </div>
       </aside>
+    </div>
 
       {/* Edit Invitee Email Modal matching user screenshot */}
       {isEditEmailOpen && (

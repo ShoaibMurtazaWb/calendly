@@ -3,20 +3,11 @@
 import { useEffect, useState, useMemo } from "react";
 import Link from "next/link";
 import {
-  Clock,
-  User,
-  Mail,
-  ExternalLink,
-  Download,
   XCircle,
   RefreshCw,
   ChevronLeft,
   ChevronRight,
   History,
-  MapPin,
-  Video,
-  PhoneCall,
-  PhoneForwarded,
   Trash2,
   CalendarClock,
   CalendarX,
@@ -330,8 +321,8 @@ export default function BookingsPage() {
           </div>
         </div>
 
-        {/* Filter Tabs */}
-        <div className="flex items-center gap-6 border-b border-[var(--border-subtle)] pb-2 text-xs">
+        {/* Filter Tabs without bottom divider */}
+        <div className="flex items-center gap-6 pb-2 text-xs">
           <button
             type="button"
             onClick={() => setTab("upcoming")}
@@ -435,23 +426,20 @@ export default function BookingsPage() {
               <div className="space-y-6">
                 {groupedBookings.map((group, gIdx) => (
                   <div key={gIdx} className="space-y-3">
-                    {/* Day Header with horizontal line matching screenshot */}
-                    <div className="flex items-center gap-3">
-                      <div className="flex items-center gap-2">
-                        <span className="text-xs font-bold text-neutral-800">
-                          {group.dayLabel}
+                    {/* Day Header without horizontal line and larger font */}
+                    <div className="flex items-center gap-2.5 pt-1">
+                      <span className="text-sm sm:text-base font-bold text-neutral-900">
+                        {group.dayLabel}
+                      </span>
+                      {group.isToday && (
+                        <span className="text-xs font-semibold text-blue-600 bg-blue-50 px-2.5 py-0.5 rounded-full">
+                          Today
                         </span>
-                        {group.isToday && (
-                          <span className="text-[11px] font-semibold text-blue-600 bg-blue-50 px-2 py-0.5 rounded-md">
-                            Today
-                          </span>
-                        )}
-                      </div>
-                      <div className="flex-1 h-[1px] bg-neutral-200" />
+                      )}
                     </div>
 
                     {/* Meeting Cards inside this day */}
-                    <div className="space-y-2">
+                    <div className="space-y-2.5">
                       {group.items.map((b) => {
                         const startDate = new Date(b.startTime);
                         const endDate = new Date(b.endTime);
@@ -480,21 +468,21 @@ export default function BookingsPage() {
                               setSelectedBooking(b);
                               setIsDrawerOpen(true);
                             }}
-                            className={`group flex items-center justify-between px-6 py-4 rounded-2xl border transition-all duration-150 cursor-pointer shadow-2xs ${
+                            className={`group flex items-center justify-between px-6 py-4 sm:py-4.5 rounded-2xl border transition-all duration-150 cursor-pointer shadow-2xs ${
                               isSelected
-                                ? "border-blue-500 bg-blue-50/50 ring-1 ring-blue-500"
+                                ? "border-blue-500 bg-blue-50/50 ring-1 ring-blue-500 shadow-xs"
                                 : "border-neutral-200 bg-white hover:bg-blue-50/40 hover:border-blue-300"
                             }`}
                           >
-                            {/* Left: Time with increased gap */}
-                            <div className="w-28 sm:w-36 shrink-0 text-xs font-semibold text-neutral-600 tabular-nums">
+                            {/* Left: Time with increased font and width */}
+                            <div className="w-32 sm:w-40 shrink-0 text-sm font-semibold text-neutral-700 tabular-nums">
                               {timeStr}
                             </div>
 
-                            {/* Center: Dot + Title as meeting name with invitee */}
+                            {/* Center: Dot + Title as meeting name with invitee (increased font) */}
                             <div className="flex-1 flex items-center gap-3 min-w-0 px-4">
                               <span className="h-2.5 w-2.5 rounded-full bg-purple-500 shrink-0" />
-                              <p className="text-xs sm:text-sm font-bold text-neutral-900 truncate">
+                              <p className="text-sm sm:text-base font-bold text-neutral-900 truncate">
                                 {b.eventType.title}{" "}
                                 <span className="font-normal text-neutral-500">with {b.attendeeName}</span>
                               </p>
@@ -503,7 +491,7 @@ export default function BookingsPage() {
                             {/* Right: Status badge if cancelled */}
                             <div className="shrink-0 flex items-center gap-2">
                               {b.status === "CANCELLED" && (
-                                <Badge variant="danger" className="text-[10px] py-0.5 px-2">
+                                <Badge variant="danger" className="text-xs py-0.5 px-2.5">
                                   Cancelled
                                 </Badge>
                               )}

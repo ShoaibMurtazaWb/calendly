@@ -13,8 +13,6 @@ import {
   ExternalLink,
   Trash2,
   Calendar,
-  ChevronDown,
-  Info,
   MoreVertical,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -281,22 +279,19 @@ function EventTypeListContent() {
               return (
                 <Card
                   key={item.id}
-                  className={`group relative flex flex-col md:flex-row md:items-center justify-between gap-4 rounded-xl border bg-white p-5 shadow-2xs hover:shadow-xs transition-all duration-200 border-l-[8px] w-full ${
+                  onClick={() => openEditDrawer(item.id)}
+                  className={`group relative flex flex-col md:flex-row md:items-center justify-between gap-4 rounded-2xl border p-5 shadow-2xs hover:shadow-xs transition-all duration-200 border-l-[8px] w-full cursor-pointer hover:bg-blue-50/50 hover:border-blue-300 ${
                     isCurrentlyEditing
-                      ? "border-blue-400 ring-2 ring-blue-500/20 border-l-blue-600"
-                      : "border-neutral-200 hover:border-neutral-300 border-l-blue-500 hover:border-l-blue-600"
+                      ? "border-blue-500 bg-blue-50/60 ring-1 ring-blue-500 border-l-blue-600 shadow-2xs"
+                      : "border-neutral-200 bg-white border-l-blue-500 hover:border-l-blue-600"
                   }`}
                 >
                   {/* Left: Event Meta Details */}
                   <div className="flex items-start gap-3 min-w-0">
                     <div className="min-w-0">
-                      <button
-                        type="button"
-                        onClick={() => openEditDrawer(item.id)}
-                        className="text-base font-bold text-black hover:text-blue-600 transition-colors text-left inline-block cursor-pointer"
-                      >
+                      <span className="text-base font-bold text-neutral-900 group-hover:text-blue-600 transition-colors text-left inline-block">
                         {item.title}
-                      </button>
+                      </span>
 
                       <div className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-neutral-600 font-medium">
                         <span>{item.durationMinutes} min</span>
@@ -320,7 +315,10 @@ function EventTypeListContent() {
                         type="button"
                         variant="outline"
                         size="sm"
-                        onClick={() => handleCopy(item.slug, item.id)}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleCopy(item.slug, item.id);
+                        }}
                         className="rounded-full border-neutral-300 bg-white hover:bg-neutral-50 px-3.5 py-1.5 text-xs font-semibold text-neutral-800 shadow-2xs gap-1.5 transition-all cursor-pointer"
                       >
                         {isCopied ? (
@@ -344,6 +342,7 @@ function EventTypeListContent() {
                           asChild
                           variant="ghost"
                           size="icon"
+                          onClick={(e) => e.stopPropagation()}
                           className="h-8 w-8 rounded-full text-neutral-500 hover:text-black hover:bg-neutral-100 cursor-pointer"
                         >
                           <Link href={`/public/${user.username}/${item.slug}`} target="_blank">
@@ -359,7 +358,10 @@ function EventTypeListContent() {
                         type="button"
                         variant="ghost"
                         size="icon"
-                        onClick={() => openEditDrawer(item.id)}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          openEditDrawer(item.id);
+                        }}
                         className="h-8 w-8 rounded-full text-neutral-500 hover:text-black hover:bg-neutral-100 cursor-pointer"
                       >
                         <Edit2 className="h-3.5 w-3.5" />
@@ -372,7 +374,10 @@ function EventTypeListContent() {
                         type="button"
                         variant="ghost"
                         size="icon"
-                        onClick={() => setDeleteModalItem(item)}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setDeleteModalItem(item);
+                        }}
                         className="h-8 w-8 rounded-full text-neutral-400 hover:text-red-600 hover:bg-red-50 transition-colors cursor-pointer"
                       >
                         <Trash2 className="h-3.5 w-3.5" />
