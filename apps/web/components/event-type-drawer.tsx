@@ -32,13 +32,13 @@ import type { LocationType, CustomQuestion, ScheduleResponse } from "@sched/api-
 const DURATION_PRESETS = [15, 30, 45, 60];
 
 const WEEK_DAYS = [
+  { day: 0, name: "Sunday", short: "S" },
   { day: 1, name: "Monday", short: "M" },
   { day: 2, name: "Tuesday", short: "T" },
   { day: 3, name: "Wednesday", short: "W" },
   { day: 4, name: "Thursday", short: "T" },
   { day: 5, name: "Friday", short: "F" },
   { day: 6, name: "Saturday", short: "S" },
-  { day: 0, name: "Sunday", short: "S" },
 ];
 
 function formatTime12(timeStr: string): string {
@@ -81,7 +81,6 @@ export function EventTypeDrawer({
 
   // Accordion Section States
   const [openSections, setOpenSections] = useState({
-    name: true,
     duration: true,
     location: true,
     description: true,
@@ -371,15 +370,19 @@ export function EventTypeDrawer({
 
         {/* Drawer Scrollable Content */}
         <div className="flex-1 overflow-y-auto px-6 py-5 space-y-6">
-          {/* Title Identity Header */}
-          <div className="space-y-1">
+          {/* Title Identity Header - Directly Editable in Real-time with Bolder Divider */}
+          <div className="space-y-1 pb-5 border-b-2 border-neutral-300">
             <div className="flex items-center gap-2.5">
               <span className="h-3.5 w-3.5 rounded-full bg-blue-600 shrink-0" />
-              <h2 className="text-xl font-bold tracking-tight text-black truncate">
-                {title || "New Meeting"}
-              </h2>
+              <input
+                type="text"
+                value={title}
+                onChange={(e) => handleTitleChange(e.target.value)}
+                placeholder="e.g. 30 Minute Meeting"
+                className="w-full text-xl font-bold tracking-tight text-black bg-transparent border-b border-transparent hover:border-neutral-300 focus:border-blue-600 focus:outline-none transition-colors py-0.5 rounded-xs"
+              />
             </div>
-            <p className="text-xs text-neutral-500 font-medium pl-6">One-on-One</p>
+            {errors.title && <p className="text-[11px] text-rose-600 pl-6">{errors.title}</p>}
           </div>
 
           {error && (
@@ -395,44 +398,9 @@ export function EventTypeDrawer({
               <p>Loading event details…</p>
             </div>
           ) : (
-            <div className="space-y-4 divide-y divide-neutral-200">
-              {/* 1. Name Field Flow */}
-              <div className="pt-3 first:pt-0">
-                <button
-                  type="button"
-                  onClick={() => toggleSection("name")}
-                  className="flex w-full items-center justify-between py-2 text-sm font-bold text-black hover:text-blue-600 transition-colors cursor-pointer"
-                >
-                  <span>Name</span>
-                  {openSections.name ? (
-                    <ChevronUp className="h-4 w-4 text-neutral-500" />
-                  ) : (
-                    <ChevronDown className="h-4 w-4 text-neutral-500" />
-                  )}
-                </button>
-
-                {openSections.name && (
-                  <div className="mt-3 space-y-3 pb-2">
-                    <div className="space-y-1.5">
-                      <Label htmlFor="drawer-title" className="text-xs font-semibold text-neutral-800">
-                        Event name *
-                      </Label>
-                      <Input
-                        id="drawer-title"
-                        type="text"
-                        value={title}
-                        onChange={(e) => handleTitleChange(e.target.value)}
-                        placeholder="e.g. 30 Minute Meeting"
-                        className="h-10 text-xs rounded-xl border-neutral-300 focus:border-blue-600"
-                      />
-                      {errors.title && <p className="text-[11px] text-rose-600">{errors.title}</p>}
-                    </div>
-                  </div>
-                )}
-              </div>
-
-              {/* 2. Duration Section */}
-              <div className="pt-3">
+            <div className="space-y-5 divide-y divide-neutral-200">
+              {/* 1. Duration Section */}
+              <div className="pt-4 first:pt-0">
                 <button
                   type="button"
                   onClick={() => toggleSection("duration")}
@@ -590,18 +558,14 @@ export function EventTypeDrawer({
 
                     {/* Contextual Location Inputs */}
                     {locationType === "STATIC_VIDEO" && (
-                      <div className="space-y-1.5 pt-1">
-                        <Label htmlFor="drawer-video-url" className="text-xs font-semibold text-neutral-800">
-                          Zoom / Google Meet URL
-                        </Label>
-                        <Input
-                          id="drawer-video-url"
-                          type="url"
-                          value={videoUrl}
-                          onChange={(e) => setVideoUrl(e.target.value)}
-                          placeholder="https://zoom.us/j/xxxxxx or https://meet.google.com/xxx-xxxx-xxx"
-                          className="h-9 text-xs rounded-xl border-neutral-300 focus:border-blue-600"
-                        />
+                      <div className="p-3.5 rounded-xl bg-blue-50/70 border border-blue-100 text-xs text-blue-900 space-y-1 pt-2">
+                        <div className="flex items-center gap-2 font-semibold text-blue-800">
+                          <Video className="h-4 w-4 text-blue-600 shrink-0" />
+                          <span>Zoom web conference</span>
+                        </div>
+                        <p className="text-[11px] text-blue-700 leading-relaxed font-normal">
+                          Calendly will automatically generate a dynamic Zoom meeting and include the unique join link in the calendar invite and confirmation email upon booking.
+                        </p>
                       </div>
                     )}
 
@@ -761,9 +725,9 @@ export function EventTypeDrawer({
                       </Link>
                     </div>
 
-                    {/* Whole Timetable Display */}
-                    <div className="rounded-xl border border-neutral-200 bg-neutral-50/70 p-3.5 space-y-2.5">
-                      <div className="space-y-1.5">
+                    {/* Whole Timetable Display matching screenshot */}
+                    <div className="rounded-2xl border border-neutral-200/80 bg-slate-50/50 p-4 space-y-4">
+                      <div className="space-y-3.5">
                         {WEEK_DAYS.map((dayItem) => {
                           const intervals = schedule?.days?.filter(
                             (d) => d.dayOfWeek === dayItem.day
@@ -773,39 +737,30 @@ export function EventTypeDrawer({
                           return (
                             <div
                               key={dayItem.day}
-                              className="flex items-center justify-between py-1 border-b border-neutral-200/60 last:border-0"
+                              className="flex items-start gap-4 py-0.5"
                             >
-                              <div className="flex items-center gap-2">
-                                <span
-                                  className={`flex h-5 w-5 items-center justify-center rounded-full text-[10px] font-bold ${
-                                    isAvailable
-                                      ? "bg-blue-600 text-white"
-                                      : "bg-neutral-200 text-neutral-500"
-                                  }`}
-                                >
-                                  {dayItem.short}
-                                </span>
-                                <span
-                                  className={`font-medium ${
-                                    isAvailable ? "text-neutral-800" : "text-neutral-400"
-                                  }`}
-                                >
-                                  {dayItem.name}
-                                </span>
+                              {/* Day Circle Icon Badge */}
+                              <div className="flex h-7 w-7 items-center justify-center rounded-full bg-[#0a2540] text-white font-bold text-xs shrink-0 select-none shadow-2xs">
+                                {dayItem.short}
                               </div>
 
-                              <div>
+                              {/* Time Intervals List or Unavailable */}
+                              <div className="min-w-0 flex-1">
                                 {isAvailable ? (
-                                  <span className="font-mono text-[11px] text-black font-semibold">
-                                    {intervals
-                                      .map(
-                                        (iv) =>
-                                          `${formatTime12(iv.startTime)} – ${formatTime12(iv.endTime)}`
-                                      )
-                                      .join(", ")}
-                                  </span>
+                                  <div className="space-y-1.5 pt-0.5">
+                                    {intervals.map((iv, idx) => (
+                                      <div
+                                        key={idx}
+                                        className="text-xs sm:text-sm font-medium text-slate-800 tracking-tight font-sans"
+                                      >
+                                        {formatTime12(iv.startTime)} &nbsp;-&nbsp; {formatTime12(iv.endTime)}
+                                      </div>
+                                    ))}
+                                  </div>
                                 ) : (
-                                  <span className="text-[11px] text-neutral-400">Unavailable</span>
+                                  <div className="text-xs sm:text-sm font-normal text-slate-500 pt-0.5 font-sans">
+                                    Unavailable
+                                  </div>
                                 )}
                               </div>
                             </div>
@@ -813,12 +768,12 @@ export function EventTypeDrawer({
                         })}
                       </div>
 
-                      <div className="pt-2 border-t border-neutral-200 flex items-center justify-between text-[11px] text-neutral-500">
-                        <span className="flex items-center gap-1">
-                          <Clock className="h-3 w-3" />
+                      <div className="pt-3 border-t border-neutral-200/80 flex items-center justify-between text-[11px] text-neutral-500">
+                        <span className="flex items-center gap-1.5 font-medium">
+                          <Clock className="h-3.5 w-3.5 text-neutral-400" />
                           <span>Time zone:</span>
                         </span>
-                        <span className="font-medium text-neutral-700">
+                        <span className="font-semibold text-neutral-800">
                           {schedule?.timeZone || user?.timezone || "UTC"}
                         </span>
                       </div>
@@ -942,30 +897,30 @@ export function EventTypeDrawer({
                         variant="outline"
                         size="sm"
                         onClick={() => handleAddQuestion("TEXT")}
-                        className="rounded-full border-neutral-300 text-xs gap-1 h-7"
+                        className="rounded-full border-neutral-300 text-xs gap-1.5 h-7 px-3 cursor-pointer"
                       >
-                        <Plus className="h-3 w-3" />
-                        <span>+ Text</span>
+                        <Plus className="h-3 w-3 text-neutral-600" />
+                        <span>Text</span>
                       </Button>
                       <Button
                         type="button"
                         variant="outline"
                         size="sm"
                         onClick={() => handleAddQuestion("TEXTAREA")}
-                        className="rounded-full border-neutral-300 text-xs gap-1 h-7"
+                        className="rounded-full border-neutral-300 text-xs gap-1.5 h-7 px-3 cursor-pointer"
                       >
-                        <Plus className="h-3 w-3" />
-                        <span>+ Paragraph</span>
+                        <Plus className="h-3 w-3 text-neutral-600" />
+                        <span>Paragraph</span>
                       </Button>
                       <Button
                         type="button"
                         variant="outline"
                         size="sm"
                         onClick={() => handleAddQuestion("CHECKBOX")}
-                        className="rounded-full border-neutral-300 text-xs gap-1 h-7"
+                        className="rounded-full border-neutral-300 text-xs gap-1.5 h-7 px-3 cursor-pointer"
                       >
-                        <Plus className="h-3 w-3" />
-                        <span>+ Checkbox</span>
+                        <Plus className="h-3 w-3 text-neutral-600" />
+                        <span>Checkbox</span>
                       </Button>
                     </div>
                   </div>

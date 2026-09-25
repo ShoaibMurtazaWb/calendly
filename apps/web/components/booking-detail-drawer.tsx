@@ -27,6 +27,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "@/components/ui/toast";
+import { api } from "@/lib/api";
 import type { BookingResponse } from "@sched/api-contract";
 
 interface BookingDetailDrawerProps {
@@ -48,6 +49,9 @@ export function BookingDetailDrawer({
 }: BookingDetailDrawerProps) {
   const [activeTab, setActiveTab] = useState<"details" | "notes">("details");
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const [isEditEmailOpen, setIsEditEmailOpen] = useState(false);
+  const [editEmail, setEditEmail] = useState("");
+  const [isUpdatingEmail, setIsUpdatingEmail] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -59,6 +63,12 @@ export function BookingDetailDrawer({
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
+
+  useEffect(() => {
+    if (booking) {
+      setEditEmail(booking.attendeeEmail);
+    }
+  }, [booking]);
 
   if (!booking) {
     return null;
@@ -147,6 +157,30 @@ export function BookingDetailDrawer({
     void navigator.clipboard.writeText(url);
     toast.success("Meeting link copied to clipboard");
     setIsMenuOpen(false);
+  };
+
+  const handleUpdateAttendeeEmail = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!booking) return;
+    if (!editEmail || !editEmail.includes("@")) {
+      toast.error("Invalid email", "Please enter a valid email address.");
+      return;
+    }
+
+    setIsUpdatingEmail(true);
+    try {
+      await api(`/bookings/${booking.id}/attendee-email`, {
+        method: "PATCH",
+        body: JSON.stringify({ email: editEmail.trim() }),
+      });
+      booking.attendeeEmail = editEmail.trim();
+      toast.success("Invitee email updated", `Email changed to ${editEmail.trim()}`);
+      setIsEditEmailOpen(false);
+    } catch {
+      toast.error("Update Failed", "Could not update invitee email.");
+    } finally {
+      setIsUpdatingEmail(false);
+    }
   };
 
   const handleAddNotetaker = () => {
@@ -316,14 +350,6 @@ export function BookingDetailDrawer({
               <div className="space-y-3.5 pb-5 border-b border-neutral-200">
                 <div className="flex items-center justify-between">
                   <h3 className="text-sm font-bold text-neutral-900">Invitees</h3>
-                  <button
-                    type="button"
-                    onClick={handleCopyEmail}
-                    className="text-neutral-500 hover:text-neutral-800 p-1 rounded-md transition-colors"
-                    title="Copy invitee email"
-                  >
-                    <FileText className="h-4 w-4" />
-                  </button>
                 </div>
 
                 {/* Invitee Avatar & Name */}
@@ -346,11 +372,14 @@ export function BookingDetailDrawer({
                     <span className="truncate font-medium">{booking.attendeeEmail}</span>
                     <button
                       type="button"
-                      onClick={handleCopyEmail}
-                      className="text-neutral-500 hover:text-blue-600 transition-colors p-0.5"
-                      title="Edit / Copy email"
+                      onClick={() => {
+                        setEditEmail(booking.attendeeEmail);
+                        setIsEditEmailOpen(true);
+                      }}
+                      className="text-neutral-400 hover:text-blue-600 transition-colors p-0.5 cursor-pointer ml-1"
+                      title="Edit invitee email"
                     >
-                      <Pencil className="h-3 w-3 text-neutral-600" />
+                      <Pencil className="h-3.5 w-3.5 text-blue-600 hover:text-blue-700" />
                     </button>
                   </div>
 
@@ -386,7 +415,7 @@ export function BookingDetailDrawer({
                     </a>
 
                     <Link
-                      href={`/public/bookings/${booking.id}`}
+                      href={`/public/${booking.attendeeName.toLowerCase().replace(/[^a-z0-9]+/g, "") || booking.host.username}`}
                       target="_blank"
                       className="inline-flex items-center gap-1.5 text-blue-600 hover:text-blue-700 transition-colors"
                     >
@@ -577,6 +606,59 @@ export function BookingDetailDrawer({
           )}
         </div>
       </aside>
+
+      {/* Edit Invitee Email Modal matching user screenshot */}
+      {isEditEmailOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-xs animate-in fade-in duration-200">
+          <div className="w-full max-w-lg rounded-2xl bg-white p-7 shadow-2xl border border-neutral-200 space-y-5 animate-in zoom-in-95 duration-150">
+            <h3 className="text-xl font-bold tracking-tight text-neutral-900">
+              Edit invitee email
+            </h3>
+
+            <div className="space-y-3 text-xs text-neutral-600 leading-relaxed">
+              <p className="font-semibold text-neutral-800">
+                A notification will be sent to the updated email address.
+              </p>
+              <p className="text-neutral-500">
+                Note: If you are using calendar invitation notifications, this update will override any changes you&apos;ve made to the calendar event.
+              </p>
+            </div>
+
+            <form onSubmit={handleUpdateAttendeeEmail} className="space-y-6 pt-1">
+              <div className="space-y-1.5">
+                <input
+                  type="email"
+                  value={editEmail}
+                  onChange={(e) => setEditEmail(e.target.value)}
+                  required
+                  placeholder="name@example.com"
+                  className="w-full h-11 px-3.5 rounded-lg border-2 border-blue-600 focus:outline-none text-xs font-medium text-neutral-900 shadow-2xs"
+                  autoFocus
+                />
+              </div>
+
+              <div className="flex items-center justify-between gap-3 pt-2">
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => setIsEditEmailOpen(false)}
+                  className="rounded-full border border-neutral-900 text-neutral-900 hover:bg-neutral-50 px-8 py-2 text-xs font-semibold shadow-2xs h-10 cursor-pointer"
+                >
+                  Cancel
+                </Button>
+
+                <Button
+                  type="submit"
+                  disabled={isUpdatingEmail}
+                  className="rounded-full bg-blue-600 hover:bg-blue-700 text-white px-8 py-2 text-xs font-semibold shadow-2xs h-10 cursor-pointer flex items-center gap-2"
+                >
+                  {isUpdatingEmail ? "Updating..." : "Update"}
+                </Button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </>
   );
 }

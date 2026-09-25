@@ -177,9 +177,6 @@ function EventTypeListContent() {
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div className="flex items-center gap-2">
             <h1 className="text-2xl font-bold tracking-tight text-black">Scheduling</h1>
-            <Tooltip content="Manage your event types, booking links, and scheduling options.">
-              <Info className="h-4 w-4 text-neutral-400 cursor-pointer hover:text-neutral-700 transition-colors" />
-            </Tooltip>
           </div>
 
           {/* Right Header Actions: Manage Availability & Create Pill */}
@@ -202,7 +199,6 @@ function EventTypeListContent() {
             >
               <Plus className="h-3.5 w-3.5 stroke-[2.5]" />
               <span>Create</span>
-              <ChevronDown className="h-3 w-3" />
             </Button>
           </div>
         </div>
@@ -226,16 +222,8 @@ function EventTypeListContent() {
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             placeholder="Search event types"
-            className="h-10 pl-10 pr-9 rounded-xl border-neutral-200 bg-white text-xs shadow-2xs focus:border-neutral-400"
+            className="h-10 pl-10 pr-4 rounded-xl border-neutral-200 bg-white text-xs shadow-2xs focus:border-neutral-400"
           />
-          <button
-            type="button"
-            onClick={() => searchInputRef.current?.focus()}
-            className="absolute right-2.5 top-1/2 -translate-y-1/2 rounded border border-neutral-200 bg-neutral-50 px-1 py-0.5 text-[10px] font-mono text-neutral-500 hover:text-black transition-colors cursor-pointer"
-            title="Focus search (⌘K or Ctrl+K)"
-          >
-            ⌘K
-          </button>
         </div>
 
         {/* Host User Identity Strip */}

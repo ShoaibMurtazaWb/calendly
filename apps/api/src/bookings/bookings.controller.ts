@@ -54,6 +54,16 @@ export class BookingsController {
     return this.bookings.rescheduleByHost(userId, params.id, body);
   }
 
+  @Patch(":id/attendee-email")
+  @ApiOperation({ summary: "Update attendee email for a booking" })
+  updateAttendeeEmail(
+    @CurrentUserId() userId: string,
+    @Param(zodPipe(bookingIdParamSchema)) params: { id: string },
+    @Body(zodPipe(z.object({ email: z.string().email("Please provide a valid email address") }))) body: { email: string }
+  ) {
+    return this.bookings.updateAttendeeEmail(userId, params.id, body.email);
+  }
+
   @Delete(":id")
   @ApiOperation({ summary: "Permanently delete a cancelled booking" })
   delete(

@@ -813,6 +813,31 @@ export class BookingsService {
     return { success: true };
   }
 
+  async updateAttendeeEmail(hostUserId: string, bookingId: string, newEmail: string): Promise<BookingResponse> {
+    const booking = await this.prisma.booking.findUnique({
+      where: { id: bookingId },
+      include: {
+        eventType: true,
+        host: true,
+      },
+    });
+
+    if (!booking || booking.hostId !== hostUserId) {
+      throw new NotFoundError("Booking not found or this link is no longer valid.");
+    }
+
+    const updated = await this.prisma.booking.update({
+      where: { id: bookingId },
+      data: { attendeeEmail: newEmail.trim().toLowerCase() },
+      include: {
+        eventType: true,
+        host: true,
+      },
+    });
+
+    return this.mapToResponse(updated);
+  }
+
   private mapToResponse(row: {
     id: string;
     eventTypeId: string;

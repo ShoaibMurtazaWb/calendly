@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 import Link from "next/link";
 import {
   Clock,
@@ -266,6 +266,56 @@ export default function BookingsPage() {
     year: "numeric",
   }).format(rescheduleMonth);
 
+  const groupedBookings = useMemo(() => {
+    const groups: { [key: string]: { dayLabel: string; isToday: boolean; items: BookingResponse[] } } = {};
+    const todayStr = new Intl.DateTimeFormat("en-US", {
+      timeZone: currentUser?.timezone || "UTC",
+      year: "numeric",
+      month: "numeric",
+      day: "numeric",
+    }).format(new Date());
+
+    bookings.forEach((b) => {
+      const d = new Date(b.startTime);
+      const dateKey = new Intl.DateTimeFormat("en-US", {
+        timeZone: b.host.timezone,
+        year: "numeric",
+        month: "numeric",
+        day: "numeric",
+      }).format(d);
+
+      const isToday = dateKey === todayStr;
+
+      const weekdayShort = new Intl.DateTimeFormat("en-US", {
+        timeZone: b.host.timezone,
+        weekday: "short",
+      }).format(d);
+
+      const dayNum = new Intl.DateTimeFormat("en-US", {
+        timeZone: b.host.timezone,
+        day: "numeric",
+      }).format(d);
+
+      const monthShort = new Intl.DateTimeFormat("en-US", {
+        timeZone: b.host.timezone,
+        month: "short",
+      }).format(d);
+
+      const dayLabel = `${weekdayShort} ${dayNum} ${monthShort}`;
+
+      if (!groups[dateKey]) {
+        groups[dateKey] = {
+          dayLabel,
+          isToday,
+          items: [],
+        };
+      }
+      groups[dateKey].items.push(b);
+    });
+
+    return Object.values(groups);
+  }, [bookings, currentUser?.timezone]);
+
   return (
     <div className="space-y-6">
         {/* Page Header */}
@@ -329,9 +379,9 @@ export default function BookingsPage() {
             {/* Content List */}
             {isLoading ? (
               <div className="space-y-3">
-                <Skeleton className="h-28 w-full rounded-xl" />
-                <Skeleton className="h-28 w-full rounded-xl" />
-                <Skeleton className="h-28 w-full rounded-xl" />
+                <Skeleton className="h-20 w-full rounded-2xl" />
+                <Skeleton className="h-20 w-full rounded-2xl" />
+                <Skeleton className="h-20 w-full rounded-2xl" />
               </div>
             ) : bookings.length === 0 ? (
               <Card className="rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-surface)] p-8 sm:p-10 text-center shadow-2xs">
@@ -382,315 +432,88 @@ export default function BookingsPage() {
                 )}
               </Card>
             ) : (
-              <div className="space-y-3">
-                {bookings.map((b) => {
-                  const startDate = new Date(b.startTime);
-                  const endDate = new Date(b.endTime);
+              <div className="space-y-6">
+                {groupedBookings.map((group, gIdx) => (
+                  <div key={gIdx} className="space-y-3">
+                    {/* Day Header with horizontal line matching screenshot */}
+                    <div className="flex items-center gap-3">
+                      <div className="flex items-center gap-2">
+                        <span className="text-xs font-bold text-neutral-800">
+                          {group.dayLabel}
+                        </span>
+                        {group.isToday && (
+                          <span className="text-[11px] font-semibold text-blue-600 bg-blue-50 px-2 py-0.5 rounded-md">
+                            Today
+                          </span>
+                        )}
+                      </div>
+                      <div className="flex-1 h-[1px] bg-neutral-200" />
+                    </div>
 
-                  const dayOfWeek = new Intl.DateTimeFormat("en-US", {
-                    timeZone: b.host.timezone,
-                    weekday: "short",
-                  }).format(startDate);
+                    {/* Meeting Cards inside this day */}
+                    <div className="space-y-2">
+                      {group.items.map((b) => {
+                        const startDate = new Date(b.startTime);
+                        const endDate = new Date(b.endTime);
 
-                  const dayNumber = new Intl.DateTimeFormat("en-US", {
-                    timeZone: b.host.timezone,
-                    day: "numeric",
-                  }).format(startDate);
+                        const startHourMin = new Intl.DateTimeFormat("en-US", {
+                          timeZone: b.host.timezone,
+                          hour: "numeric",
+                          minute: "2-digit",
+                          hour12: true,
+                        }).format(startDate).replace(":00", "").toLowerCase();
 
-                  const monthShort = new Intl.DateTimeFormat("en-US", {
-                    timeZone: b.host.timezone,
-                    month: "short",
-                  }).format(startDate);
+                        const endHourMin = new Intl.DateTimeFormat("en-US", {
+                          timeZone: b.host.timezone,
+                          hour: "numeric",
+                          minute: "2-digit",
+                          hour12: true,
+                        }).format(endDate).toLowerCase();
 
-                  const timeStr = `${new Intl.DateTimeFormat("en-US", {
-                    timeZone: b.host.timezone,
-                    hour: "numeric",
-                    minute: "2-digit",
-                    hour12: true,
-                  }).format(startDate)} – ${new Intl.DateTimeFormat("en-US", {
-                    timeZone: b.host.timezone,
-                    hour: "numeric",
-                    minute: "2-digit",
-                    hour12: true,
-                  }).format(endDate)}`;
+                        const timeStr = `${startHourMin} – ${endHourMin}`;
+                        const isSelected = selectedBooking?.id === b.id && isDrawerOpen;
 
-                  const isCancelled = b.status === "CANCELLED";
-                  const isRescheduled = b.rescheduleCount > 0;
-                  const isSelected = selectedBooking?.id === b.id && isDrawerOpen;
+                        return (
+                          <div
+                            key={b.id}
+                            onClick={() => {
+                              setSelectedBooking(b);
+                              setIsDrawerOpen(true);
+                            }}
+                            className={`group flex items-center justify-between px-6 py-4 rounded-2xl border transition-all duration-150 cursor-pointer shadow-2xs ${
+                              isSelected
+                                ? "border-blue-500 bg-blue-50/50 ring-1 ring-blue-500"
+                                : "border-neutral-200 bg-white hover:bg-blue-50/40 hover:border-blue-300"
+                            }`}
+                          >
+                            {/* Left: Time with increased gap */}
+                            <div className="w-28 sm:w-36 shrink-0 text-xs font-semibold text-neutral-600 tabular-nums">
+                              {timeStr}
+                            </div>
 
-                  return (
-                    <Card
-                      key={b.id}
-                      onClick={() => {
-                        setSelectedBooking(b);
-                        setIsDrawerOpen(true);
-                      }}
-                      className={`rounded-xl border p-5 shadow-2xs transition-all duration-150 cursor-pointer hover:bg-blue-50/50 hover:border-blue-300 hover:shadow-xs ${
-                        isSelected
-                          ? "border-blue-600 bg-blue-50/40 ring-1 ring-blue-600 shadow-2xs"
-                          : "border-[var(--border-subtle)] bg-[var(--bg-surface)]"
-                      }`}
-                    >
-                      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                        {/* Left: Date badge + Details */}
-                        <div className="flex items-start gap-4">
-                          {/* Date Block */}
-                          <div className={`flex flex-col items-center justify-center h-14 w-14 rounded-xl border text-center shrink-0 transition-colors ${
-                            isSelected
-                              ? "border-blue-200 bg-blue-100/70"
-                              : "border-[var(--border-subtle)] bg-[var(--bg-subtle)]"
-                          }`}>
-                            <span className="text-[10px] font-bold uppercase text-[var(--text-muted)]">
-                              {dayOfWeek}
-                            </span>
-                            <span className="text-base font-bold text-[var(--text-primary)] leading-tight tabular-nums font-sans">
-                              {dayNumber}
-                            </span>
-                            <span className="text-[9px] font-medium uppercase text-[var(--text-muted)]">
-                              {monthShort}
-                            </span>
-                          </div>
+                            {/* Center: Dot + Title as meeting name with invitee */}
+                            <div className="flex-1 flex items-center gap-3 min-w-0 px-4">
+                              <span className="h-2.5 w-2.5 rounded-full bg-purple-500 shrink-0" />
+                              <p className="text-xs sm:text-sm font-bold text-neutral-900 truncate">
+                                {b.eventType.title}{" "}
+                                <span className="font-normal text-neutral-500">with {b.attendeeName}</span>
+                              </p>
+                            </div>
 
-                          {/* Meeting Information */}
-                          <div className="space-y-1">
-                            <div className="flex items-center gap-2">
-                              <h2 className="text-sm font-semibold text-[var(--text-primary)] hover:text-blue-600 transition-colors">
-                                {b.eventType.title}
-                              </h2>
-                              <Badge variant="secondary" className="tabular-nums font-sans">
-                                {b.eventType.durationMinutes}m
-                              </Badge>
-                              {isCancelled && (
-                                <Badge variant="danger">Cancelled</Badge>
-                              )}
-                              {isRescheduled && (
-                                <Badge variant="secondary" className="flex items-center gap-1">
-                                  <History className="h-3 w-3" />
-                                  <span>Rev #{b.sequence}</span>
+                            {/* Right: Status badge if cancelled */}
+                            <div className="shrink-0 flex items-center gap-2">
+                              {b.status === "CANCELLED" && (
+                                <Badge variant="danger" className="text-[10px] py-0.5 px-2">
+                                  Cancelled
                                 </Badge>
                               )}
                             </div>
-
-                            {/* Attendee Info */}
-                            <div className="flex flex-wrap items-center gap-3 text-xs text-[var(--text-secondary)]">
-                              <span className="flex items-center gap-1 font-medium text-[var(--text-primary)]">
-                                <User className="h-3.5 w-3.5 text-[var(--text-muted)]" />
-                                {b.attendeeName}
-                              </span>
-                              <span className="flex items-center gap-1 font-mono text-[var(--text-muted)]">
-                                <Mail className="h-3 w-3" />
-                                {b.attendeeEmail}
-                              </span>
-                            </div>
-
-                            {/* Formatted Time */}
-                            <div className="flex items-center gap-1.5 text-xs text-[var(--text-secondary)]">
-                              <Clock className="h-3.5 w-3.5 text-[var(--text-muted)]" />
-                              <span className="tabular-nums font-sans font-medium">{timeStr}</span>
-                              <span className="font-mono text-[11px] text-[var(--text-muted)]">
-                                ({b.host.timezone})
-                              </span>
-                            </div>
-
-                            {/* Location Details */}
-                            {b.location && (
-                              <div className="flex items-center gap-1.5 text-xs text-[var(--text-secondary)]">
-                                {b.location.type === "IN_PERSON" && (
-                                  <>
-                                    <MapPin className="h-3.5 w-3.5 text-[var(--text-muted)] shrink-0" />
-                                    <span>{String(b.location.data.address || "In-Person")}</span>
-                                  </>
-                                )}
-                                {(b.location.type === "STATIC_VIDEO" || b.location.type === "CUSTOM_LINK") && (
-                                  <>
-                                    <Video className="h-3.5 w-3.5 text-[var(--text-muted)] shrink-0" />
-                                    <a
-                                      href={String(b.location.data.url || "#")}
-                                      target="_blank"
-                                      rel="noopener noreferrer"
-                                      onClick={(e) => e.stopPropagation()}
-                                      className="text-blue-600 hover:underline dark:text-blue-400 font-medium"
-                                    >
-                                      Join Video Meeting
-                                    </a>
-                                  </>
-                                )}
-                                {b.location.type === "HOST_CALLS_ATTENDEE" && (
-                                  <>
-                                    <PhoneCall className="h-3.5 w-3.5 text-[var(--text-muted)] shrink-0" />
-                                    <span>You call: <strong className="font-mono">{b.attendeePhoneNumber || "attendee phone"}</strong></span>
-                                  </>
-                                )}
-                                {b.location.type === "ATTENDEE_CALLS_HOST" && (
-                                  <>
-                                    <PhoneForwarded className="h-3.5 w-3.5 text-[var(--text-muted)] shrink-0" />
-                                    <span>Attendee calls: <strong className="font-mono">{String(b.location.data.hostPhoneNumber || "your phone")}</strong></span>
-                                  </>
-                                )}
-                              </div>
-                            )}
-
-                            {/* Reschedule info / previous time */}
-                            {isRescheduled && b.previousStartTime && !isCancelled && (
-                              <p className="text-[11px] text-amber-700 dark:text-amber-400 mt-1">
-                                Rescheduled from{" "}
-                                {new Intl.DateTimeFormat("en-US", {
-                                  timeZone: b.host.timezone,
-                                  month: "short",
-                                  day: "numeric",
-                                  hour: "numeric",
-                                  minute: "2-digit",
-                                }).format(new Date(b.previousStartTime))}
-                                {b.rescheduledBy && ` (${b.rescheduledBy === "HOST" ? "by you" : "by attendee"})`}
-                                {b.rescheduleReason && ` · "${b.rescheduleReason}"`}
-                              </p>
-                            )}
-
-                            {/* Attendee Notes or Cancellation Reason */}
-                            {isCancelled && b.cancellationReason && (
-                              <p className="text-[11px] text-[var(--status-danger-text)] mt-1">
-                                Reason: &ldquo;{b.cancellationReason}&rdquo; ({b.cancelledBy === "HOST" ? "by host" : "by attendee"})
-                              </p>
-                            )}
-                            {!isCancelled && b.attendeeNotes && (
-                              <p className="text-[11px] text-[var(--text-muted)] line-clamp-1 mt-1">
-                                Notes: {b.attendeeNotes}
-                              </p>
-                            )}
-
-                            {/* Custom Responses */}
-                            {b.customResponses && b.customResponses.length > 0 && (
-                              <div className="mt-2 pt-2 border-t border-[var(--border-subtle)]/70 space-y-1">
-                                {b.customResponses.map((r) => (
-                                  <div key={r.questionId} className="flex items-baseline gap-1.5 text-[11px]">
-                                    <span className="text-[var(--text-muted)] font-medium">{r.label}:</span>
-                                    <span className="text-[var(--text-primary)] font-semibold">
-                                      {r.type === "CHECKBOX"
-                                        ? r.value
-                                          ? "✓ Yes"
-                                          : "No"
-                                        : r.type === "SELECT"
-                                        ? r.selectedOptionLabel || String(r.value)
-                                        : String(r.value)}
-                                    </span>
-                                  </div>
-                                ))}
-                              </div>
-                            )}
                           </div>
-                        </div>
-
-                        {/* Right: Actions */}
-                        <div className="flex items-center gap-2 sm:self-center shrink-0">
-                          <Button
-                            asChild
-                            variant="outline"
-                            size="sm"
-                            onClick={(e) => e.stopPropagation()}
-                          >
-                            <Link href={`/public/bookings/${b.id}`} target="_blank">
-                              <ExternalLink className="h-3.5 w-3.5 mr-1" />
-                              <span>Public Page</span>
-                            </Link>
-                          </Button>
-
-                          {!isCancelled && (
-                            <Button
-                              asChild
-                              variant="outline"
-                              size="sm"
-                              title="Download .ics"
-                              onClick={(e) => e.stopPropagation()}
-                            >
-                              <a href={`/api/v1/public/bookings/${b.id}/ics`} download>
-                                <Download className="h-3.5 w-3.5" />
-                              </a>
-                            </Button>
-                          )}
-
-                          {!isCancelled && tab === "upcoming" && (
-                            <>
-                              <Button
-                                type="button"
-                                variant="outline"
-                                size="sm"
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  setRescheduleModalBooking(b);
-                                  setSelectedSlot(null);
-                                  setRescheduleReason("");
-                                }}
-                                className="flex items-center gap-1"
-                              >
-                                <RefreshCw className="h-3 w-3" />
-                                <span>Reschedule</span>
-                              </Button>
-                              <Button
-                                type="button"
-                                variant="ghost"
-                                size="sm"
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  setCancelModalBooking(b);
-                                }}
-                                className="text-rose-600 hover:text-rose-700 hover:bg-rose-50 dark:hover:bg-rose-950/40"
-                              >
-                                Cancel
-                              </Button>
-                            </>
-                          )}
-
-                          {tab === "past" && (
-                            <Button
-                              asChild
-                              variant="outline"
-                              size="sm"
-                              onClick={(e) => e.stopPropagation()}
-                            >
-                              <Link href={`/public/${b.host.username}/${b.eventType.slug}`} target="_blank">
-                                <span>Schedule Follow-up</span>
-                              </Link>
-                            </Button>
-                          )}
-
-                          {tab === "cancelled" && (
-                            <>
-                              <Button
-                                type="button"
-                                variant="outline"
-                                size="sm"
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  setRescheduleModalBooking(b);
-                                  setSelectedSlot(null);
-                                  setRescheduleReason("");
-                                }}
-                                className="flex items-center gap-1"
-                              >
-                                <RefreshCw className="h-3 w-3" />
-                                <span>Reschedule</span>
-                              </Button>
-                              <Button
-                                type="button"
-                                variant="ghost"
-                                size="sm"
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  setDeleteModalBooking(b);
-                                }}
-                                className="text-rose-600 hover:text-rose-700 hover:bg-rose-50 dark:hover:bg-rose-950/40"
-                                title="Delete booking from history"
-                              >
-                                <Trash2 className="h-3.5 w-3.5 mr-1" />
-                                <span>Delete</span>
-                              </Button>
-                            </>
-                          )}
-                        </div>
-                      </div>
-                    </Card>
-                  );
-                })}
+                        );
+                      })}
+                    </div>
+                  </div>
+                ))}
               </div>
             )}
           </div>
