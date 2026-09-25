@@ -34,6 +34,15 @@ describe("Milestone 3: Meeting Location & Conferencing Domain", () => {
     return { cookies, user, username };
   }
 
+  function getNextWeekdayDateStr(): string {
+    const d = new Date();
+    d.setDate(d.getDate() + 1);
+    while (d.getDay() === 0 || d.getDay() === 6) {
+      d.setDate(d.getDate() + 1);
+    }
+    return d.toISOString().slice(0, 10);
+  }
+
   describe("1. Location Configuration Validation on Event Types", () => {
     it("creates event types for all 5 valid location types", async () => {
       const host = await setupHost(uniqueLabel("loc-host"));
@@ -322,9 +331,7 @@ describe("Milestone 3: Meeting Location & Conferencing Domain", () => {
           },
         });
 
-      const tomorrow = new Date();
-      tomorrow.setDate(tomorrow.getDate() + 1);
-      const dateStr = tomorrow.toISOString().slice(0, 10);
+      const dateStr = getNextWeekdayDateStr();
 
       const slotsRes = await request(app.getHttpServer())
         .get(`/api/v1/public/${host.username}/host-calls-you/slots`)
@@ -393,9 +400,7 @@ describe("Milestone 3: Meeting Location & Conferencing Domain", () => {
         });
       const eventTypeId = evRes.body.id;
 
-      const tomorrow = new Date();
-      tomorrow.setDate(tomorrow.getDate() + 1);
-      const dateStr = tomorrow.toISOString().slice(0, 10);
+      const dateStr = getNextWeekdayDateStr();
 
       const slotsRes = await request(app.getHttpServer())
         .get(`/api/v1/public/${host.username}/strategy-session/slots`)
