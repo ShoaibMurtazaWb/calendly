@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useState, useEffect } from "react";
 import {
   Clock,
@@ -118,18 +119,24 @@ const STEPS = [
 ];
 
 export default function HomePage() {
+  const router = useRouter();
   const [user, setUser] = useState<CurrentUser | null>(null);
+  const [isCheckingAuth, setIsCheckingAuth] = useState(true);
   const [selectedEvent, setSelectedEvent] = useState<(typeof DEMO_EVENTS)[number]>(DEMO_EVENTS[0]!);
   const [selectedSlot, setSelectedSlot] = useState<string | null>("10:30 AM");
   const [bookedState, setBookedState] = useState(false);
   const [currentTime, setCurrentTime] = useState<string>("");
 
   useEffect(() => {
-    // Check if current user is logged in
+    // Check if current user is logged in and redirect to dashboard
     api<CurrentUser>("/auth/me")
-      .then(setUser)
+      .then((currentUser) => {
+        setUser(currentUser);
+        router.replace("/dashboard");
+      })
       .catch(() => {
         setUser(null);
+        setIsCheckingAuth(false);
       });
 
     const updateTime = () => {
@@ -144,7 +151,7 @@ export default function HomePage() {
     updateTime();
     const interval = setInterval(updateTime, 30000);
     return () => clearInterval(interval);
-  }, []);
+  }, [router]);
 
   const handleBookSlot = (slot: string) => {
     setSelectedSlot(slot);
@@ -153,6 +160,17 @@ export default function HomePage() {
       setBookedState(false);
     }, 4000);
   };
+
+  if (isCheckingAuth) {
+    return (
+      <div className="min-h-screen bg-[var(--bg-canvas)] flex items-center justify-center">
+        <div className="flex items-center gap-2.5 text-xs text-[var(--text-muted)] font-medium">
+          <Logo className="h-6 w-6 animate-pulse" />
+          <span>Loading Sched…</span>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-[var(--bg-canvas)] font-sans text-[var(--text-primary)] selection:bg-neutral-900 selection:text-white">
