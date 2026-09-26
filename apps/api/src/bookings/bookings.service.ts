@@ -135,7 +135,6 @@ export class BookingsService {
     // Validate that the slot is available in the schedule
     const schedule = await this.schedules.getDefaultSchedule(eventType.userId);
 
-    const slotDateStr = startUtc.toISOString().slice(0, 10);
     const existingBookings = await this.prisma.booking.findMany({
       where: {
         hostId: eventType.userId,
@@ -457,7 +456,6 @@ export class BookingsService {
 
         // 5. In-band availability verification ignoring the current booking
         const schedule = await this.schedules.getDefaultSchedule(booking.hostId);
-        const slotDateStr = startUtc.toISOString().slice(0, 10);
         const timezone = dto.timeZone || booking.attendeeTimeZone;
 
         const otherBookings = await tx.booking.findMany({
