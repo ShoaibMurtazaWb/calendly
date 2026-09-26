@@ -86,37 +86,6 @@ export class BookingsService {
 
     const now = new Date();
 
-    // Check for an existing active confirmed booking for this event type and attendee
-    const existingActiveBooking = await this.prisma.booking.findFirst({
-      where: {
-        eventTypeId: eventType.id,
-        attendeeEmail: { equals: dto.attendeeEmail.trim(), mode: "insensitive" },
-        status: "CONFIRMED",
-        endTime: { gte: now },
-      },
-      orderBy: { startTime: "asc" },
-    });
-
-    if (existingActiveBooking) {
-      const manageToken = this.tokenService.generateToken(
-        existingActiveBooking.id,
-        existingActiveBooking.tokenVersion
-      );
-      const manageUrl = `/public/bookings/${existingActiveBooking.id}?token=${manageToken}`;
-
-      throw new ConflictError(
-        "BOOKING_ALREADY_EXISTS",
-        "You already have a booking for this event.",
-        {
-          booking: {
-            id: existingActiveBooking.id,
-            startTime: existingActiveBooking.startTime.toISOString(),
-            manageUrl,
-          },
-        }
-      );
-    }
-
     const startUtc = new Date(dto.startUtc);
     if (isNaN(startUtc.getTime())) {
       throw new ConflictError("INVALID_DATE", "Invalid start date time.");
@@ -131,6 +100,38 @@ export class BookingsService {
     }
 
     const endUtc = new Date(startUtc.getTime() + eventType.durationMinutes * 60 * 1000);
+
+    // Check if the attendee already has a confirmed booking that overlaps this requested time slot
+    const existingAttendeeSlotBooking = await this.prisma.booking.findFirst({
+      where: {
+        eventTypeId: eventType.id,
+        attendeeEmail: { equals: dto.attendeeEmail.trim(), mode: "insensitive" },
+        status: "CONFIRMED",
+        startTime: { lt: endUtc },
+        endTime: { gt: startUtc },
+      },
+      orderBy: { startTime: "asc" },
+    });
+
+    if (existingAttendeeSlotBooking) {
+      const manageToken = this.tokenService.generateToken(
+        existingAttendeeSlotBooking.id,
+        existingAttendeeSlotBooking.tokenVersion
+      );
+      const manageUrl = `/public/bookings/${existingAttendeeSlotBooking.id}?token=${manageToken}`;
+
+      throw new ConflictError(
+        "BOOKING_ALREADY_EXISTS",
+        "You already have a booking for this time slot.",
+        {
+          booking: {
+            id: existingAttendeeSlotBooking.id,
+            startTime: existingAttendeeSlotBooking.startTime.toISOString(),
+            manageUrl,
+          },
+        }
+      );
+    }
 
     // Validate that the slot is available in the schedule
     const schedule = await this.schedules.getDefaultSchedule(eventType.userId);
