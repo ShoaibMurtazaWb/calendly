@@ -14,6 +14,7 @@ import { Select } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Spinner } from "@/components/ui/spinner";
 import { toast } from "@/components/ui/toast";
+import { TimezonePicker } from "@/components/timezone-picker";
 import { api } from "@/lib/api";
 import type { ScheduleResponse, DaySchedule, ScheduleOverride } from "@sched/api-contract";
 
@@ -68,15 +69,6 @@ export function AvailabilityEditor() {
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
 
-  const [availableTimezones, setAvailableTimezones] = useState<string[]>([]);
-
-  useEffect(() => {
-    try {
-      setAvailableTimezones(Intl.supportedValuesOf("timeZone"));
-    } catch {
-      setAvailableTimezones(["UTC", "America/New_York", "America/Los_Angeles", "Europe/London", "Asia/Karachi", "Asia/Tokyo"]);
-    }
-  }, []);
 
   useEffect(() => {
     async function fetchSchedule() {
@@ -251,18 +243,11 @@ export function AvailabilityEditor() {
 
           <div className="space-y-1.5 max-w-md">
             <Label htmlFor="schedule-timezone">Host Timezone</Label>
-            <Select
+            <TimezonePicker
               id="schedule-timezone"
               value={timeZone}
-              onChange={(e) => setTimeZone(e.target.value)}
-              className="font-mono text-xs"
-            >
-              {availableTimezones.map((tz) => (
-                <option key={tz} value={tz}>
-                  {tz}
-                </option>
-              ))}
-            </Select>
+              onChange={setTimeZone}
+            />
           </div>
         </Card>
 

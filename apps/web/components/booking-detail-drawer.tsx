@@ -16,8 +16,8 @@ import {
   ExternalLink,
   User,
   Pencil,
-  ChevronDown,
   Calendar,
+  Copy,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -159,13 +159,21 @@ export function BookingDetailDrawer({
   };
 
   // Determine video/meeting location details
-  const isVideoLocation = !currentBooking.location || currentBooking.location.type === "STATIC_VIDEO" || currentBooking.location.type === "CUSTOM_LINK";
+  const isVideoLocation =
+    currentBooking.location?.type === "STATIC_VIDEO" ||
+    currentBooking.location?.type === "CUSTOM_LINK" ||
+    (!currentBooking.location && !currentBooking.attendeePhoneNumber);
+
   const locationLabel = currentBooking.location
     ? currentBooking.location.type === "IN_PERSON"
-      ? "In-Person"
+      ? "In-Person Meeting"
       : currentBooking.location.type === "HOST_CALLS_ATTENDEE" || currentBooking.location.type === "ATTENDEE_CALLS_HOST"
       ? "Phone Call"
+      : currentBooking.location.data?.url
+      ? "Zoom / Web Conference"
       : "Zoom"
+    : currentBooking.attendeePhoneNumber
+    ? "Phone Call"
     : "Zoom";
 
   const joinUrl = currentBooking.location?.data?.url ? String(currentBooking.location.data.url) : `/public/bookings/${currentBooking.id}`;
@@ -408,18 +416,18 @@ export function BookingDetailDrawer({
                 </div>
               </div>
 
-              {/* 2. Location Section matching screenshot */}
+              {/* 2. Location Section */}
               <div className="space-y-3 pb-5 border-b border-neutral-200">
                 <h3 className="text-sm font-bold text-neutral-900">Location</h3>
-                <div className="flex items-center justify-between gap-4">
-                  {/* Left: Icon + Label with Chevron */}
-                  <div className="flex items-center gap-2.5">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                  {/* Left: Icon + Label */}
+                  <div className="flex items-center gap-2.5 min-w-0">
                     {isVideoLocation ? (
                       <div className="h-7 w-7 rounded-full bg-blue-600 text-white flex items-center justify-center shrink-0">
                         <Video className="h-3.5 w-3.5 fill-current" />
                       </div>
                     ) : currentBooking.location?.type === "IN_PERSON" ? (
-                      <div className="h-7 w-7 rounded-full bg-neutral-800 text-white flex items-center justify-center shrink-0">
+                      <div className="h-7 w-7 rounded-full bg-emerald-600 text-white flex items-center justify-center shrink-0">
                         <MapPin className="h-3.5 w-3.5" />
                       </div>
                     ) : (
@@ -428,23 +436,77 @@ export function BookingDetailDrawer({
                       </div>
                     )}
 
-                    <div className="flex items-center gap-1 text-xs font-semibold text-neutral-900">
-                      <span>{locationLabel}</span>
-                      <ChevronDown className="h-3.5 w-3.5 text-neutral-500" />
+                    <div className="flex flex-col min-w-0">
+                      <span className="text-xs font-semibold text-neutral-900 truncate">
+                        {locationLabel}
+                      </span>
+                      {currentBooking.location?.type === "IN_PERSON" && Boolean(currentBooking.location.data?.address) && (
+                        <span className="text-[11px] text-neutral-500 truncate">
+                          {String(currentBooking.location.data.address)}
+                        </span>
+                      )}
                     </div>
                   </div>
 
-                  {/* Right: Join meeting button */}
-                  <Button
-                    asChild
-                    variant="outline"
-                    size="sm"
-                    className="rounded-full border border-neutral-800 text-neutral-900 hover:bg-neutral-50 px-4 py-1.5 text-xs font-semibold shadow-2xs"
-                  >
-                    <a href={joinUrl} target="_blank" rel="noopener noreferrer">
-                      Join meeting
-                    </a>
-                  </Button>
+                  {/* Right Actions: Join meeting for Video, Copy / Directions for In-Person, Call for Phone */}
+                  {isVideoLocation && (
+                    <Button
+                      asChild
+                      variant="outline"
+                      size="sm"
+                      className="rounded-full border border-neutral-800 text-neutral-900 hover:bg-neutral-50 px-4 py-1.5 text-xs font-semibold shadow-2xs shrink-0"
+                    >
+                      <a href={joinUrl} target="_blank" rel="noopener noreferrer">
+                        Join meeting
+                      </a>
+                    </Button>
+                  )}
+
+                  {currentBooking.location?.type === "IN_PERSON" && Boolean(currentBooking.location.data?.address) && (
+                    <div className="flex items-center gap-2 shrink-0">
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={() => {
+                          void navigator.clipboard.writeText(String(currentBooking.location?.data?.address));
+                          toast.success("Address copied to clipboard", String(currentBooking.location?.data?.address));
+                        }}
+                        className="rounded-full border border-neutral-300 text-neutral-800 hover:bg-neutral-50 px-3.5 py-1.5 text-xs font-semibold shadow-2xs cursor-pointer gap-1.5"
+                      >
+                        <Copy className="h-3 w-3" />
+                        <span>Copy address</span>
+                      </Button>
+                      <Button
+                        asChild
+                        variant="ghost"
+                        size="sm"
+                        className="rounded-full text-blue-600 hover:bg-blue-50 px-2.5 py-1.5 text-xs font-semibold cursor-pointer"
+                      >
+                        <a
+                          href={`https://maps.google.com/?q=${encodeURIComponent(String(currentBooking.location.data.address))}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                        >
+                          <ExternalLink className="h-3.5 w-3.5" />
+                        </a>
+                      </Button>
+                    </div>
+                  )}
+
+                  {(currentBooking.location?.type === "HOST_CALLS_ATTENDEE" || currentBooking.location?.type === "ATTENDEE_CALLS_HOST" || (!currentBooking.location && currentBooking.attendeePhoneNumber)) && (
+                    <Button
+                      asChild
+                      variant="outline"
+                      size="sm"
+                      className="rounded-full border border-neutral-300 text-neutral-800 hover:bg-neutral-50 px-3.5 py-1.5 text-xs font-semibold shadow-2xs shrink-0 gap-1.5"
+                    >
+                      <a href={`tel:${currentBooking.attendeePhoneNumber || currentBooking.location?.data?.hostPhoneNumber}`}>
+                        <PhoneCall className="h-3 w-3" />
+                        <span>Call</span>
+                      </a>
+                    </Button>
+                  )}
                 </div>
               </div>
 

@@ -232,9 +232,10 @@ export default function PublicBookingPage({
         }
 
         setFieldValidationErrors(fieldErrors(err));
-        toast.error("Booking Failed", err.message);
+        toast.error("Booking Failed", err.message || "Failed to schedule meeting.");
       } else {
-        toast.error("Booking Failed", "An error occurred while confirming your booking.");
+        const msg = err instanceof Error ? err.message : "An unexpected error occurred while confirming your booking.";
+        toast.error("Booking Failed", msg);
       }
     } finally {
       setIsSubmitting(false);

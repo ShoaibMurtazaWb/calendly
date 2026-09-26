@@ -19,34 +19,9 @@ import {
 import { Button } from "@/components/ui/button";
 import { Spinner } from "@/components/ui/spinner";
 import { Skeleton } from "@/components/ui/skeleton";
+import { TimezonePicker } from "@/components/timezone-picker";
 import { api, type UserSettingsResponse, type AuditLogEntry } from "@/lib/api";
 import { ApiError } from "@/lib/api-error";
-
-const TIMEZONES = [
-  "UTC",
-  "America/New_York",
-  "America/Chicago",
-  "America/Denver",
-  "America/Los_Angeles",
-  "America/Toronto",
-  "America/Vancouver",
-  "America/Sao_Paulo",
-  "Europe/London",
-  "Europe/Paris",
-  "Europe/Berlin",
-  "Europe/Amsterdam",
-  "Europe/Rome",
-  "Europe/Madrid",
-  "Asia/Dubai",
-  "Asia/Karachi",
-  "Asia/Kolkata",
-  "Asia/Dhaka",
-  "Asia/Bangkok",
-  "Asia/Singapore",
-  "Asia/Tokyo",
-  "Australia/Sydney",
-  "Pacific/Auckland",
-];
 
 export default function SettingsPage() {
   const [settings, setSettings] = useState<UserSettingsResponse | null>(null);
@@ -553,18 +528,11 @@ export default function SettingsPage() {
               <label htmlFor="timezone" className="text-xs font-semibold text-[var(--text-primary)]">
                 Default Timezone
               </label>
-              <select
+              <TimezonePicker
                 id="timezone"
                 value={timezone}
-                onChange={(e) => setTimezone(e.target.value)}
-                className="w-full rounded-xl border border-neutral-300 bg-white px-3.5 py-2.5 text-xs text-neutral-900 focus:border-blue-600 focus:ring-1 focus:ring-blue-600 focus:outline-none transition-shadow"
-              >
-                {TIMEZONES.map((tz) => (
-                  <option key={tz} value={tz}>
-                    {tz}
-                  </option>
-                ))}
-              </select>
+                onChange={setTimezone}
+              />
             </div>
           </div>
 
@@ -841,18 +809,11 @@ export default function SettingsPage() {
             <label htmlFor="defaultTimezone" className="text-xs font-semibold text-[var(--text-primary)]">
               Default Scheduling Timezone
             </label>
-            <select
+            <TimezonePicker
               id="defaultTimezone"
               value={defaultTimezone}
-              onChange={(e) => setDefaultTimezone(e.target.value)}
-              className="w-full rounded-xl border border-neutral-300 bg-white px-3.5 py-2.5 text-xs text-neutral-900 focus:border-blue-600 focus:ring-1 focus:ring-blue-600 focus:outline-none transition-shadow"
-            >
-              {TIMEZONES.map((tz) => (
-                <option key={tz} value={tz}>
-                  {tz}
-                </option>
-              ))}
-            </select>
+              onChange={setDefaultTimezone}
+            />
           </div>
 
           <div className="pt-4 flex items-center justify-end border-t border-[var(--border-subtle)]">

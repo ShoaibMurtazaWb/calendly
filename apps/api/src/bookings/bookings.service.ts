@@ -148,11 +148,14 @@ export class BookingsService {
       select: { startTime: true, endTime: true },
     });
 
+    const prevDateStr = new Date(startUtc.getTime() - 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
+    const nextDateStr = new Date(startUtc.getTime() + 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
+
     const computedSlots = this.slots.computeAvailableSlots(
       schedule,
       eventType,
-      slotDateStr,
-      slotDateStr,
+      prevDateStr,
+      nextDateStr,
       dto.attendeeTimeZone,
       now,
       existingBookings
@@ -163,6 +166,7 @@ export class BookingsService {
     );
 
     if (!isSlotValid) {
+      this.logger.warn(`Slot validation failed: target startUtc=${startUtc.toISOString()} (time=${startUtc.getTime()}), window=[${prevDateStr}, ${nextDateStr}], found ${computedSlots.length} slots. First 3: ${JSON.stringify(computedSlots.slice(0, 3))}`);
       throw new ConflictError(
         "SLOT_UNAVAILABLE",
         "The selected time slot is not available according to host schedule or notice rules."
@@ -272,7 +276,7 @@ export class BookingsService {
         }
 
         return created;
-      });
+      }, { maxWait: 15000, timeout: 25000 });
 
       const manageToken = this.tokenService.generateToken(booking.id, booking.tokenVersion);
       return {
@@ -469,11 +473,14 @@ export class BookingsService {
           select: { startTime: true, endTime: true },
         });
 
+        const prevDateStr = new Date(startUtc.getTime() - 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
+        const nextDateStr = new Date(startUtc.getTime() + 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
+
         const computedSlots = this.slots.computeAvailableSlots(
           schedule,
           booking.eventType,
-          slotDateStr,
-          slotDateStr,
+          prevDateStr,
+          nextDateStr,
           timezone,
           now,
           otherBookings
@@ -578,7 +585,7 @@ export class BookingsService {
         }
 
         return res;
-      });
+      }, { maxWait: 15000, timeout: 25000 });
 
       const manageToken = this.tokenService.generateToken(updated.id, updated.tokenVersion);
       return {
@@ -694,7 +701,7 @@ export class BookingsService {
       }
 
       return res;
-    });
+    }, { maxWait: 15000, timeout: 25000 });
 
     const manageToken = this.tokenService.generateToken(cancelled.id, cancelled.tokenVersion);
     return {
@@ -808,7 +815,7 @@ export class BookingsService {
       await tx.externalCalendarEvent.deleteMany({ where: { bookingId } });
       await tx.bookingRescheduleHistory.deleteMany({ where: { bookingId } });
       await tx.booking.delete({ where: { id: bookingId } });
-    });
+    }, { maxWait: 15000, timeout: 25000 });
 
     return { success: true };
   }
