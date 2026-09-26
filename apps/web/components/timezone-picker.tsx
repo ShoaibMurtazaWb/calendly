@@ -284,11 +284,11 @@ export function TimezonePicker({
           type="button"
           id={id}
           onClick={() => setIsOpen((prev) => !prev)}
-          className="inline-flex items-center gap-1.5 text-xs font-medium text-neutral-800 dark:text-neutral-200 hover:text-blue-600 dark:hover:text-blue-400 transition-colors cursor-pointer focus:outline-none group text-left"
+          className="inline-flex items-center gap-1.5 text-xs font-medium text-neutral-800 hover:text-blue-600 transition-colors cursor-pointer focus:outline-none group text-left"
           aria-haspopup="listbox"
           aria-expanded={isOpen}
         >
-          <Globe className="h-3.5 w-3.5 text-neutral-500 group-hover:text-blue-600 dark:group-hover:text-blue-400 shrink-0" />
+          <Globe className="h-3.5 w-3.5 text-neutral-500 group-hover:text-blue-600 shrink-0" />
           <span className="truncate max-w-[280px]">
             {selectedInfo.displayName || selectedInfo.city} ({selectedInfo.formattedTime || selectedInfo.offset})
           </span>
@@ -303,14 +303,14 @@ export function TimezonePicker({
           type="button"
           id={id}
           onClick={() => setIsOpen((prev) => !prev)}
-          className="w-full flex items-center justify-between gap-2.5 rounded-xl border border-neutral-200 bg-white hover:bg-neutral-50 dark:border-neutral-800 dark:bg-neutral-900 dark:hover:bg-neutral-800/60 px-3.5 py-2.5 text-xs text-left transition-colors shadow-2xs cursor-pointer focus:outline-none focus:ring-2 focus:ring-blue-600"
+          className="w-full flex items-center justify-between gap-2.5 rounded-xl border border-neutral-200 bg-white hover:bg-neutral-50 px-3.5 py-2.5 text-xs text-left transition-colors shadow-2xs cursor-pointer focus:outline-none focus:ring-2 focus:ring-blue-600"
           aria-haspopup="listbox"
           aria-expanded={isOpen}
         >
           <div className="flex items-center gap-2 min-w-0">
             <Globe className="h-4 w-4 shrink-0 text-neutral-500" />
             <div className="min-w-0 truncate">
-              <span className="font-semibold text-neutral-900 dark:text-white">
+              <span className="font-semibold text-neutral-900">
                 {selectedInfo.city}
               </span>
               <span className="ml-1.5 text-[11px] font-mono text-neutral-500">
@@ -342,14 +342,14 @@ export function TimezonePicker({
       {/* Dropdown Popover */}
       {isOpen && (
         <div
-          className={`absolute left-0 z-50 w-[300px] sm:w-[350px] rounded-2xl border border-neutral-200 bg-white dark:bg-neutral-950 dark:border-neutral-800 shadow-2xl overflow-hidden animate-in fade-in-0 zoom-in-95 duration-150 ${
+          className={`absolute left-0 z-50 w-[300px] sm:w-[350px] rounded-2xl border border-neutral-200 bg-white shadow-2xl overflow-hidden animate-in fade-in-0 zoom-in-95 duration-150 ${
             effectivePlacement === "top"
               ? "bottom-full mb-2.5"
               : "top-full mt-2"
           }`}
         >
           {/* Search Bar Input */}
-          <div className="p-3 border-b border-neutral-100 dark:border-neutral-800">
+          <div className="p-3 border-b border-neutral-100">
             <div className="relative flex items-center">
               <Search className="absolute left-3 h-3.5 w-3.5 text-neutral-400 pointer-events-none" />
               <input
@@ -358,13 +358,13 @@ export function TimezonePicker({
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
                 placeholder="Search..."
-                className="w-full h-9 pl-9 pr-8 rounded-lg border border-neutral-200 dark:border-neutral-700 bg-white dark:bg-neutral-900 text-xs text-neutral-900 dark:text-white placeholder:text-neutral-400 focus:outline-none focus:border-blue-600 focus:ring-1 focus:ring-blue-600 shadow-2xs"
+                className="w-full h-9 pl-9 pr-8 rounded-lg border border-neutral-200 bg-white text-xs text-neutral-900 placeholder:text-neutral-400 focus:outline-none focus:border-blue-600 focus:ring-1 focus:ring-blue-600 shadow-2xs"
               />
               {search && (
                 <button
                   type="button"
                   onClick={() => setSearch("")}
-                  className="absolute right-2.5 text-neutral-400 hover:text-black dark:hover:text-white p-0.5 rounded cursor-pointer"
+                  className="absolute right-2.5 text-neutral-400 hover:text-black p-0.5 rounded cursor-pointer"
                 >
                   <X className="h-3.5 w-3.5" />
                 </button>
@@ -373,18 +373,18 @@ export function TimezonePicker({
           </div>
 
           {/* Subheader: TIME ZONE label */}
-          <div className="px-3.5 py-2 bg-neutral-50/80 dark:bg-neutral-900/60 border-b border-neutral-100 dark:border-neutral-800 text-[10px] font-bold tracking-wider text-neutral-400 uppercase">
+          <div className="px-3.5 py-2 bg-neutral-50/80 border-b border-neutral-100 text-[10px] font-bold tracking-wider text-neutral-400 uppercase">
             <span>Time Zone</span>
           </div>
 
           {/* Timezones List (~6 items visible with smooth scrolling) */}
           <div
-            className="max-h-[250px] overflow-y-auto p-1.5 space-y-0.5 divide-y divide-neutral-50 dark:divide-neutral-900/50"
+            className="max-h-[250px] overflow-y-auto p-1.5 space-y-0.5 divide-y divide-neutral-50"
             role="listbox"
           >
             {filteredTimezones.length === 0 ? (
               <div className="py-8 text-center text-xs text-neutral-400">
-                <p className="font-semibold text-neutral-700 dark:text-neutral-300">
+                <p className="font-semibold text-neutral-700">
                   No timezones found
                 </p>
                 <p className="mt-0.5 text-[11px]">
@@ -408,7 +408,7 @@ export function TimezonePicker({
                     className={`w-full flex items-center justify-between px-3 py-2.5 rounded-lg text-xs text-left transition-colors cursor-pointer ${
                       isSelected
                         ? "bg-blue-600 text-white font-medium shadow-2xs"
-                        : "text-neutral-800 dark:text-neutral-200 hover:bg-neutral-100/80 dark:hover:bg-neutral-900"
+                        : "text-neutral-800 hover:bg-neutral-100/80"
                     }`}
                   >
                     <div className="min-w-0 flex-1 pr-2">

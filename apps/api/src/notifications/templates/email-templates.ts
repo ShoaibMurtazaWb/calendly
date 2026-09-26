@@ -681,3 +681,113 @@ ${manageUrl}
 
   return { subject, html, text };
 }
+
+export function renderWelcomeVerificationEmail(
+  user: { name: string; email: string; username: string },
+  appUrl: string
+): { subject: string; html: string; text: string } {
+  const subject = `Welcome to Sched, ${user.name}! Verify your account`;
+  const safeName = escapeHtml(user.name);
+  const safeEmail = escapeHtml(user.email);
+  const safeUsername = escapeHtml(user.username);
+  const dashboardUrl = `${appUrl}/dashboard`;
+  const publicProfileUrl = `${appUrl}/public/${user.username}`;
+
+  const html = baseHtml(`
+    <div style="text-align: center; margin-bottom: 24px;">
+      <span class="badge badge-success">Account Created</span>
+      <h1>Welcome to Sched, ${safeName}! 🎉</h1>
+      <p>Thank you for signing up. Your scheduling account is ready to use. Share your custom booking link with clients, colleagues, and friends to schedule meetings without the email back-and-forth.</p>
+    </div>
+
+    <div class="details-box">
+      <div class="details-row"><span class="details-label">Full Name:</span><span class="details-value">${safeName}</span></div>
+      <div class="details-row"><span class="details-label">Account Email:</span><span class="details-value">${safeEmail}</span></div>
+      <div class="details-row"><span class="details-label">Username:</span><span class="details-value">@${safeUsername}</span></div>
+      <div class="details-row"><span class="details-label">Public Booking Page:</span><span class="details-value"><a href="${publicProfileUrl}" style="color: #0069ff; text-decoration: none;">${publicProfileUrl}</a></span></div>
+    </div>
+
+    <div style="text-align: center; margin-top: 28px;">
+      <a href="${dashboardUrl}" class="btn" style="background-color: #0069ff; padding: 12px 28px; font-size: 14px;">Verify & Open Dashboard</a>
+    </div>
+
+    <div style="margin-top: 24px; padding-top: 16px; border-top: 1px solid #e2e8f0; font-size: 12px; color: #64748b; text-align: center;">
+      Need help setting up your event types or connecting Google Calendar? Visit your account settings anytime.
+    </div>
+  `);
+
+  const text = `WELCOME TO SCHED, ${user.name}!
+
+Your scheduling account is ready to use.
+
+Account Details:
+- Name: ${user.name}
+- Email: ${user.email}
+- Username: @${user.username}
+- Public Booking Page: ${publicProfileUrl}
+
+Get started and access your dashboard:
+${dashboardUrl}
+
+Powered by Sched
+`;
+
+  return { subject, html, text };
+}
+
+export function renderLoginSecurityAlertEmail(
+  user: { name: string; email: string },
+  loginInfo: { timeIso: string; ip?: string; userAgent?: string },
+  appUrl: string
+): { subject: string; html: string; text: string } {
+  const subject = `Security Alert: New sign-in to your Sched account`;
+  const safeName = escapeHtml(user.name);
+  const safeEmail = escapeHtml(user.email);
+  const formattedDate = new Intl.DateTimeFormat("en-US", {
+    dateStyle: "full",
+    timeStyle: "short",
+    timeZone: "UTC",
+  }).format(new Date(loginInfo.timeIso));
+  const dashboardUrl = `${appUrl}/dashboard`;
+  const settingsUrl = `${appUrl}/dashboard/settings`;
+
+  const html = baseHtml(`
+    <div style="text-align: center; margin-bottom: 24px;">
+      <span class="badge badge-info">Security Notice</span>
+      <h1>New Sign-in Detected</h1>
+      <p>Hi <strong>${safeName}</strong>, we noticed a new successful sign-in to your Sched account (<strong>${safeEmail}</strong>).</p>
+    </div>
+
+    <div class="details-box">
+      <div class="details-row"><span class="details-label">Time:</span><span class="details-value">${formattedDate} (UTC)</span></div>
+      ${loginInfo.ip ? `<div class="details-row"><span class="details-label">IP Address:</span><span class="details-value">${escapeHtml(loginInfo.ip)}</span></div>` : ""}
+      ${loginInfo.userAgent ? `<div class="details-row"><span class="details-label">Device / Browser:</span><span class="details-value" style="font-size: 11px; max-width: 260px; word-break: break-all;">${escapeHtml(loginInfo.userAgent)}</span></div>` : ""}
+    </div>
+
+    <div style="text-align: center; margin-top: 24px;">
+      <a href="${dashboardUrl}" class="btn">Go to Dashboard</a>
+    </div>
+
+    <div style="margin-top: 24px; padding-top: 16px; border-top: 1px solid #e2e8f0; font-size: 12px; color: #64748b; line-height: 1.5;">
+      <strong>If this was you:</strong> You can safely ignore this email.<br>
+      <strong>If you did NOT sign in:</strong> Please <a href="${settingsUrl}" style="color: #dc2626; font-weight: 600;">change your password immediately</a> to secure your account.
+    </div>
+  `);
+
+  const text = `SECURITY ALERT: New sign-in to your Sched account
+
+Hi ${user.name},
+
+A new sign-in was detected for your account (${user.email}).
+
+Time: ${formattedDate} (UTC)
+${loginInfo.ip ? `IP Address: ${loginInfo.ip}\n` : ""}${loginInfo.userAgent ? `Device/Browser: ${loginInfo.userAgent}\n` : ""}
+If this was you, you can safely ignore this notice.
+If this was not you, please change your password immediately:
+${settingsUrl}
+
+Dashboard: ${dashboardUrl}
+`;
+
+  return { subject, html, text };
+}

@@ -21,6 +21,9 @@ import { NotificationsService } from "./notifications.service";
         devProvider: DevEmailProvider,
         smtpProvider: SmtpEmailProvider
       ) => {
+        if (process.env.NODE_ENV === "test") {
+          return devProvider;
+        }
         const providerType = config.get<string>(
           "EMAIL_PROVIDER",
           process.env.NODE_ENV === "production" ? "smtp" : "dev"

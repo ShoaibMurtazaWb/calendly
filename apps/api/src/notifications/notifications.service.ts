@@ -1,7 +1,13 @@
-import { Injectable, Logger } from "@nestjs/common";
+import { Inject, Injectable, Logger } from "@nestjs/common";
+import { ConfigService } from "@nestjs/config";
 import type { Prisma } from "@prisma/client";
 import { NotificationType, NotificationStatus, BookingActor, LocationType } from "@prisma/client";
-import type { SnapshotPayload } from "./templates/email-templates";
+import { EMAIL_PROVIDER, type EmailProvider } from "./interfaces/email-provider.interface";
+import {
+  renderWelcomeVerificationEmail,
+  renderLoginSecurityAlertEmail,
+  type SnapshotPayload,
+} from "./templates/email-templates";
 
 export interface BookingWithDetails {
   id: string;
@@ -44,6 +50,14 @@ export interface BookingWithDetails {
 @Injectable()
 export class NotificationsService {
   private readonly logger = new Logger("NotificationsService");
+  private readonly appUrl: string;
+
+  constructor(
+    private readonly config: ConfigService,
+    @Inject(EMAIL_PROVIDER) private readonly emailProvider: EmailProvider
+  ) {
+    this.appUrl = this.config.get<string>("APP_URL", "http://localhost:3000");
+  }
 
   private buildSnapshot(booking: BookingWithDetails): SnapshotPayload {
     return {
@@ -269,5 +283,51 @@ export class NotificationsService {
     }
 
     return result.count;
+  }
+
+  async sendWelcomeVerificationEmail(user: {
+    id: string;
+    name: string;
+    email: string;
+    username: string;
+  }): Promise<void> {
+    try {
+      const { subject, html, text } = renderWelcomeVerificationEmail(user, this.appUrl);
+      await this.emailProvider.send({
+        to: user.email,
+        subject,
+        html,
+        text,
+        idempotencyKey: `user:${user.id}:welcome`,
+      });
+      this.logger.log(`Welcome/Verification email sent to user ${user.email} (${user.id})`);
+    } catch (err) {
+      const errMsg = err instanceof Error ? err.message : String(err);
+      this.logger.error(`Failed to send welcome email to ${user.email}: ${errMsg}`);
+    }
+  }
+
+  async sendLoginSecurityAlertEmail(
+    user: { id: string; name: string; email: string },
+    details?: { timeIso?: string; userAgent?: string; ip?: string }
+  ): Promise<void> {
+    try {
+      const loginInfo = {
+        timeIso: details?.timeIso || new Date().toISOString(),
+        ip: details?.ip,
+        userAgent: details?.userAgent,
+      };
+      const { subject, html, text } = renderLoginSecurityAlertEmail(user, loginInfo, this.appUrl);
+      await this.emailProvider.send({
+        to: user.email,
+        subject,
+        html,
+        text,
+      });
+      this.logger.log(`Login security alert email sent to user ${user.email} (${user.id})`);
+    } catch (err) {
+      const errMsg = err instanceof Error ? err.message : String(err);
+      this.logger.error(`Failed to send login alert email to ${user.email}: ${errMsg}`);
+    }
   }
 }

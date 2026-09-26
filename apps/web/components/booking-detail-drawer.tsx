@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useState, useRef, useEffect } from "react";
+import { useState, useEffect } from "react";
 import {
   X,
   Mail,
@@ -14,10 +14,6 @@ import {
   RefreshCw,
   Trash2,
   ExternalLink,
-  Download,
-  Copy,
-  Link2,
-  MoreVertical,
   User,
   Pencil,
   ChevronDown,
@@ -47,12 +43,10 @@ export function BookingDetailDrawer({
   onDelete,
 }: BookingDetailDrawerProps) {
   const [activeTab, setActiveTab] = useState<"details" | "notes">("details");
-  const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isEditEmailOpen, setIsEditEmailOpen] = useState(false);
   const [editEmail, setEditEmail] = useState("");
   const [isUpdatingEmail, setIsUpdatingEmail] = useState(false);
   const [displayedBooking, setDisplayedBooking] = useState<BookingResponse | null>(booking);
-  const menuRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     if (booking) {
@@ -60,16 +54,6 @@ export function BookingDetailDrawer({
       setEditEmail(booking.attendeeEmail);
     }
   }, [booking]);
-
-  useEffect(() => {
-    function handleClickOutside(event: MouseEvent) {
-      if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
-        setIsMenuOpen(false);
-      }
-    }
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, []);
 
   const currentBooking = booking || displayedBooking;
 
@@ -148,22 +132,6 @@ export function BookingDetailDrawer({
     if (!currentBooking.attendeePhoneNumber) return;
     void navigator.clipboard.writeText(currentBooking.attendeePhoneNumber);
     toast.success("Phone number copied to clipboard", currentBooking.attendeePhoneNumber);
-  };
-
-  const handleCopyBookingPageLink = () => {
-    const origin = typeof window !== "undefined" ? window.location.origin : "";
-    const url = `${origin}/public/${currentBooking.host.username}/${currentBooking.eventType.slug}`;
-    void navigator.clipboard.writeText(url);
-    toast.success("Event booking link copied to clipboard", url);
-    setIsMenuOpen(false);
-  };
-
-  const handleCopyConfirmationLink = () => {
-    const origin = typeof window !== "undefined" ? window.location.origin : "";
-    const url = `${origin}/public/bookings/${currentBooking.id}`;
-    void navigator.clipboard.writeText(url);
-    toast.success("Confirmation link copied to clipboard", url);
-    setIsMenuOpen(false);
   };
 
   const handleUpdateAttendeeEmail = async (e: React.FormEvent) => {
@@ -419,67 +387,24 @@ export function BookingDetailDrawer({
                   </div>
                 </div>
 
-                {/* Invitee Footer Actions: Email, View Profile, Menu */}
-                <div className="flex items-center justify-between pt-2 text-xs font-semibold">
-                  <div className="flex items-center gap-4">
-                    <a
-                      href={`mailto:${currentBooking.attendeeEmail}`}
-                      className="inline-flex items-center gap-1.5 text-blue-600 hover:text-blue-700 transition-colors"
-                    >
-                      <Mail className="h-3.5 w-3.5" />
-                      <span>Email</span>
-                    </a>
+                {/* Invitee Footer Actions: Email, View Profile */}
+                <div className="flex items-center gap-4 pt-2 text-xs font-semibold">
+                  <a
+                    href={`mailto:${currentBooking.attendeeEmail}`}
+                    className="inline-flex items-center gap-1.5 text-blue-600 hover:text-blue-700 transition-colors"
+                  >
+                    <Mail className="h-3.5 w-3.5" />
+                    <span>Email</span>
+                  </a>
 
-                    <Link
-                      href={`/public/${currentBooking.attendeeName.toLowerCase().replace(/[^a-z0-9]+/g, "") || currentBooking.host.username}`}
-                      target="_blank"
-                      className="inline-flex items-center gap-1.5 text-blue-600 hover:text-blue-700 transition-colors"
-                    >
-                      <User className="h-3.5 w-3.5" />
-                      <span>View full profile</span>
-                    </Link>
-                  </div>
-
-                  {/* 3-Dots Dropdown */}
-                  <div className="relative" ref={menuRef}>
-                    <button
-                      type="button"
-                      onClick={() => setIsMenuOpen((prev) => !prev)}
-                      className="p-1 rounded-md text-neutral-600 hover:text-neutral-900 hover:bg-neutral-100 cursor-pointer"
-                    >
-                      <MoreVertical className="h-4 w-4" />
-                    </button>
-
-                    {isMenuOpen && (
-                      <div className="absolute right-0 mt-1 w-52 rounded-xl border border-neutral-200 bg-white p-1.5 shadow-lg z-50 text-xs font-normal animate-in fade-in-0 zoom-in-95 duration-150">
-                        <button
-                          type="button"
-                          onClick={handleCopyBookingPageLink}
-                          className="w-full flex items-center gap-2 rounded-lg px-2.5 py-1.5 text-neutral-700 hover:bg-neutral-50 text-left font-medium cursor-pointer"
-                        >
-                          <Copy className="h-3.5 w-3.5 text-neutral-500" />
-                          <span>Copy event booking link</span>
-                        </button>
-                        <button
-                          type="button"
-                          onClick={handleCopyConfirmationLink}
-                          className="w-full flex items-center gap-2 rounded-lg px-2.5 py-1.5 text-neutral-700 hover:bg-neutral-50 text-left font-medium cursor-pointer"
-                        >
-                          <Link2 className="h-3.5 w-3.5 text-neutral-500" />
-                          <span>Copy confirmation link</span>
-                        </button>
-                        <a
-                          href={`/api/v1/public/bookings/${currentBooking.id}/ics`}
-                          download
-                          onClick={() => setIsMenuOpen(false)}
-                          className="w-full flex items-center gap-2 rounded-lg px-2.5 py-1.5 text-neutral-700 hover:bg-neutral-50 text-left font-medium"
-                        >
-                          <Download className="h-3.5 w-3.5 text-neutral-500" />
-                          <span>Download .ics</span>
-                        </a>
-                      </div>
-                    )}
-                  </div>
+                  <Link
+                    href={`/public/${currentBooking.attendeeName.toLowerCase().replace(/[^a-z0-9]+/g, "") || currentBooking.host.username}`}
+                    target="_blank"
+                    className="inline-flex items-center gap-1.5 text-blue-600 hover:text-blue-700 transition-colors"
+                  >
+                    <User className="h-3.5 w-3.5" />
+                    <span>View full profile</span>
+                  </Link>
                 </div>
               </div>
 

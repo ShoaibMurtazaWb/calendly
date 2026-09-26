@@ -1,8 +1,8 @@
-import { Body, Controller, Get, HttpCode, Post, Res, UseGuards } from "@nestjs/common";
+import { Body, Controller, Get, HttpCode, Post, Req, Res, UseGuards } from "@nestjs/common";
 import { ApiCookieAuth, ApiOperation, ApiTags } from "@nestjs/swagger";
 import { loginBodySchema, registerBodySchema, type LoginBody, type RegisterBody } from "@sched/api-contract";
 import { Throttle, ThrottlerGuard } from "@nestjs/throttler";
-import type { Response } from "express";
+import type { Request, Response } from "express";
 import { zodPipe } from "../shared/pipes/zod-validation.pipe";
 import { AuthService } from "./auth.service";
 import { CurrentSessionId, CurrentUserId } from "./current-user.decorator";
@@ -37,9 +37,13 @@ export class AuthController {
   @ApiOperation({ summary: "Log in and start a session" })
   async login(
     @Body(zodPipe(loginBodySchema)) body: LoginBody,
+    @Req() req: Request,
     @Res({ passthrough: true }) response: Response,
   ) {
-    const { user, token } = await this.auth.login(body);
+    const userAgent = typeof req.headers["user-agent"] === "string" ? req.headers["user-agent"] : undefined;
+    const ip = (typeof req.headers["x-forwarded-for"] === "string" ? req.headers["x-forwarded-for"].split(",")[0]?.trim() : undefined) || req.ip;
+
+    const { user, token } = await this.auth.login(body, { ip, userAgent });
     this.cookies.set(response, token);
     return user;
   }

@@ -7,6 +7,7 @@ import { PasswordService } from "./password.service";
 import { SessionService } from "./session.service";
 import { AuditService } from "../audit/audit.service";
 import { RequestContext } from "../shared/context/request-context";
+import { NotificationsService } from "../notifications/notifications.service";
 
 @Injectable()
 export class AuthService {
@@ -15,6 +16,7 @@ export class AuthService {
     private readonly passwords: PasswordService,
     private readonly sessions: SessionService,
     private readonly audit: AuditService,
+    private readonly notifications: NotificationsService,
   ) {}
 
   async register(input: RegisterBody): Promise<{ user: CurrentUserResponse; token: string }> {
@@ -31,10 +33,23 @@ export class AuthService {
       metadata: { email: user.email, username: user.username },
     });
 
+    // Send Professional Welcome & Account Verification Email
+    if (process.env.NODE_ENV !== "test") {
+      void this.notifications.sendWelcomeVerificationEmail({
+        id: user.id,
+        name: user.name,
+        email: user.email,
+        username: user.username,
+      });
+    }
+
     return { user: toCurrentUser(user), token };
   }
 
-  async login(input: LoginBody): Promise<{ user: CurrentUserResponse; token: string }> {
+  async login(
+    input: LoginBody,
+    meta?: { ip?: string; userAgent?: string }
+  ): Promise<{ user: CurrentUserResponse; token: string }> {
     const user = await this.identity.findByEmail(input.email);
     if (!user) {
       await this.audit.log({
@@ -65,6 +80,22 @@ export class AuthService {
       entityId: user.id,
       metadata: { email: user.email },
     });
+
+    // Send Professional Login Security Alert Email
+    if (process.env.NODE_ENV !== "test") {
+      void this.notifications.sendLoginSecurityAlertEmail(
+        {
+          id: user.id,
+          name: user.name,
+          email: user.email,
+        },
+        {
+          timeIso: new Date().toISOString(),
+          ip: meta?.ip,
+          userAgent: meta?.userAgent,
+        }
+      );
+    }
 
     return { user: toCurrentUser(user), token };
   }
