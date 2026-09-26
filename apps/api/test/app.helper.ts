@@ -82,13 +82,10 @@ export async function resetDatabase(app: INestApplication): Promise<void> {
   });
   await prisma.notificationJob.deleteMany({
     where: {
-      booking: {
-        host: {
-          email: {
-            contains: "example.com",
-          },
-        },
-      },
+      OR: [
+        { recipientEmail: { contains: "example.com" } },
+        { booking: { host: { email: { contains: "example.com" } } } },
+      ],
     },
   });
   await prisma.bookingRescheduleHistory.deleteMany({

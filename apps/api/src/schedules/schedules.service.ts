@@ -79,7 +79,7 @@ export class SchedulesService {
           });
         }
       }
-    });
+    }, { timeout: 15000, maxWait: 10000 });
 
     const updated = await this.prisma.schedule.findUniqueOrThrow({
       where: { id: scheduleId },

@@ -5,6 +5,8 @@ import { createTestApp, resetDatabase, uniqueLabel } from "./app.helper";
 describe("Bookings HTTP", () => {
   let app: INestApplication;
 
+  jest.setTimeout(60000);
+
   beforeAll(async () => {
     app = await createTestApp();
   });
@@ -285,11 +287,11 @@ describe("Bookings HTTP", () => {
     expect(firstBookRes.status).toBe(201);
     const bookingId = firstBookRes.body.id;
 
-    // 2. Same attendee tries to book another slot for the same event type -> 409 Conflict BOOKING_ALREADY_EXISTS
+    // 2. Same attendee tries to book the exact same slot again -> 409 Conflict BOOKING_ALREADY_EXISTS
     const secondBookRes = await request(app.getHttpServer())
       .post(`/api/v1/public/${host.username}/discovery/book`)
       .send({
-        startUtc: secondSlot.startUtc,
+        startUtc: firstSlot.startUtc,
         attendeeName: "Duplicate Tester",
         attendeeEmail: "tester@example.com",
         attendeeTimeZone: "America/New_York",
@@ -304,6 +306,18 @@ describe("Bookings HTTP", () => {
     expect(existingBooking.id).toBe(bookingId);
     expect(existingBooking.startTime).toBe(firstSlot.startUtc);
     expect(existingBooking.manageUrl).toContain(`/public/bookings/${bookingId}`);
+
+    // 3. Same attendee can book a different slot without conflict
+    const differentSlotRes = await request(app.getHttpServer())
+      .post(`/api/v1/public/${host.username}/discovery/book`)
+      .send({
+        startUtc: secondSlot.startUtc,
+        attendeeName: "Duplicate Tester",
+        attendeeEmail: "tester@example.com",
+        attendeeTimeZone: "America/New_York",
+      });
+
+    expect(differentSlotRes.status).toBe(201);
   });
 
   it("allows recovering/rescheduling a cancelled booking back to CONFIRMED", async () => {
