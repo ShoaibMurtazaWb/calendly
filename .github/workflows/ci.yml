@@ -27,6 +27,7 @@ jobs:
 
     env:
       DATABASE_URL: postgresql://sched:sched@localhost:5432/sched
+      DIRECT_URL: postgresql://sched:sched@localhost:5432/sched
       COOKIE_SECURE: "false"
       NODE_ENV: test
       ARGON2_MEMORY_COST: "4096"
