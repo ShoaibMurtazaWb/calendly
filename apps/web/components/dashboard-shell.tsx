@@ -99,7 +99,8 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
         (error instanceof Error && (error.message.includes("401") || error.message.includes("Unauthorized") || error.message.includes("Authentication required")));
 
       if (isUnauthorized) {
-        window.location.replace("/login");
+        const currentPath = typeof window !== "undefined" ? window.location.pathname + window.location.search : "/dashboard";
+        window.location.replace(`/login?redirectTo=${encodeURIComponent(currentPath)}`);
         return;
       }
 

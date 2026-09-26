@@ -46,6 +46,13 @@ export const UserSettingsResponseSchema = z.object({
 
 export type UserSettingsResponse = z.infer<typeof UserSettingsResponseSchema>;
 
+export const ChangePasswordSchema = z.object({
+  currentPassword: z.string().min(1, "Current password is required"),
+  newPassword: z.string().min(8, "New password must be at least 8 characters").max(100),
+});
+
+export type ChangePassword = z.infer<typeof ChangePasswordSchema>;
+
 export const AuditLogEntrySchema = z.object({
   id: z.string().uuid(),
   action: z.string(),

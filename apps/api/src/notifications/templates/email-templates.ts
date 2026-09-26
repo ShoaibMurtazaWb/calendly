@@ -200,29 +200,45 @@ function baseHtml(content: string): string {
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Sched Notification</title>
+  <title>Sched</title>
   <style>
     body { margin: 0; padding: 0; background-color: #f8fafc; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; color: #0f172a; }
-    .wrapper { width: 100%; max-width: 600px; margin: 0 auto; padding: 32px 16px; box-sizing: border-box; }
-    .card { background-color: #ffffff; border-radius: 12px; border: 1px solid #e2e8f0; padding: 32px; box-shadow: 0 1px 3px rgba(0,0,0,0.05); }
-    .badge { display: inline-block; padding: 4px 10px; border-radius: 9999px; font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; }
-    .badge-success { background-color: #ecfdf5; color: #059669; border: 1px solid #a7f3d0; }
+    .wrapper { width: 100%; max-width: 580px; margin: 0 auto; padding: 36px 16px; box-sizing: border-box; }
+    .brand-header { text-align: center; margin-bottom: 24px; }
+    .brand-table { margin: 0 auto; }
+    .card { background-color: #ffffff; border-radius: 16px; border: 1px solid #e2e8f0; padding: 36px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.03), 0 2px 4px -2px rgba(0,0,0,0.02); }
+    .badge { display: inline-block; padding: 4px 12px; border-radius: 9999px; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; }
+    .badge-success { background-color: #eff6ff; color: #0069ff; border: 1px solid #bfdbfe; }
     .badge-info { background-color: #eff6ff; color: #2563eb; border: 1px solid #bfdbfe; }
     .badge-danger { background-color: #fef2f2; color: #dc2626; border: 1px solid #fecaca; }
-    h1 { font-size: 20px; font-weight: 700; margin: 16px 0 8px 0; color: #0f172a; }
+    h1 { font-size: 22px; font-weight: 700; margin: 16px 0 10px 0; color: #0f172a; line-height: 1.3; }
     p { font-size: 14px; line-height: 1.6; color: #475569; margin: 0 0 16px 0; }
-    .details-box { background-color: #f8fafc; border-radius: 8px; border: 1px solid #e2e8f0; padding: 16px; margin: 20px 0; }
-    .details-row { display: flex; justify-content: space-between; padding: 6px 0; font-size: 13px; border-bottom: 1px solid #f1f5f9; }
+    .details-box { background-color: #f8fafc; border-radius: 12px; border: 1px solid #e2e8f0; padding: 18px; margin: 20px 0; }
+    .details-row { display: flex; justify-content: space-between; padding: 8px 0; font-size: 13px; border-bottom: 1px solid #f1f5f9; }
     .details-row:last-child { border-bottom: none; }
     .details-label { color: #64748b; font-weight: 500; }
     .details-value { color: #0f172a; font-weight: 600; text-align: right; }
-    .btn { display: inline-block; background-color: #0f172a; color: #ffffff !important; text-decoration: none; padding: 10px 20px; border-radius: 8px; font-size: 13px; font-weight: 600; text-align: center; margin-top: 12px; }
+    .btn { display: inline-block; background-color: #0069ff; color: #ffffff !important; text-decoration: none; padding: 12px 28px; border-radius: 10px; font-size: 14px; font-weight: 600; text-align: center; margin-top: 12px; box-shadow: 0 2px 4px rgba(0,105,255,0.2); }
     .footer { text-align: center; margin-top: 24px; font-size: 12px; color: #94a3b8; }
     .strikethrough { text-decoration: line-through; color: #94a3b8; margin-right: 8px; }
   </style>
 </head>
 <body>
   <div class="wrapper">
+    <div class="brand-header">
+      <table cellpadding="0" cellspacing="0" border="0" class="brand-table">
+        <tr>
+          <td style="vertical-align: middle; padding-right: 10px;">
+            <div style="width: 36px; height: 36px; background-color: #0069ff; border-radius: 10px; text-align: center; line-height: 36px; color: #ffffff; font-weight: 800; font-size: 20px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; display: inline-block;">
+              S
+            </div>
+          </td>
+          <td style="vertical-align: middle;">
+            <span style="font-size: 22px; font-weight: 800; color: #0f172a; letter-spacing: -0.5px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;">Sched</span>
+          </td>
+        </tr>
+      </table>
+    </div>
     <div class="card">
       ${content}
     </div>
@@ -686,48 +702,85 @@ export function renderWelcomeVerificationEmail(
   user: { name: string; email: string; username: string },
   appUrl: string
 ): { subject: string; html: string; text: string } {
-  const subject = `Welcome to Sched, ${user.name}! Verify your account`;
+  const subject = `Welcome to Sched, ${user.name}! 🚀 Let's create your first event`;
   const safeName = escapeHtml(user.name);
-  const safeEmail = escapeHtml(user.email);
-  const safeUsername = escapeHtml(user.username);
+  const newEventTypeUrl = `${appUrl}/dashboard/event-types/new`;
   const dashboardUrl = `${appUrl}/dashboard`;
-  const publicProfileUrl = `${appUrl}/public/${user.username}`;
 
   const html = baseHtml(`
     <div style="text-align: center; margin-bottom: 24px;">
       <span class="badge badge-success">Account Created</span>
-      <h1>Welcome to Sched, ${safeName}! 🎉</h1>
-      <p>Thank you for signing up. Your scheduling account is ready to use. Share your custom booking link with clients, colleagues, and friends to schedule meetings without the email back-and-forth.</p>
+      <h1 style="font-size: 24px; font-weight: 800; margin: 16px 0 8px 0; color: #0f172a;">Welcome to Sched, ${safeName}! 🎉</h1>
+      <p style="font-size: 15px; color: #475569; line-height: 1.6; max-width: 480px; margin: 0 auto;">
+        You're all set to start scheduling meetings effortlessly. Share your custom booking links and let clients, colleagues, and friends book time with you without the email back-and-forth.
+      </p>
     </div>
 
-    <div class="details-box">
-      <div class="details-row"><span class="details-label">Full Name:</span><span class="details-value">${safeName}</span></div>
-      <div class="details-row"><span class="details-label">Account Email:</span><span class="details-value">${safeEmail}</span></div>
-      <div class="details-row"><span class="details-label">Username:</span><span class="details-value">@${safeUsername}</span></div>
-      <div class="details-row"><span class="details-label">Public Booking Page:</span><span class="details-value"><a href="${publicProfileUrl}" style="color: #0069ff; text-decoration: none;">${publicProfileUrl}</a></span></div>
+    <!-- Quick Start Card -->
+    <div style="background-color: #f8fafc; border-radius: 12px; border: 1px solid #e2e8f0; padding: 20px; margin: 24px 0; text-align: left;">
+      <div style="font-size: 12px; font-weight: 700; color: #0f172a; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 14px;">
+        🚀 Quick Start in 3 Easy Steps:
+      </div>
+      
+      <table cellpadding="0" cellspacing="0" border="0" style="width: 100%; margin-bottom: 12px;">
+        <tr>
+          <td style="width: 28px; vertical-align: top; font-size: 16px; padding-top: 1px;">⚡</td>
+          <td style="font-size: 13px; color: #334155; line-height: 1.5;">
+            <strong>1. Create an Event Type</strong><br>
+            <span style="color: #64748b; font-size: 12px;">Set your duration (15 min, 30 min, 1 hour) and location (Zoom, Google Meet, In-Person).</span>
+          </td>
+        </tr>
+      </table>
+
+      <table cellpadding="0" cellspacing="0" border="0" style="width: 100%; margin-bottom: 12px;">
+        <tr>
+          <td style="width: 28px; vertical-align: top; font-size: 16px; padding-top: 1px;">🕒</td>
+          <td style="font-size: 13px; color: #334155; line-height: 1.5;">
+            <strong>2. Set Your Availability</strong><br>
+            <span style="color: #64748b; font-size: 12px;">Define the exact hours and days you are open for bookings.</span>
+          </td>
+        </tr>
+      </table>
+
+      <table cellpadding="0" cellspacing="0" border="0" style="width: 100%;">
+        <tr>
+          <td style="width: 28px; vertical-align: top; font-size: 16px; padding-top: 1px;">🔗</td>
+          <td style="font-size: 13px; color: #334155; line-height: 1.5;">
+            <strong>3. Share Your Booking Link</strong><br>
+            <span style="color: #64748b; font-size: 12px;">Add it to your email signature, LinkedIn, or send directly to anyone.</span>
+          </td>
+        </tr>
+      </table>
     </div>
 
+    <!-- Primary CTA -->
     <div style="text-align: center; margin-top: 28px;">
-      <a href="${dashboardUrl}" class="btn" style="background-color: #0069ff; padding: 12px 28px; font-size: 14px;">Verify & Open Dashboard</a>
+      <a href="${newEventTypeUrl}" class="btn" style="background-color: #0069ff; color: #ffffff !important; padding: 14px 32px; font-size: 15px; font-weight: 700; text-decoration: none; border-radius: 10px; display: inline-block;">
+        Create Your First Event Type →
+      </a>
     </div>
 
-    <div style="margin-top: 24px; padding-top: 16px; border-top: 1px solid #e2e8f0; font-size: 12px; color: #64748b; text-align: center;">
-      Need help setting up your event types or connecting Google Calendar? Visit your account settings anytime.
+    <!-- Secondary Link -->
+    <div style="text-align: center; margin-top: 16px;">
+      <a href="${dashboardUrl}" style="color: #64748b; font-size: 13px; text-decoration: underline; font-weight: 500;">
+        Or go directly to your Dashboard
+      </a>
     </div>
   `);
 
   const text = `WELCOME TO SCHED, ${user.name}!
 
-Your scheduling account is ready to use.
+You're all set to start scheduling meetings effortlessly.
 
-Account Details:
-- Name: ${user.name}
-- Email: ${user.email}
-- Username: @${user.username}
-- Public Booking Page: ${publicProfileUrl}
+Quick Start in 3 Easy Steps:
+1. Create an Event Type (Zoom, Google Meet, In-Person, 15m/30m/1h)
+2. Set your availability and working hours
+3. Share your booking link to eliminate email back-and-forth
 
-Get started and access your dashboard:
-${dashboardUrl}
+Get started by creating your first event type:
+${newEventTypeUrl}
+
+Dashboard: ${dashboardUrl}
 
 Powered by Sched
 `;
@@ -749,28 +802,44 @@ export function renderLoginSecurityAlertEmail(
     timeZone: "UTC",
   }).format(new Date(loginInfo.timeIso));
   const dashboardUrl = `${appUrl}/dashboard`;
-  const settingsUrl = `${appUrl}/dashboard/settings`;
+  const changePasswordUrl = `${appUrl}/dashboard/settings?tab=security`;
 
   const html = baseHtml(`
     <div style="text-align: center; margin-bottom: 24px;">
-      <span class="badge badge-info">Security Notice</span>
-      <h1>New Sign-in Detected</h1>
-      <p>Hi <strong>${safeName}</strong>, we noticed a new successful sign-in to your Sched account (<strong>${safeEmail}</strong>).</p>
+      <span class="badge badge-danger">🛡️ Security Alert</span>
+      <h1 style="font-size: 22px; font-weight: 800; margin: 16px 0 8px 0; color: #0f172a;">New Sign-in Detected</h1>
+      <p style="font-size: 14px; color: #475569; line-height: 1.6; max-width: 480px; margin: 0 auto;">
+        Hi <strong>${safeName}</strong>, your Sched account (<strong>${safeEmail}</strong>) was just accessed from a new device or session.
+      </p>
     </div>
 
-    <div class="details-box">
-      <div class="details-row"><span class="details-label">Time:</span><span class="details-value">${formattedDate} (UTC)</span></div>
-      ${loginInfo.ip ? `<div class="details-row"><span class="details-label">IP Address:</span><span class="details-value">${escapeHtml(loginInfo.ip)}</span></div>` : ""}
-      ${loginInfo.userAgent ? `<div class="details-row"><span class="details-label">Device / Browser:</span><span class="details-value" style="font-size: 11px; max-width: 260px; word-break: break-all;">${escapeHtml(loginInfo.userAgent)}</span></div>` : ""}
+    <!-- Sign-in Details Box -->
+    <div class="details-box" style="background-color: #f8fafc; border-radius: 12px; border: 1px solid #e2e8f0; padding: 18px; margin: 20px 0;">
+      <div style="font-size: 12px; font-weight: 700; color: #0f172a; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 12px;">
+        Session Details:
+      </div>
+      <div class="details-row"><span class="details-label">Date & Time:</span><span class="details-value">${formattedDate} (UTC)</span></div>
+      ${loginInfo.ip ? `<div class="details-row"><span class="details-label">IP Address:</span><span class="details-value" style="font-family: monospace; font-size: 12px;">${escapeHtml(loginInfo.ip)}</span></div>` : ""}
+      ${loginInfo.userAgent ? `<div class="details-row"><span class="details-label">Browser / Client:</span><span class="details-value" style="font-size: 12px; max-width: 260px; word-break: break-all;">${escapeHtml(loginInfo.userAgent)}</span></div>` : ""}
+      <div class="details-row"><span class="details-label">Status:</span><span class="details-value" style="color: #059669;">✓ Successful Sign-in</span></div>
     </div>
 
+    <!-- Alert Guidance Box -->
+    <div style="background-color: #fff7ed; border-radius: 10px; border: 1px solid #ffedd5; padding: 16px; margin: 20px 0; font-size: 13px; color: #9a3412; line-height: 1.5; text-align: left;">
+      <strong>⚠️ Did not authorize this sign-in?</strong><br>
+      If you did not sign in at this time, your password may be compromised. We strongly recommend changing your password immediately to protect your account and connected calendars.
+    </div>
+
+    <!-- Primary Urgent CTA -->
     <div style="text-align: center; margin-top: 24px;">
-      <a href="${dashboardUrl}" class="btn">Go to Dashboard</a>
+      <a href="${changePasswordUrl}" class="btn" style="background-color: #dc2626; color: #ffffff !important; padding: 13px 28px; font-size: 14px; font-weight: 700; text-decoration: none; border-radius: 10px; display: inline-block; box-shadow: 0 2px 6px rgba(220, 38, 38, 0.25);">
+        Change Password & Secure Account →
+      </a>
     </div>
 
-    <div style="margin-top: 24px; padding-top: 16px; border-top: 1px solid #e2e8f0; font-size: 12px; color: #64748b; line-height: 1.5;">
-      <strong>If this was you:</strong> You can safely ignore this email.<br>
-      <strong>If you did NOT sign in:</strong> Please <a href="${settingsUrl}" style="color: #dc2626; font-weight: 600;">change your password immediately</a> to secure your account.
+    <!-- Secondary Safe Notice -->
+    <div style="text-align: center; margin-top: 18px; font-size: 12px; color: #64748b;">
+      If this was you, you can safely disregard this email or <a href="${dashboardUrl}" style="color: #0069ff; text-decoration: underline;">visit your Dashboard</a>.
     </div>
   `);
 
@@ -778,15 +847,21 @@ export function renderLoginSecurityAlertEmail(
 
 Hi ${user.name},
 
-A new sign-in was detected for your account (${user.email}).
+A new sign-in was detected for your Sched account (${user.email}).
 
-Time: ${formattedDate} (UTC)
-${loginInfo.ip ? `IP Address: ${loginInfo.ip}\n` : ""}${loginInfo.userAgent ? `Device/Browser: ${loginInfo.userAgent}\n` : ""}
-If this was you, you can safely ignore this notice.
-If this was not you, please change your password immediately:
-${settingsUrl}
+Session Details:
+- Date & Time: ${formattedDate} (UTC)
+${loginInfo.ip ? `- IP Address: ${loginInfo.ip}\n` : ""}${loginInfo.userAgent ? `- Device/Browser: ${loginInfo.userAgent}\n` : ""}- Status: Successful Sign-in
+
+IF THIS WAS NOT YOU:
+Change your password immediately to secure your account:
+${changePasswordUrl}
+
+If this was you, you can safely disregard this email.
 
 Dashboard: ${dashboardUrl}
+
+Powered by Sched
 `;
 
   return { subject, html, text };

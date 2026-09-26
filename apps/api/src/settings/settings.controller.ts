@@ -4,9 +4,11 @@ import {
   ProfileSettingsSchema,
   NotificationPreferencesSchema,
   SchedulingPreferencesSchema,
+  ChangePasswordSchema,
   type ProfileSettings,
   type NotificationPreferences,
   type SchedulingPreferences,
+  type ChangePassword,
 } from "@sched/api-contract";
 import { CurrentUserId } from "../auth/current-user.decorator";
 import { SessionAuthGuard } from "../auth/session-auth.guard";
@@ -37,6 +39,15 @@ export class SettingsController {
     @Body(zodPipe(ProfileSettingsSchema)) body: ProfileSettings,
   ) {
     return this.settings.updateProfile(userId, body);
+  }
+
+  @Patch("password")
+  @ApiOperation({ summary: "Change account password" })
+  changePassword(
+    @CurrentUserId() userId: string,
+    @Body(zodPipe(ChangePasswordSchema)) body: ChangePassword,
+  ) {
+    return this.settings.changePassword(userId, body);
   }
 
   @Patch("notifications")

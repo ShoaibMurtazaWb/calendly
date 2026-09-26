@@ -12,6 +12,6 @@ import { SessionService } from "./session.service";
   imports: [IdentityModule, NotificationsModule],
   controllers: [AuthController],
   providers: [AuthService, PasswordService, SessionService, SessionCookieService, SessionAuthGuard],
-  exports: [SessionAuthGuard, SessionService],
+  exports: [SessionAuthGuard, SessionService, PasswordService],
 })
 export class AuthModule {}

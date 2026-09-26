@@ -23,18 +23,20 @@ export function LoginForm() {
 
   useEffect(() => {
     // Check if user is already authenticated
-    api("/auth/me")
-      .then(() => {
-        window.location.replace("/dashboard");
-      })
-      .catch(() => {
-        setIsCheckingAuth(false);
-      });
-
     if (typeof window !== "undefined") {
       const params = new URLSearchParams(window.location.search);
       const emailParam = params.get("email");
       if (emailParam) setEmail(emailParam);
+      
+      const redirectTo = params.get("redirectTo") || "/dashboard";
+
+      api("/auth/me")
+        .then(() => {
+          window.location.replace(redirectTo);
+        })
+        .catch(() => {
+          setIsCheckingAuth(false);
+        });
     }
   }, []);
 
@@ -61,7 +63,9 @@ export function LoginForm() {
         method: "POST",
         body: JSON.stringify(parsed.data),
       });
-      window.location.href = "/dashboard";
+      const params = typeof window !== "undefined" ? new URLSearchParams(window.location.search) : null;
+      const redirectTo = params?.get("redirectTo") || "/dashboard";
+      window.location.href = redirectTo;
     } catch (err) {
       if (err instanceof ApiError) {
         if (

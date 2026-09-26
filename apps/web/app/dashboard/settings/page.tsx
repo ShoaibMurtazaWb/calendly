@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useTransition } from "react";
 import {
   User as UserIcon,
   Bell,
@@ -10,6 +10,12 @@ import {
   AlertCircle,
   Camera,
   Upload,
+  KeyRound,
+  Eye,
+  EyeOff,
+  Lock,
+  CheckCircle2,
+  Sparkles,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Spinner } from "@/components/ui/spinner";
@@ -47,7 +53,7 @@ export default function SettingsPage() {
   const [settings, setSettings] = useState<UserSettingsResponse | null>(null);
   const [auditLogs, setAuditLogs] = useState<AuditLogEntry[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState<"profile" | "notifications" | "scheduling" | "audit">("profile");
+  const [activeTab, setActiveTab] = useState<"profile" | "security" | "notifications" | "scheduling" | "audit">("profile");
 
   // Profile Form State
   const [name, setName] = useState("");
@@ -55,6 +61,15 @@ export default function SettingsPage() {
   const [timezone, setTimezone] = useState("UTC");
   const [avatarUrl, setAvatarUrl] = useState("");
   const [isSavingProfile, setIsSavingProfile] = useState(false);
+
+  // Password / Security Form State
+  const [currentPassword, setCurrentPassword] = useState("");
+  const [newPassword, setNewPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [showCurrentPassword, setShowCurrentPassword] = useState(false);
+  const [showNewPassword, setShowNewPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [isSavingPassword, setIsSavingPassword] = useState(false);
 
   // Notifications Form State
   const [emailReminders, setEmailReminders] = useState(true);
@@ -73,7 +88,26 @@ export default function SettingsPage() {
 
   useEffect(() => {
     void loadSettings();
+
+    // Check URL parameters for tab selection (e.g. ?tab=security from login alert email)
+    if (typeof window !== "undefined") {
+      const params = new URLSearchParams(window.location.search);
+      const tabParam = params.get("tab");
+      if (tabParam && ["profile", "security", "notifications", "scheduling", "audit"].includes(tabParam)) {
+        setActiveTab(tabParam as "profile" | "security" | "notifications" | "scheduling" | "audit");
+      }
+    }
   }, []);
+
+  function handleTabChange(tab: "profile" | "security" | "notifications" | "scheduling" | "audit") {
+    setActiveTab(tab);
+    setFeedback(null);
+    if (typeof window !== "undefined") {
+      const url = new URL(window.location.href);
+      url.searchParams.set("tab", tab);
+      window.history.replaceState(null, "", url.toString());
+    }
+  }
 
   async function loadSettings() {
     setIsLoading(true);
@@ -144,6 +178,56 @@ export default function SettingsPage() {
     }
   }
 
+  async function handleSavePassword(e: React.FormEvent) {
+    e.preventDefault();
+    setFeedback(null);
+
+    if (newPassword.length < 8) {
+      setFeedback({ type: "error", message: "New password must be at least 8 characters long." });
+      return;
+    }
+
+    if (newPassword !== confirmPassword) {
+      setFeedback({ type: "error", message: "New passwords do not match. Please re-enter." });
+      return;
+    }
+
+    setIsSavingPassword(true);
+    try {
+      const response = await api<{ success: boolean; message: string }>("/settings/password", {
+        method: "PATCH",
+        body: JSON.stringify({
+          currentPassword,
+          newPassword,
+        }),
+      });
+
+      setFeedback({ type: "success", message: response.message || "Your password has been changed successfully." });
+      setCurrentPassword("");
+      setNewPassword("");
+      setConfirmPassword("");
+
+      // Refresh audit logs to show password changed event
+      void api<AuditLogEntry[]>("/settings/audit-logs")
+        .then((logs) => setAuditLogs(logs))
+        .catch(() => {});
+    } catch (err) {
+      let msg = "Failed to update password.";
+      if (err instanceof ApiError) {
+        if (err.body.error.code === "INVALID_CURRENT_PASSWORD") {
+          msg = "The current password you entered is incorrect.";
+        } else {
+          msg = err.message || msg;
+        }
+      } else if (err instanceof Error) {
+        msg = err.message;
+      }
+      setFeedback({ type: "error", message: msg });
+    } finally {
+      setIsSavingPassword(false);
+    }
+  }
+
   async function handleSaveNotifications(e: React.FormEvent) {
     e.preventDefault();
     setIsSavingNotifications(true);
@@ -194,29 +278,6 @@ export default function SettingsPage() {
     }
   }
 
-  if (isLoading) {
-    return (
-      <div className="space-y-6">
-        <div>
-          <Skeleton className="h-8 w-48 mb-2" />
-          <Skeleton className="h-4 w-96" />
-        </div>
-        <div className="flex gap-2 border-b border-[var(--border-subtle)] pb-2">
-          <Skeleton className="h-9 w-24" />
-          <Skeleton className="h-9 w-28" />
-          <Skeleton className="h-9 w-28" />
-          <Skeleton className="h-9 w-28" />
-        </div>
-        <div className="rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-surface)] p-6 space-y-4">
-          <Skeleton className="h-6 w-36" />
-          <Skeleton className="h-10 w-full" />
-          <Skeleton className="h-10 w-full" />
-          <Skeleton className="h-10 w-48" />
-        </div>
-      </div>
-    );
-  }
-
   function handleFileUpload(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -265,25 +326,48 @@ export default function SettingsPage() {
     reader.readAsDataURL(file);
   }
 
+  if (isLoading) {
+    return (
+      <div className="space-y-6">
+        <div>
+          <Skeleton className="h-8 w-48 mb-2" />
+          <Skeleton className="h-4 w-96" />
+        </div>
+        <div className="flex gap-2 border-b border-[var(--border-subtle)] pb-2">
+          <Skeleton className="h-9 w-24" />
+          <Skeleton className="h-9 w-28" />
+          <Skeleton className="h-9 w-28" />
+          <Skeleton className="h-9 w-28" />
+        </div>
+        <div className="rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-surface)] p-6 space-y-4">
+          <Skeleton className="h-6 w-36" />
+          <Skeleton className="h-10 w-full" />
+          <Skeleton className="h-10 w-full" />
+          <Skeleton className="h-10 w-48" />
+        </div>
+      </div>
+    );
+  }
+
   return (
-    <div className="w-full space-y-6">
+    <div className="w-full space-y-6 max-w-4xl pb-12">
       {/* Header */}
       <div>
         <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-[var(--text-primary)]">
-          Admin center
+          Account Settings
         </h1>
         <p className="mt-1 text-xs sm:text-sm text-[var(--text-secondary)]">
-          Manage your personal profile, delivery notifications, default scheduling rules, and security audit trail.
+          Manage your personal profile, security credentials, delivery preferences, and scheduling defaults.
         </p>
       </div>
 
       {/* Global Feedback Alert */}
       {feedback && (
         <div
-          className={`flex items-start gap-3 rounded-lg border p-3.5 text-xs transition-all duration-150 ${
+          className={`flex items-start gap-3 rounded-xl border p-4 text-xs transition-all duration-150 shadow-2xs ${
             feedback.type === "success"
-              ? "border-emerald-200 bg-emerald-50/70 text-emerald-800"
-              : "border-rose-200 bg-rose-50/70 text-rose-800"
+              ? "border-emerald-200 bg-emerald-50 text-emerald-900"
+              : "border-rose-200 bg-rose-50 text-rose-900"
           }`}
         >
           {feedback.type === "success" ? (
@@ -291,69 +375,85 @@ export default function SettingsPage() {
           ) : (
             <AlertCircle className="h-4 w-4 shrink-0 text-rose-600 mt-0.5" />
           )}
-          <span className="font-medium leading-relaxed">{feedback.message}</span>
+          <span className="font-semibold leading-relaxed">{feedback.message}</span>
         </div>
       )}
 
-      {/* Tabs */}
+      {/* Navigation Tabs */}
       <div className="flex flex-wrap gap-1 border-b border-[var(--border-subtle)]">
         <button
           type="button"
-          onClick={() => setActiveTab("profile")}
-          className={`flex items-center gap-2 px-3.5 py-2.5 text-xs font-medium border-b-2 transition-colors cursor-pointer ${
+          onClick={() => handleTabChange("profile")}
+          className={`flex items-center gap-2 px-4 py-2.5 text-xs font-semibold border-b-2 transition-all cursor-pointer ${
             activeTab === "profile"
-              ? "border-blue-600 text-blue-600 font-bold"
-              : "border-transparent text-neutral-600 hover:text-neutral-900"
+              ? "border-blue-600 text-blue-600"
+              : "border-transparent text-neutral-600 hover:text-neutral-900 hover:border-neutral-300"
           }`}
         >
-          <UserIcon className="h-3.5 w-3.5" />
+          <UserIcon className="h-4 w-4" />
           <span>Profile</span>
         </button>
+
         <button
           type="button"
-          onClick={() => setActiveTab("notifications")}
-          className={`flex items-center gap-2 px-3.5 py-2.5 text-xs font-medium border-b-2 transition-colors cursor-pointer ${
-            activeTab === "notifications"
-              ? "border-blue-600 text-blue-600 font-bold"
-              : "border-transparent text-neutral-600 hover:text-neutral-900"
+          onClick={() => handleTabChange("security")}
+          className={`flex items-center gap-2 px-4 py-2.5 text-xs font-semibold border-b-2 transition-all cursor-pointer ${
+            activeTab === "security"
+              ? "border-blue-600 text-blue-600"
+              : "border-transparent text-neutral-600 hover:text-neutral-900 hover:border-neutral-300"
           }`}
         >
-          <Bell className="h-3.5 w-3.5" />
+          <KeyRound className="h-4 w-4" />
+          <span>Security & Password</span>
+        </button>
+
+        <button
+          type="button"
+          onClick={() => handleTabChange("notifications")}
+          className={`flex items-center gap-2 px-4 py-2.5 text-xs font-semibold border-b-2 transition-all cursor-pointer ${
+            activeTab === "notifications"
+              ? "border-blue-600 text-blue-600"
+              : "border-transparent text-neutral-600 hover:text-neutral-900 hover:border-neutral-300"
+          }`}
+        >
+          <Bell className="h-4 w-4" />
           <span>Notifications</span>
         </button>
+
         <button
           type="button"
-          onClick={() => setActiveTab("scheduling")}
-          className={`flex items-center gap-2 px-3.5 py-2.5 text-xs font-medium border-b-2 transition-colors cursor-pointer ${
+          onClick={() => handleTabChange("scheduling")}
+          className={`flex items-center gap-2 px-4 py-2.5 text-xs font-semibold border-b-2 transition-all cursor-pointer ${
             activeTab === "scheduling"
-              ? "border-blue-600 text-blue-600 font-bold"
-              : "border-transparent text-neutral-600 hover:text-neutral-900"
+              ? "border-blue-600 text-blue-600"
+              : "border-transparent text-neutral-600 hover:text-neutral-900 hover:border-neutral-300"
           }`}
         >
-          <Clock className="h-3.5 w-3.5" />
+          <Clock className="h-4 w-4" />
           <span>Scheduling Preferences</span>
         </button>
+
         <button
           type="button"
-          onClick={() => setActiveTab("audit")}
-          className={`flex items-center gap-2 px-3.5 py-2.5 text-xs font-medium border-b-2 transition-colors cursor-pointer ${
+          onClick={() => handleTabChange("audit")}
+          className={`flex items-center gap-2 px-4 py-2.5 text-xs font-semibold border-b-2 transition-all cursor-pointer ${
             activeTab === "audit"
-              ? "border-blue-600 text-blue-600 font-bold"
-              : "border-transparent text-neutral-600 hover:text-neutral-900"
+              ? "border-blue-600 text-blue-600"
+              : "border-transparent text-neutral-600 hover:text-neutral-900 hover:border-neutral-300"
           }`}
         >
-          <Shield className="h-3.5 w-3.5" />
+          <Shield className="h-4 w-4" />
           <span>Audit Trail ({auditLogs.length})</span>
         </button>
       </div>
 
       {/* Tab 1: Profile Settings */}
       {activeTab === "profile" && (
-        <form onSubmit={handleSaveProfile} className="space-y-5 rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-surface)] p-6 shadow-2xs">
+        <form onSubmit={handleSaveProfile} className="space-y-6 rounded-2xl border border-[var(--border-subtle)] bg-[var(--bg-surface)] p-6 sm:p-8 shadow-xs">
           {/* Avatar Upload Section */}
-          <div className="flex items-center gap-5 pb-5 border-b border-[var(--border-subtle)]">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center gap-5 pb-6 border-b border-[var(--border-subtle)]">
             <div className="relative group">
-              <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-full bg-blue-600 text-white font-bold text-xl select-none overflow-hidden ring-2 ring-neutral-200">
+              <div className="flex h-20 w-20 shrink-0 items-center justify-center rounded-full bg-blue-600 text-white font-bold text-2xl select-none overflow-hidden ring-4 ring-neutral-100 shadow-xs">
                 {avatarUrl ? (
                   <img src={avatarUrl} alt={name} className="h-full w-full object-cover" />
                 ) : (
@@ -365,7 +465,7 @@ export default function SettingsPage() {
                 className="absolute inset-0 flex items-center justify-center rounded-full bg-black/40 text-white opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer"
                 title="Upload profile photo"
               >
-                <Camera className="h-5 w-5" />
+                <Camera className="h-6 w-6" />
               </label>
               <input
                 id="avatar-file-upload"
@@ -377,11 +477,11 @@ export default function SettingsPage() {
             </div>
 
             <div className="space-y-1.5 flex-1">
-              <h2 className="text-sm font-semibold text-[var(--text-primary)]">Profile Photo</h2>
-              <div className="flex flex-wrap items-center gap-2">
+              <h2 className="text-sm font-bold text-[var(--text-primary)]">Profile Photo</h2>
+              <div className="flex flex-wrap items-center gap-2 pt-0.5">
                 <label
                   htmlFor="avatar-file-upload"
-                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-canvas)] text-xs font-semibold text-neutral-800 hover:bg-neutral-100 hover:text-black transition-colors cursor-pointer"
+                  className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg border border-neutral-300 bg-white text-xs font-semibold text-neutral-800 hover:bg-neutral-50 transition-colors cursor-pointer shadow-2xs"
                 >
                   <Upload className="h-3.5 w-3.5" />
                   <span>Upload Image</span>
@@ -392,15 +492,15 @@ export default function SettingsPage() {
                     onClick={() => setAvatarUrl("")}
                     className="px-3 py-1.5 rounded-lg text-xs font-semibold text-rose-600 hover:bg-rose-50 transition-colors cursor-pointer"
                   >
-                    Remove
+                    Remove Photo
                   </button>
                 )}
               </div>
-              <p className="text-[11px] text-[var(--text-muted)]">Upload a PNG, JPG, or WebP photo, or paste a link below.</p>
+              <p className="text-[11px] text-[var(--text-muted)]">Upload a PNG, JPG, or WebP photo up to 5MB. It will sync across your public booking page and navbar header.</p>
             </div>
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
             <div className="space-y-1.5">
               <label htmlFor="name" className="text-xs font-semibold text-[var(--text-primary)]">
                 Full Name
@@ -411,7 +511,7 @@ export default function SettingsPage() {
                 value={name}
                 onChange={(e) => setName(e.target.value)}
                 required
-                className="w-full rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-canvas)] px-3 py-2 text-xs text-[var(--text-primary)] focus:border-neutral-900 focus:outline-none"
+                className="w-full rounded-xl border border-neutral-300 bg-white px-3.5 py-2.5 text-xs text-neutral-900 focus:border-blue-600 focus:ring-1 focus:ring-blue-600 focus:outline-none transition-shadow"
                 placeholder="e.g. Shoaib Murtaza"
               />
             </div>
@@ -420,22 +520,22 @@ export default function SettingsPage() {
               <label htmlFor="username" className="text-xs font-semibold text-[var(--text-primary)]">
                 Username Handle
               </label>
-              <div className="flex items-center rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-canvas)] px-3 py-2 text-xs text-[var(--text-primary)] focus-within:border-neutral-900">
-                <span className="text-[var(--text-muted)] font-mono select-none">sched.to/</span>
+              <div className="flex items-center rounded-xl border border-neutral-300 bg-white px-3.5 py-2.5 text-xs text-neutral-900 focus-within:border-blue-600 focus-within:ring-1 focus-within:ring-blue-600 transition-shadow">
+                <span className="text-neutral-400 font-mono select-none">/public/</span>
                 <input
                   id="username"
                   type="text"
                   value={username}
                   onChange={(e) => setUsername(e.target.value)}
                   required
-                  className="w-full bg-transparent font-mono text-xs text-[var(--text-primary)] focus:outline-none ml-0.5"
+                  className="w-full bg-transparent font-mono text-xs text-neutral-900 focus:outline-none ml-0.5"
                   placeholder="username"
                 />
               </div>
             </div>
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
             <div className="space-y-1.5">
               <label htmlFor="email" className="text-xs font-semibold text-[var(--text-primary)]">
                 Email Address
@@ -445,20 +545,20 @@ export default function SettingsPage() {
                 type="email"
                 value={settings?.profile.email || ""}
                 disabled
-                className="w-full rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-subtle)] px-3 py-2 text-xs text-[var(--text-muted)] cursor-not-allowed"
+                className="w-full rounded-xl border border-neutral-200 bg-neutral-50 px-3.5 py-2.5 text-xs text-neutral-500 cursor-not-allowed"
               />
-              <span className="text-[10px] text-[var(--text-muted)]">Managed via authentication provider</span>
+              <span className="text-[10px] text-neutral-400">Primary authentication identifier</span>
             </div>
 
             <div className="space-y-1.5">
               <label htmlFor="timezone" className="text-xs font-semibold text-[var(--text-primary)]">
-                Default Primary Timezone
+                Default Timezone
               </label>
               <select
                 id="timezone"
                 value={timezone}
                 onChange={(e) => setTimezone(e.target.value)}
-                className="w-full rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-canvas)] px-3 py-2 text-xs text-[var(--text-primary)] focus:border-neutral-900 focus:outline-none"
+                className="w-full rounded-xl border border-neutral-300 bg-white px-3.5 py-2.5 text-xs text-neutral-900 focus:border-blue-600 focus:ring-1 focus:ring-blue-600 focus:outline-none transition-shadow"
               >
                 {TIMEZONES.map((tz) => (
                   <option key={tz} value={tz}>
@@ -471,39 +571,175 @@ export default function SettingsPage() {
 
           <div className="space-y-1.5">
             <label htmlFor="avatarUrl" className="text-xs font-semibold text-[var(--text-primary)]">
-              Or Avatar Image URL (Optional)
+              Avatar Image URL (Optional Direct Link)
             </label>
             <input
               id="avatarUrl"
               type="text"
-              value={avatarUrl}
+              value={avatarUrl.startsWith("data:") ? "" : avatarUrl}
               onChange={(e) => setAvatarUrl(e.target.value)}
-              className="w-full rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-canvas)] px-3 py-2 text-xs text-[var(--text-primary)] focus:border-neutral-900 focus:outline-none font-mono"
-              placeholder="https://... or uploaded image"
+              placeholder="https://example.com/avatar.jpg"
+              className="w-full rounded-xl border border-neutral-300 bg-white px-3.5 py-2.5 text-xs text-neutral-900 focus:border-blue-600 focus:ring-1 focus:ring-blue-600 focus:outline-none transition-shadow"
             />
           </div>
 
-          <div className="pt-3 flex items-center justify-end border-t border-[var(--border-subtle)]">
-            <Button type="submit" disabled={isSavingProfile} size="sm">
+          <div className="pt-4 flex items-center justify-end border-t border-[var(--border-subtle)]">
+            <Button type="submit" disabled={isSavingProfile} className="bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-xl px-5 h-10 text-xs">
               {isSavingProfile && <Spinner size="sm" className="mr-2" />}
-              Save Profile
+              Save Profile Changes
             </Button>
           </div>
         </form>
       )}
 
-      {/* Tab 2: Notification Preferences */}
+      {/* Tab 2: Security & Change Password */}
+      {activeTab === "security" && (
+        <div className="space-y-6">
+          <form onSubmit={handleSavePassword} className="space-y-6 rounded-2xl border border-[var(--border-subtle)] bg-[var(--bg-surface)] p-6 sm:p-8 shadow-xs">
+            <div className="flex items-start gap-4 pb-5 border-b border-[var(--border-subtle)]">
+              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-blue-50 text-blue-600 shrink-0">
+                <Lock className="h-5 w-5" />
+              </div>
+              <div>
+                <h2 className="text-sm font-bold text-[var(--text-primary)]">Change Password</h2>
+                <p className="text-xs text-[var(--text-secondary)] mt-0.5">
+                  Update your password regularly to ensure your account and connected calendars stay safe.
+                </p>
+              </div>
+            </div>
+
+            <div className="space-y-4 max-w-lg">
+              {/* Current Password */}
+              <div className="space-y-1.5">
+                <label htmlFor="current-password" className="text-xs font-semibold text-[var(--text-primary)]">
+                  Current Password
+                </label>
+                <div className="relative">
+                  <input
+                    id="current-password"
+                    type={showCurrentPassword ? "text" : "password"}
+                    value={currentPassword}
+                    onChange={(e) => setCurrentPassword(e.target.value)}
+                    required
+                    placeholder="Enter your current password"
+                    className="w-full rounded-xl border border-neutral-300 bg-white px-3.5 py-2.5 text-xs text-neutral-900 pr-10 focus:border-blue-600 focus:ring-1 focus:ring-blue-600 focus:outline-none transition-shadow"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowCurrentPassword((prev) => !prev)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-neutral-400 hover:text-neutral-700 transition-colors cursor-pointer"
+                  >
+                    {showCurrentPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                  </button>
+                </div>
+              </div>
+
+              {/* New Password */}
+              <div className="space-y-1.5">
+                <label htmlFor="new-password" className="text-xs font-semibold text-[var(--text-primary)]">
+                  New Password
+                </label>
+                <div className="relative">
+                  <input
+                    id="new-password"
+                    type={showNewPassword ? "text" : "password"}
+                    value={newPassword}
+                    onChange={(e) => setNewPassword(e.target.value)}
+                    required
+                    placeholder="At least 8 characters"
+                    className="w-full rounded-xl border border-neutral-300 bg-white px-3.5 py-2.5 text-xs text-neutral-900 pr-10 focus:border-blue-600 focus:ring-1 focus:ring-blue-600 focus:outline-none transition-shadow"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowNewPassword((prev) => !prev)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-neutral-400 hover:text-neutral-700 transition-colors cursor-pointer"
+                  >
+                    {showNewPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                  </button>
+                </div>
+              </div>
+
+              {/* Confirm New Password */}
+              <div className="space-y-1.5">
+                <label htmlFor="confirm-password" className="text-xs font-semibold text-[var(--text-primary)]">
+                  Confirm New Password
+                </label>
+                <div className="relative">
+                  <input
+                    id="confirm-password"
+                    type={showConfirmPassword ? "text" : "password"}
+                    value={confirmPassword}
+                    onChange={(e) => setConfirmPassword(e.target.value)}
+                    required
+                    placeholder="Repeat your new password"
+                    className="w-full rounded-xl border border-neutral-300 bg-white px-3.5 py-2.5 text-xs text-neutral-900 pr-10 focus:border-blue-600 focus:ring-1 focus:ring-blue-600 focus:outline-none transition-shadow"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowConfirmPassword((prev) => !prev)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-neutral-400 hover:text-neutral-700 transition-colors cursor-pointer"
+                  >
+                    {showConfirmPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            {/* Password Requirements Guide */}
+            <div className="p-4 rounded-xl bg-neutral-50 border border-neutral-200 text-xs text-neutral-600 space-y-2">
+              <div className="font-semibold text-neutral-900 text-xs flex items-center gap-1.5">
+                <Shield className="h-3.5 w-3.5 text-blue-600" />
+                <span>Password Best Practices:</span>
+              </div>
+              <ul className="space-y-1 text-[11px] text-neutral-600 list-disc list-inside">
+                <li>Minimum of 8 characters (longer is always stronger)</li>
+                <li>Combine uppercase, lowercase, numbers, and special symbols</li>
+                <li>Never share your credentials with unauthorized third parties</li>
+              </ul>
+            </div>
+
+            <div className="pt-4 flex items-center justify-end border-t border-[var(--border-subtle)]">
+              <Button
+                type="submit"
+                disabled={isSavingPassword || !currentPassword || !newPassword || !confirmPassword}
+                className="bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-xl px-5 h-10 text-xs"
+              >
+                {isSavingPassword && <Spinner size="sm" className="mr-2" />}
+                Update Password
+              </Button>
+            </div>
+          </form>
+
+          {/* Security Status Box */}
+          <div className="rounded-2xl border border-[var(--border-subtle)] bg-[var(--bg-surface)] p-6 shadow-xs flex items-center justify-between">
+            <div className="flex items-center gap-3.5">
+              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-emerald-50 text-emerald-600 shrink-0">
+                <CheckCircle2 className="h-5 w-5" />
+              </div>
+              <div>
+                <h3 className="text-xs font-bold text-neutral-900">Argon2id Hash Encryption Active</h3>
+                <p className="text-[11px] text-neutral-500">Your credentials are cryptographically secured with salted Argon2id memory-hard hashing.</p>
+              </div>
+            </div>
+            <span className="inline-flex items-center rounded-full bg-emerald-50 px-2.5 py-1 text-[10px] font-bold text-emerald-700 border border-emerald-200">
+              Protected
+            </span>
+          </div>
+        </div>
+      )}
+
+      {/* Tab 3: Delivery Notifications */}
       {activeTab === "notifications" && (
-        <form onSubmit={handleSaveNotifications} className="space-y-5 rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-surface)] p-6 shadow-2xs">
+        <form onSubmit={handleSaveNotifications} className="space-y-6 rounded-2xl border border-[var(--border-subtle)] bg-[var(--bg-surface)] p-6 sm:p-8 shadow-xs">
           <div>
-            <h2 className="text-sm font-semibold text-[var(--text-primary)]">Email Notification Preferences</h2>
-            <p className="text-xs text-[var(--text-secondary)]">Choose which transactional emails and system reminders you receive.</p>
+            <h2 className="text-sm font-bold text-[var(--text-primary)]">Email Notifications</h2>
+            <p className="text-xs text-[var(--text-secondary)] mt-0.5">Choose which transactional emails and system reminders you receive.</p>
           </div>
 
           <div className="space-y-3 divide-y divide-[var(--border-subtle)]">
             <label className="flex items-start justify-between pt-3 cursor-pointer">
               <div className="space-y-0.5 pr-4">
-                <span className="text-xs font-medium text-[var(--text-primary)]">Email Reminders</span>
+                <span className="text-xs font-semibold text-[var(--text-primary)]">Email Reminders</span>
                 <p className="text-[11px] text-[var(--text-muted)]">
                   Receive automated reminders (24 hours and 1 hour before scheduled bookings).
                 </p>
@@ -512,13 +748,13 @@ export default function SettingsPage() {
                 type="checkbox"
                 checked={emailReminders}
                 onChange={(e) => setEmailReminders(e.target.checked)}
-                className="h-4 w-4 rounded border-[var(--border-subtle)] text-neutral-900 focus:ring-neutral-900 mt-1 cursor-pointer"
+                className="h-4 w-4 rounded border-neutral-300 text-blue-600 focus:ring-blue-600 mt-1 cursor-pointer"
               />
             </label>
 
             <label className="flex items-start justify-between pt-3 cursor-pointer">
               <div className="space-y-0.5 pr-4">
-                <span className="text-xs font-medium text-[var(--text-primary)]">Booking Confirmations</span>
+                <span className="text-xs font-semibold text-[var(--text-primary)]">Booking Confirmations</span>
                 <p className="text-[11px] text-[var(--text-muted)]">
                   Get notified whenever an attendee creates, reschedules, or cancels a booking.
                 </p>
@@ -527,13 +763,13 @@ export default function SettingsPage() {
                 type="checkbox"
                 checked={bookingConfirmations}
                 onChange={(e) => setBookingConfirmations(e.target.checked)}
-                className="h-4 w-4 rounded border-[var(--border-subtle)] text-neutral-900 focus:ring-neutral-900 mt-1 cursor-pointer"
+                className="h-4 w-4 rounded border-neutral-300 text-blue-600 focus:ring-blue-600 mt-1 cursor-pointer"
               />
             </label>
 
             <label className="flex items-start justify-between pt-3 cursor-pointer">
               <div className="space-y-0.5 pr-4">
-                <span className="text-xs font-medium text-[var(--text-primary)]">Product Updates & Tips</span>
+                <span className="text-xs font-semibold text-[var(--text-primary)]">Product Updates & Tips</span>
                 <p className="text-[11px] text-[var(--text-muted)]">
                   Occasional feature announcements and tips to optimize your scheduling workflow.
                 </p>
@@ -542,13 +778,13 @@ export default function SettingsPage() {
                 type="checkbox"
                 checked={marketingEmails}
                 onChange={(e) => setMarketingEmails(e.target.checked)}
-                className="h-4 w-4 rounded border-[var(--border-subtle)] text-neutral-900 focus:ring-neutral-900 mt-1 cursor-pointer"
+                className="h-4 w-4 rounded border-neutral-300 text-blue-600 focus:ring-blue-600 mt-1 cursor-pointer"
               />
             </label>
           </div>
 
-          <div className="pt-3 flex items-center justify-end border-t border-[var(--border-subtle)]">
-            <Button type="submit" disabled={isSavingNotifications} size="sm">
+          <div className="pt-4 flex items-center justify-end border-t border-[var(--border-subtle)]">
+            <Button type="submit" disabled={isSavingNotifications} className="bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-xl px-5 h-10 text-xs">
               {isSavingNotifications && <Spinner size="sm" className="mr-2" />}
               Save Preferences
             </Button>
@@ -556,15 +792,15 @@ export default function SettingsPage() {
         </form>
       )}
 
-      {/* Tab 3: Default Scheduling Preferences */}
+      {/* Tab 4: Default Scheduling Preferences */}
       {activeTab === "scheduling" && (
-        <form onSubmit={handleSaveScheduling} className="space-y-5 rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-surface)] p-6 shadow-2xs">
+        <form onSubmit={handleSaveScheduling} className="space-y-6 rounded-2xl border border-[var(--border-subtle)] bg-[var(--bg-surface)] p-6 sm:p-8 shadow-xs">
           <div>
-            <h2 className="text-sm font-semibold text-[var(--text-primary)]">Default Scheduling Rules</h2>
-            <p className="text-xs text-[var(--text-secondary)]">Set default duration and buffer presets used when creating new event types.</p>
+            <h2 className="text-sm font-bold text-[var(--text-primary)]">Default Scheduling Rules</h2>
+            <p className="text-xs text-[var(--text-secondary)] mt-0.5">Set default duration and buffer presets used when creating new event types.</p>
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
             <div className="space-y-1.5">
               <label htmlFor="duration" className="text-xs font-semibold text-[var(--text-primary)]">
                 Default Meeting Duration (Minutes)
@@ -573,7 +809,7 @@ export default function SettingsPage() {
                 id="duration"
                 value={defaultDuration}
                 onChange={(e) => setDefaultDuration(Number(e.target.value))}
-                className="w-full rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-canvas)] px-3 py-2 text-xs text-[var(--text-primary)] focus:border-neutral-900 focus:outline-none"
+                className="w-full rounded-xl border border-neutral-300 bg-white px-3.5 py-2.5 text-xs text-neutral-900 focus:border-blue-600 focus:ring-1 focus:ring-blue-600 focus:outline-none transition-shadow"
               >
                 <option value={15}>15 minutes</option>
                 <option value={30}>30 minutes</option>
@@ -591,7 +827,7 @@ export default function SettingsPage() {
                 id="buffer"
                 value={defaultBuffer}
                 onChange={(e) => setDefaultBuffer(Number(e.target.value))}
-                className="w-full rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-canvas)] px-3 py-2 text-xs text-[var(--text-primary)] focus:border-neutral-900 focus:outline-none"
+                className="w-full rounded-xl border border-neutral-300 bg-white px-3.5 py-2.5 text-xs text-neutral-900 focus:border-blue-600 focus:ring-1 focus:ring-blue-600 focus:outline-none transition-shadow"
               >
                 <option value={0}>0 minutes (No buffer)</option>
                 <option value={5}>5 minutes</option>
@@ -610,7 +846,7 @@ export default function SettingsPage() {
               id="defaultTimezone"
               value={defaultTimezone}
               onChange={(e) => setDefaultTimezone(e.target.value)}
-              className="w-full rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-canvas)] px-3 py-2 text-xs text-[var(--text-primary)] focus:border-neutral-900 focus:outline-none"
+              className="w-full rounded-xl border border-neutral-300 bg-white px-3.5 py-2.5 text-xs text-neutral-900 focus:border-blue-600 focus:ring-1 focus:ring-blue-600 focus:outline-none transition-shadow"
             >
               {TIMEZONES.map((tz) => (
                 <option key={tz} value={tz}>
@@ -620,8 +856,8 @@ export default function SettingsPage() {
             </select>
           </div>
 
-          <div className="pt-3 flex items-center justify-end border-t border-[var(--border-subtle)]">
-            <Button type="submit" disabled={isSavingScheduling} size="sm">
+          <div className="pt-4 flex items-center justify-end border-t border-[var(--border-subtle)]">
+            <Button type="submit" disabled={isSavingScheduling} className="bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-xl px-5 h-10 text-xs">
               {isSavingScheduling && <Spinner size="sm" className="mr-2" />}
               Save Scheduling Defaults
             </Button>
@@ -629,15 +865,15 @@ export default function SettingsPage() {
         </form>
       )}
 
-      {/* Tab 4: Security & Audit Trail */}
+      {/* Tab 5: Security & Audit Trail */}
       {activeTab === "audit" && (
-        <div className="space-y-4 rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-surface)] p-6 shadow-2xs">
-          <div className="flex items-center justify-between pb-3 border-b border-[var(--border-subtle)]">
+        <div className="space-y-4 rounded-2xl border border-[var(--border-subtle)] bg-[var(--bg-surface)] p-6 sm:p-8 shadow-xs">
+          <div className="flex items-center justify-between pb-4 border-b border-[var(--border-subtle)]">
             <div>
-              <h2 className="text-sm font-semibold text-[var(--text-primary)]">Enterprise Security Audit Log</h2>
-              <p className="text-xs text-[var(--text-secondary)]">Immutable historical record of mutations, authentications, and configuration changes.</p>
+              <h2 className="text-sm font-bold text-[var(--text-primary)]">Enterprise Security Audit Trail</h2>
+              <p className="text-xs text-[var(--text-secondary)] mt-0.5">Immutable record of password updates, profile changes, and authentications.</p>
             </div>
-            <span className="inline-flex items-center rounded-full bg-emerald-50 px-2 py-0.5 text-[10px] font-medium text-emerald-700 border border-emerald-200">
+            <span className="inline-flex items-center rounded-full bg-emerald-50 px-2.5 py-1 text-[10px] font-bold text-emerald-700 border border-emerald-200">
               Active Tracking
             </span>
           </div>
@@ -647,25 +883,25 @@ export default function SettingsPage() {
               No recent audit records found.
             </div>
           ) : (
-            <div className="divide-y divide-[var(--border-subtle)] max-h-96 overflow-y-auto">
+            <div className="divide-y divide-[var(--border-subtle)] max-h-96 overflow-y-auto pr-1">
               {auditLogs.map((log) => (
-                <div key={log.id} className="py-2.5 flex items-center justify-between text-xs">
+                <div key={log.id} className="py-3 flex items-center justify-between text-xs hover:bg-neutral-50/60 px-2 rounded-lg transition-colors">
                   <div className="min-w-0 flex-1 pr-4">
                     <div className="flex items-center gap-2">
-                      <span className="font-mono text-[11px] font-semibold text-[var(--text-primary)]">
+                      <span className="font-mono text-[11px] font-bold text-neutral-900">
                         {log.action}
                       </span>
-                      <span className="text-[10px] text-[var(--text-muted)] font-mono">
+                      <span className="text-[10px] text-neutral-400 font-mono">
                         [{log.entityType}]
                       </span>
                     </div>
                     {log.ipAddress && (
-                      <p className="text-[10px] text-[var(--text-muted)] font-mono mt-0.5">
+                      <p className="text-[10px] text-neutral-500 font-mono mt-0.5">
                         IP: {log.ipAddress} {log.requestId ? `• Req: ${log.requestId}` : ""}
                       </p>
                     )}
                   </div>
-                  <span className="text-[10px] font-mono text-[var(--text-secondary)] shrink-0">
+                  <span className="text-[10px] font-mono text-neutral-500 shrink-0">
                     {new Intl.DateTimeFormat(undefined, {
                       month: "short",
                       day: "numeric",

@@ -564,7 +564,7 @@ export function EventTypeDrawer({
                           <span>Zoom web conference</span>
                         </div>
                         <p className="text-[11px] text-blue-700 leading-relaxed font-normal">
-                          Calendly will automatically generate a dynamic Zoom meeting and include the unique join link in the calendar invite and confirmation email upon booking.
+                          Sched will automatically generate a dynamic Zoom meeting and include the unique join link in the calendar invite and confirmation email upon booking.
                         </p>
                       </div>
                     )}
