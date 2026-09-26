@@ -32,7 +32,7 @@ jobs:
       NODE_ENV: test
       ARGON2_MEMORY_COST: "4096"
       ARGON2_TIME_COST: "2"
-      CALENDAR_ENCRYPTION_KEY: ${{ secrets.CALENDAR_ENCRYPTION_KEY || '0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef' }}
+      CALENDAR_ENCRYPTION_KEY: "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef"
 
     steps:
       - uses: actions/checkout@v4
