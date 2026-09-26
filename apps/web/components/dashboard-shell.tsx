@@ -427,11 +427,10 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
                 );
               })}
             </nav>
+          </div>
 
-            {/* Spacer */}
-            <div className="my-3 border-t border-[var(--border-subtle)]" />
-
-            {/* Secondary Navigation */}
+          {/* Bottom Section: Analytics & Admin Center with generous bottom padding */}
+          <div className={`mt-auto shrink-0 border-t border-[var(--border-subtle)] ${isCollapsed ? "px-3" : "px-5"} pt-3 pb-6 sm:pb-8 transition-[padding] duration-500`}>
             <nav className="space-y-1">
               {secondaryNavItems.map((item) => {
                 const Icon = item.icon;
@@ -440,15 +439,15 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
                     <Link
                       key={item.label}
                       href={item.href}
-                      className={`flex flex-col items-center justify-center py-2 px-1 rounded-xl text-center transition-all ${
+                      className={`flex flex-col items-center justify-center py-2.5 px-1 rounded-xl text-center transition-all ${
                         item.active
-                          ? "bg-blue-50 text-blue-600 font-semibold"
+                          ? "bg-blue-50 text-blue-600 font-semibold shadow-2xs"
                           : "text-neutral-700 hover:bg-neutral-100 hover:text-blue-600"
                       }`}
                       title={item.label}
                     >
-                      <Icon className={`h-5 w-5 mb-0.5 shrink-0 ${item.active ? "text-blue-600" : "text-neutral-600"}`} />
-                      <span className={`text-[9px] leading-tight line-clamp-1 font-semibold ${item.active ? "text-blue-600 font-bold" : "text-neutral-700"}`}>
+                      <Icon className={`h-5 w-5 mb-1 shrink-0 ${item.active ? "text-blue-600" : "text-neutral-600"}`} />
+                      <span className={`text-[10px] leading-tight line-clamp-1 font-semibold ${item.active ? "text-blue-600 font-bold" : "text-neutral-700"}`}>
                         {item.label}
                       </span>
                     </Link>
@@ -459,7 +458,7 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
                   <Link
                     key={item.label}
                     href={item.href}
-                    className={`flex items-center gap-3 rounded-xl px-3.5 py-2 text-xs font-semibold transition-colors ${
+                    className={`flex items-center gap-3 rounded-xl px-3.5 py-2.5 text-xs font-semibold transition-colors ${
                       item.active
                         ? "bg-blue-50 text-blue-600 font-semibold"
                         : "text-neutral-700 hover:bg-neutral-100 hover:text-blue-600"

@@ -6,6 +6,7 @@ export type CurrentUserResponse = {
   name: string;
   username: string;
   timezone: string;
+  avatarUrl?: string | null;
   createdAt: string;
 };
 
@@ -16,6 +17,7 @@ export function toCurrentUser(user: User): CurrentUserResponse {
     name: user.name,
     username: user.username,
     timezone: user.timezone,
+    avatarUrl: user.avatarUrl ?? null,
     createdAt: user.createdAt.toISOString(),
   };
 }

@@ -20,14 +20,13 @@ import { Button } from "@/components/ui/button";
 import { Spinner } from "@/components/ui/spinner";
 import { Skeleton } from "@/components/ui/skeleton";
 import { TimezonePicker } from "@/components/timezone-picker";
-import { api, type UserSettingsResponse, type AuditLogEntry } from "@/lib/api";
+import { api, type UserSettingsResponse } from "@/lib/api";
 import { ApiError } from "@/lib/api-error";
 
 export default function SettingsPage() {
   const [settings, setSettings] = useState<UserSettingsResponse | null>(null);
-  const [auditLogs, setAuditLogs] = useState<AuditLogEntry[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState<"profile" | "security" | "notifications" | "scheduling" | "audit">("profile");
+  const [activeTab, setActiveTab] = useState<"profile" | "security" | "notifications" | "scheduling">("profile");
 
   // Profile Form State
   const [name, setName] = useState("");
@@ -67,13 +66,13 @@ export default function SettingsPage() {
     if (typeof window !== "undefined") {
       const params = new URLSearchParams(window.location.search);
       const tabParam = params.get("tab");
-      if (tabParam && ["profile", "security", "notifications", "scheduling", "audit"].includes(tabParam)) {
-        setActiveTab(tabParam as "profile" | "security" | "notifications" | "scheduling" | "audit");
+      if (tabParam && ["profile", "security", "notifications", "scheduling"].includes(tabParam)) {
+        setActiveTab(tabParam as "profile" | "security" | "notifications" | "scheduling");
       }
     }
   }, []);
 
-  function handleTabChange(tab: "profile" | "security" | "notifications" | "scheduling" | "audit") {
+  function handleTabChange(tab: "profile" | "security" | "notifications" | "scheduling") {
     setActiveTab(tab);
     setFeedback(null);
     if (typeof window !== "undefined") {
@@ -101,11 +100,6 @@ export default function SettingsPage() {
       setDefaultDuration(data.schedulingPreferences.defaultMeetingDuration);
       setDefaultBuffer(data.schedulingPreferences.defaultBufferMinutes);
       setDefaultTimezone(data.schedulingPreferences.defaultTimezone || data.profile.timezone);
-
-      // Load audit logs in background
-      void api<AuditLogEntry[]>("/settings/audit-logs")
-        .then((logs) => setAuditLogs(logs))
-        .catch(() => {});
     } catch (err) {
       setFeedback({
         type: "error",
@@ -180,11 +174,6 @@ export default function SettingsPage() {
       setCurrentPassword("");
       setNewPassword("");
       setConfirmPassword("");
-
-      // Refresh audit logs to show password changed event
-      void api<AuditLogEntry[]>("/settings/audit-logs")
-        .then((logs) => setAuditLogs(logs))
-        .catch(() => {});
     } catch (err) {
       let msg = "Failed to update password.";
       if (err instanceof ApiError) {
@@ -405,19 +394,6 @@ export default function SettingsPage() {
         >
           <Clock className="h-4 w-4" />
           <span>Scheduling Preferences</span>
-        </button>
-
-        <button
-          type="button"
-          onClick={() => handleTabChange("audit")}
-          className={`flex items-center gap-2 px-4 py-2.5 text-xs font-semibold border-b-2 transition-all cursor-pointer ${
-            activeTab === "audit"
-              ? "border-blue-600 text-blue-600"
-              : "border-transparent text-neutral-600 hover:text-neutral-900 hover:border-neutral-300"
-          }`}
-        >
-          <Shield className="h-4 w-4" />
-          <span>Audit Trail ({auditLogs.length})</span>
         </button>
       </div>
 
@@ -823,57 +799,6 @@ export default function SettingsPage() {
             </Button>
           </div>
         </form>
-      )}
-
-      {/* Tab 5: Security & Audit Trail */}
-      {activeTab === "audit" && (
-        <div className="space-y-4 rounded-2xl border border-[var(--border-subtle)] bg-[var(--bg-surface)] p-6 sm:p-8 shadow-xs">
-          <div className="flex items-center justify-between pb-4 border-b border-[var(--border-subtle)]">
-            <div>
-              <h2 className="text-sm font-bold text-[var(--text-primary)]">Enterprise Security Audit Trail</h2>
-              <p className="text-xs text-[var(--text-secondary)] mt-0.5">Immutable record of password updates, profile changes, and authentications.</p>
-            </div>
-            <span className="inline-flex items-center rounded-full bg-emerald-50 px-2.5 py-1 text-[10px] font-bold text-emerald-700 border border-emerald-200">
-              Active Tracking
-            </span>
-          </div>
-
-          {auditLogs.length === 0 ? (
-            <div className="py-12 text-center text-xs text-[var(--text-muted)]">
-              No recent audit records found.
-            </div>
-          ) : (
-            <div className="divide-y divide-[var(--border-subtle)] max-h-96 overflow-y-auto pr-1">
-              {auditLogs.map((log) => (
-                <div key={log.id} className="py-3 flex items-center justify-between text-xs hover:bg-neutral-50/60 px-2 rounded-lg transition-colors">
-                  <div className="min-w-0 flex-1 pr-4">
-                    <div className="flex items-center gap-2">
-                      <span className="font-mono text-[11px] font-bold text-neutral-900">
-                        {log.action}
-                      </span>
-                      <span className="text-[10px] text-neutral-400 font-mono">
-                        [{log.entityType}]
-                      </span>
-                    </div>
-                    {log.ipAddress && (
-                      <p className="text-[10px] text-neutral-500 font-mono mt-0.5">
-                        IP: {log.ipAddress} {log.requestId ? `• Req: ${log.requestId}` : ""}
-                      </p>
-                    )}
-                  </div>
-                  <span className="text-[10px] font-mono text-neutral-500 shrink-0">
-                    {new Intl.DateTimeFormat(undefined, {
-                      month: "short",
-                      day: "numeric",
-                      hour: "2-digit",
-                      minute: "2-digit",
-                    }).format(new Date(log.createdAt))}
-                  </span>
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
       )}
     </div>
   );
