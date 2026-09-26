@@ -71,10 +71,22 @@ export class SettingsService {
       }
     }
 
+    if (body.email && body.email.toLowerCase() !== user.email.toLowerCase()) {
+      const existingEmail = await this.prisma.user.findUnique({
+        where: { email: body.email.toLowerCase() },
+      });
+      if (existingEmail && existingEmail.id !== userId) {
+        throw new ConflictError("EMAIL_CONFLICT", "This email address is already in use by another account.", {
+          fields: { email: "taken" },
+        });
+      }
+    }
+
     const updated = await this.prisma.user.update({
       where: { id: userId },
       data: {
         name: body.name,
+        email: body.email ? body.email.toLowerCase() : undefined,
         username: body.username,
         timezone: body.timezone,
         avatarUrl: body.avatarUrl || null,
@@ -88,6 +100,7 @@ export class SettingsService {
       entityId: userId,
       metadata: {
         name: body.name,
+        email: body.email,
         username: body.username,
         timezone: body.timezone,
         avatarUrl: body.avatarUrl,

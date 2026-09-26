@@ -2,6 +2,7 @@ import { z } from "zod";
 
 export const ProfileSettingsSchema = z.object({
   name: z.string().trim().min(1, "Name is required").max(100),
+  email: z.string().trim().email("Please enter a valid email address").optional(),
   username: z
     .string()
     .trim()

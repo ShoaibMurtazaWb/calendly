@@ -4,13 +4,12 @@ import { useEffect, useState } from "react";
 import {
   Calendar,
   CheckCircle2,
-  Clock,
   TrendingUp,
-  Activity,
   Layers,
   Copy,
   Check,
   CalendarClock,
+  XCircle,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -69,16 +68,6 @@ export default function AnalyticsPage() {
     setTimeout(() => setIsCopied(false), 2000);
   };
 
-  const formatMinutes = (totalMinutes: number) => {
-    if (totalMinutes === 0) return "0m";
-    if (totalMinutes < 60) {
-      return `${totalMinutes}m`;
-    }
-    const hours = Math.floor(totalMinutes / 60);
-    const mins = totalMinutes % 60;
-    return mins > 0 ? `${hours}h ${mins}m` : `${hours}h`;
-  };
-
   const rangeLabels: Record<AnalyticsRange, string> = {
     "7d": "Last 7 Days",
     "30d": "Last 30 Days",
@@ -98,7 +87,7 @@ export default function AnalyticsPage() {
             Analytics
           </h1>
           <p className="mt-1 text-xs text-[var(--text-secondary)]">
-            Overview of meeting volume, show rates, time commitments, and event type popularity.
+            Overview of meeting volume, completed sessions, adjustments, and popular booking patterns.
           </p>
         </div>
 
@@ -138,12 +127,12 @@ export default function AnalyticsPage() {
       ) : !data ? null : (
         /* Analytics Dashboard View */
         <div className="space-y-6">
-          {/* KPI Summary Grid */}
+          {/* KPI Summary Grid: Total Meetings, Completed, Rescheduled, Cancelled */}
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-            {/* Total Bookings */}
+            {/* 1. Total Meetings */}
             <Card className="rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-surface)] p-5 shadow-2xs">
               <div className="flex items-center justify-between">
-                <span className="text-xs font-medium text-[var(--text-secondary)]">Total Bookings</span>
+                <span className="text-xs font-medium text-[var(--text-secondary)]">Total Meetings</span>
                 <div className="flex h-7 w-7 items-center justify-center rounded-full bg-[var(--bg-subtle)] border border-[var(--border-subtle)] text-[var(--text-muted)]">
                   <Calendar className="h-3.5 w-3.5" />
                 </div>
@@ -153,88 +142,78 @@ export default function AnalyticsPage() {
                   {data.summary.totalBookings}
                 </span>
                 <p className="mt-0.5 text-[11px] text-[var(--text-muted)]">
-                  Across all event types
+                  All scheduled meetings
                 </p>
               </div>
             </Card>
 
-            {/* Confirmed Sessions / Completion Rate */}
+            {/* 2. Completed */}
             <Card className="rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-surface)] p-5 shadow-2xs">
               <div className="flex items-center justify-between">
-                <span className="text-xs font-medium text-[var(--text-secondary)]">Confirmed Sessions</span>
+                <span className="text-xs font-medium text-[var(--text-secondary)]">Completed</span>
                 <div className="flex h-7 w-7 items-center justify-center rounded-full bg-[var(--bg-subtle)] border border-[var(--border-subtle)] text-emerald-600 dark:text-emerald-400">
                   <CheckCircle2 className="h-3.5 w-3.5" />
                 </div>
               </div>
               <div className="mt-2">
                 <span className="text-2xl font-bold text-[var(--text-primary)] tabular-nums font-sans">
-                  {hasCompletedMeetings ? `${data.summary.completionRate}%` : "—"}
+                  {data.summary.confirmedCount}
                 </span>
                 <p className="mt-0.5 text-[11px] text-[var(--text-muted)]">
                   {hasCompletedMeetings
-                    ? `${data.summary.confirmedCount} confirmed sessions`
+                    ? `${data.summary.completionRate}% completion rate`
                     : "No completed meetings yet"}
                 </p>
               </div>
             </Card>
 
-            {/* Total Scheduled Time */}
+            {/* 3. Rescheduled */}
             <Card className="rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-surface)] p-5 shadow-2xs">
               <div className="flex items-center justify-between">
-                <span className="text-xs font-medium text-[var(--text-secondary)]">Meeting Duration</span>
-                <div className="flex h-7 w-7 items-center justify-center rounded-full bg-[var(--bg-subtle)] border border-[var(--border-subtle)] text-[var(--text-muted)]">
-                  <Clock className="h-3.5 w-3.5" />
+                <span className="text-xs font-medium text-[var(--text-secondary)]">Rescheduled</span>
+                <div className="flex h-7 w-7 items-center justify-center rounded-full bg-[var(--bg-subtle)] border border-[var(--border-subtle)] text-amber-600 dark:text-amber-400">
+                  <CalendarClock className="h-3.5 w-3.5" />
                 </div>
               </div>
               <div className="mt-2">
                 <span className="text-2xl font-bold text-[var(--text-primary)] tabular-nums font-sans">
-                  {formatMinutes(data.summary.totalMeetingMinutes)}
+                  {data.summary.rescheduledCount}
                 </span>
                 <p className="mt-0.5 text-[11px] text-[var(--text-muted)]">
-                  Total confirmed time
+                  Adjusted meeting times
                 </p>
               </div>
             </Card>
 
-            {/* Cancellations & Reschedules */}
+            {/* 4. Cancelled */}
             <Card className="rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-surface)] p-5 shadow-2xs">
               <div className="flex items-center justify-between">
-                <span className="text-xs font-medium text-[var(--text-secondary)]">Modifications</span>
+                <span className="text-xs font-medium text-[var(--text-secondary)]">Cancelled</span>
                 <div className="flex h-7 w-7 items-center justify-center rounded-full bg-[var(--bg-subtle)] border border-[var(--border-subtle)] text-rose-600 dark:text-rose-400">
-                  <Activity className="h-3.5 w-3.5" />
+                  <XCircle className="h-3.5 w-3.5" />
                 </div>
               </div>
-              <div className="mt-2 flex items-baseline gap-3">
-                <div>
-                  <span className="text-xl font-bold text-[var(--text-primary)] tabular-nums font-sans">
-                    {data.summary.cancelledCount}
-                  </span>
-                  <span className="ml-1 text-[11px] text-[var(--status-danger-text)]">cancelled</span>
-                </div>
-                <span className="text-neutral-300 dark:text-neutral-700">·</span>
-                <div>
-                  <span className="text-xl font-bold text-[var(--text-primary)] tabular-nums font-sans">
-                    {data.summary.rescheduledCount}
-                  </span>
-                  <span className="ml-1 text-[11px] text-amber-600 dark:text-amber-400">rescheduled</span>
-                </div>
+              <div className="mt-2">
+                <span className="text-2xl font-bold text-[var(--text-primary)] tabular-nums font-sans">
+                  {data.summary.cancelledCount}
+                </span>
+                <p className="mt-0.5 text-[11px] text-[var(--text-muted)]">
+                  Cancelled sessions
+                </p>
               </div>
-              <p className="mt-0.5 text-[11px] text-[var(--text-muted)]">
-                Schedule adjustments
-              </p>
             </Card>
           </div>
 
           {/* Event Types Breakdown & Day-of-Week Distribution */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            {/* Event Type Popularity */}
+            {/* Popular Events */}
             <Card className="rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-surface)] p-6 shadow-2xs space-y-5 flex flex-col justify-between">
               <div>
                 <div className="flex items-center justify-between pb-3.5 border-b border-[var(--border-subtle)]">
                   <div className="flex items-center gap-2">
                     <Layers className="h-4 w-4 text-[var(--text-muted)]" />
                     <h2 className="text-sm font-semibold text-[var(--text-primary)]">
-                      Event Types Popularity
+                      Popular Events
                     </h2>
                   </div>
                   <Badge variant="secondary" className="tabular-nums font-sans text-[11px]">
@@ -313,14 +292,14 @@ export default function AnalyticsPage() {
               </div>
             </Card>
 
-            {/* Day-of-Week Meeting Distribution */}
+            {/* Popular Days */}
             <Card className="rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-surface)] p-6 shadow-2xs space-y-5 flex flex-col justify-between">
               <div>
                 <div className="flex items-center justify-between pb-3.5 border-b border-[var(--border-subtle)]">
                   <div className="flex items-center gap-2">
                     <TrendingUp className="h-4 w-4 text-[var(--text-muted)]" />
                     <h2 className="text-sm font-semibold text-[var(--text-primary)]">
-                      Day of Week Distribution
+                      Popular Days
                     </h2>
                   </div>
                   <span className="text-[11px] text-[var(--text-muted)]">Booking frequency</span>

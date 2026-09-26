@@ -24,12 +24,13 @@ import { api, type UserSettingsResponse } from "@/lib/api";
 import { ApiError } from "@/lib/api-error";
 
 export default function SettingsPage() {
-  const [settings, setSettings] = useState<UserSettingsResponse | null>(null);
+  const [_settings, setSettings] = useState<UserSettingsResponse | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<"profile" | "security" | "notifications" | "scheduling">("profile");
 
   // Profile Form State
   const [name, setName] = useState("");
+  const [email, setEmail] = useState("");
   const [username, setUsername] = useState("");
   const [timezone, setTimezone] = useState("UTC");
   const [avatarUrl, setAvatarUrl] = useState("");
@@ -89,6 +90,7 @@ export default function SettingsPage() {
       const data = await api<UserSettingsResponse>("/settings");
       setSettings(data);
       setName(data.profile.name);
+      setEmail(data.profile.email);
       setUsername(data.profile.username);
       setTimezone(data.profile.timezone);
       setAvatarUrl(data.profile.avatarUrl || "");
@@ -119,6 +121,7 @@ export default function SettingsPage() {
         method: "PATCH",
         body: JSON.stringify({
           name: name.trim(),
+          email: email.trim(),
           username: username.trim(),
           timezone,
           avatarUrl: avatarUrl.trim() || null,
@@ -135,7 +138,9 @@ export default function SettingsPage() {
       }
     } catch (err) {
       let msg = "Failed to update profile.";
-      if (err instanceof ApiError && err.body.error.code === "USERNAME_CONFLICT") {
+      if (err instanceof ApiError && err.body.error.code === "EMAIL_CONFLICT") {
+        msg = "This email address is already in use by another account.";
+      } else if (err instanceof ApiError && err.body.error.code === "USERNAME_CONFLICT") {
         msg = "This username is already taken by another account.";
       } else if (err instanceof Error) {
         msg = err.message;
@@ -434,7 +439,7 @@ export default function SettingsPage() {
                   className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg border border-neutral-300 bg-white text-xs font-semibold text-neutral-800 hover:bg-neutral-50 transition-colors cursor-pointer shadow-2xs"
                 >
                   <Upload className="h-3.5 w-3.5" />
-                  <span>Upload Image</span>
+                  <span>{avatarUrl ? "Change Image" : "Upload Image"}</span>
                 </label>
                 {avatarUrl && (
                   <button
@@ -446,7 +451,7 @@ export default function SettingsPage() {
                   </button>
                 )}
               </div>
-              <p className="text-[11px] text-[var(--text-muted)]">Upload a PNG, JPG, or WebP photo up to 5MB. It will sync across your public booking page and navbar header.</p>
+              <p className="text-[11px] text-[var(--text-muted)]">Upload a PNG, JPG, or WebP photo up to 5MB.</p>
             </div>
           </div>
 
@@ -493,11 +498,12 @@ export default function SettingsPage() {
               <input
                 id="email"
                 type="email"
-                value={settings?.profile.email || ""}
-                disabled
-                className="w-full rounded-xl border border-neutral-200 bg-neutral-50 px-3.5 py-2.5 text-xs text-neutral-500 cursor-not-allowed"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                required
+                className="w-full rounded-xl border border-neutral-300 bg-white px-3.5 py-2.5 text-xs text-neutral-900 focus:border-blue-600 focus:ring-1 focus:ring-blue-600 focus:outline-none transition-shadow"
+                placeholder="e.g. user@example.com"
               />
-              <span className="text-[10px] text-neutral-400">Primary authentication identifier</span>
             </div>
 
             <div className="space-y-1.5">
@@ -510,20 +516,6 @@ export default function SettingsPage() {
                 onChange={setTimezone}
               />
             </div>
-          </div>
-
-          <div className="space-y-1.5">
-            <label htmlFor="avatarUrl" className="text-xs font-semibold text-[var(--text-primary)]">
-              Avatar Image URL (Optional Direct Link)
-            </label>
-            <input
-              id="avatarUrl"
-              type="text"
-              value={avatarUrl.startsWith("data:") ? "" : avatarUrl}
-              onChange={(e) => setAvatarUrl(e.target.value)}
-              placeholder="https://example.com/avatar.jpg"
-              className="w-full rounded-xl border border-neutral-300 bg-white px-3.5 py-2.5 text-xs text-neutral-900 focus:border-blue-600 focus:ring-1 focus:ring-blue-600 focus:outline-none transition-shadow"
-            />
           </div>
 
           <div className="pt-4 flex items-center justify-end border-t border-[var(--border-subtle)]">

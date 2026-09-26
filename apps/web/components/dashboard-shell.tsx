@@ -300,7 +300,7 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
 
         {/* Dynamic Collapsible Sidebar Navigation */}
         <aside
-          className={`fixed inset-y-0 left-0 z-50 flex flex-col justify-between border-r border-[var(--border-subtle)] bg-[var(--bg-surface)] transition-[width,transform] duration-500 ease-in-out md:static md:translate-x-0 relative ${
+          className={`fixed inset-y-0 left-0 z-50 flex flex-col justify-between border-r border-[var(--border-subtle)] bg-[var(--bg-surface)] transition-[width,transform] duration-500 ease-in-out md:sticky md:top-0 md:h-screen md:translate-x-0 ${
             isMobileMenuOpen ? "translate-x-0 w-[260px]" : "-translate-x-full md:translate-x-0"
           } ${isCollapsed ? "md:w-[84px]" : "md:w-[260px]"}`}
         >
@@ -318,7 +318,7 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
           )}
 
           {/* Top Section: Logo & Toggle Button + Create CTA */}
-          <div className={`flex flex-col flex-1 overflow-y-auto ${isCollapsed ? "px-3" : "px-5"} py-5 transition-[padding] duration-500`}>
+          <div className={`flex flex-col flex-1 min-h-0 overflow-y-auto ${isCollapsed ? "px-3" : "px-5"} py-5 transition-[padding] duration-500`}>
             {/* Logo Row + Collapse Button */}
             <div className={`flex items-center ${isCollapsed ? "justify-center" : "justify-between"} mb-5 px-1 min-h-[36px]`}>
               <Link href="/dashboard" className="flex items-center gap-2.5 group shrink-0">
@@ -429,8 +429,8 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
             </nav>
           </div>
 
-          {/* Bottom Section: Analytics & Admin Center with generous bottom padding */}
-          <div className={`mt-auto shrink-0 border-t border-[var(--border-subtle)] ${isCollapsed ? "px-3" : "px-5"} pt-3 pb-6 sm:pb-8 transition-[padding] duration-500`}>
+          {/* Bottom Section: Analytics & Admin Center */}
+          <div className={`mt-auto shrink-0 border-t border-[var(--border-subtle)] ${isCollapsed ? "px-3" : "px-5"} pt-3 pb-4 transition-[padding] duration-500`}>
             <nav className="space-y-1">
               {secondaryNavItems.map((item) => {
                 const Icon = item.icon;
