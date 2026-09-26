@@ -4,11 +4,13 @@ import { SharedModule } from "../shared/shared.module";
 import { EMAIL_PROVIDER } from "./interfaces/email-provider.interface";
 import { DevEmailProvider } from "./providers/dev-email.provider";
 import { SmtpEmailProvider } from "./providers/smtp-email.provider";
+import { NotificationsController } from "./notifications.controller";
 import { NotificationsProcessor } from "./notifications.processor";
 import { NotificationsService } from "./notifications.service";
 
 @Module({
   imports: [SharedModule],
+  controllers: [NotificationsController],
   providers: [
     NotificationsService,
     NotificationsProcessor,
