@@ -8,6 +8,8 @@ import {
   Shield,
   Check,
   AlertCircle,
+  Camera,
+  Upload,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Spinner } from "@/components/ui/spinner";
@@ -122,6 +124,13 @@ export default function SettingsPage() {
       });
       setSettings(updated);
       setFeedback({ type: "success", message: "Profile settings saved successfully." });
+      
+      // Real-time synchronization with Header and Sidebar user buttons
+      if (typeof window !== "undefined") {
+        window.dispatchEvent(
+          new CustomEvent("sched_user_updated", { detail: updated.profile })
+        );
+      }
     } catch (err) {
       let msg = "Failed to update profile.";
       if (err instanceof ApiError && err.body.error.code === "USERNAME_CONFLICT") {
@@ -206,6 +215,54 @@ export default function SettingsPage() {
         </div>
       </div>
     );
+  }
+
+  function handleFileUpload(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (!file.type.startsWith("image/")) {
+      setFeedback({ type: "error", message: "Please select a valid image file (PNG, JPG, WebP)." });
+      return;
+    }
+
+    if (file.size > 5 * 1024 * 1024) {
+      setFeedback({ type: "error", message: "Image size must be less than 5MB." });
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      const img = new Image();
+      img.onload = () => {
+        const canvas = document.createElement("canvas");
+        const maxDim = 256;
+        let width = img.width;
+        let height = img.height;
+        if (width > height) {
+          if (width > maxDim) {
+            height = Math.round((height * maxDim) / width);
+            width = maxDim;
+          }
+        } else {
+          if (height > maxDim) {
+            width = Math.round((width * maxDim) / height);
+            height = maxDim;
+          }
+        }
+        canvas.width = width;
+        canvas.height = height;
+        const ctx = canvas.getContext("2d");
+        if (ctx) {
+          ctx.drawImage(img, 0, 0, width, height);
+          const compressedDataUrl = canvas.toDataURL("image/jpeg", 0.85);
+          setAvatarUrl(compressedDataUrl);
+          setFeedback({ type: "success", message: "Photo loaded! Click 'Save Profile' to apply your new avatar." });
+        }
+      };
+      img.src = event.target?.result as string;
+    };
+    reader.readAsDataURL(file);
   }
 
   return (
@@ -293,17 +350,53 @@ export default function SettingsPage() {
       {/* Tab 1: Profile Settings */}
       {activeTab === "profile" && (
         <form onSubmit={handleSaveProfile} className="space-y-5 rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-surface)] p-6 shadow-2xs">
-          <div className="flex items-center gap-4 pb-4 border-b border-[var(--border-subtle)]">
-            <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-full bg-blue-600 text-white font-bold text-lg select-none overflow-hidden">
-              {avatarUrl ? (
-                <img src={avatarUrl} alt={name} className="h-full w-full object-cover" />
-              ) : (
-                name.charAt(0).toUpperCase() || "U"
-              )}
+          {/* Avatar Upload Section */}
+          <div className="flex items-center gap-5 pb-5 border-b border-[var(--border-subtle)]">
+            <div className="relative group">
+              <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-full bg-blue-600 text-white font-bold text-xl select-none overflow-hidden ring-2 ring-neutral-200">
+                {avatarUrl ? (
+                  <img src={avatarUrl} alt={name} className="h-full w-full object-cover" />
+                ) : (
+                  name.charAt(0).toUpperCase() || "U"
+                )}
+              </div>
+              <label
+                htmlFor="avatar-file-upload"
+                className="absolute inset-0 flex items-center justify-center rounded-full bg-black/40 text-white opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer"
+                title="Upload profile photo"
+              >
+                <Camera className="h-5 w-5" />
+              </label>
+              <input
+                id="avatar-file-upload"
+                type="file"
+                accept="image/png,image/jpeg,image/webp,image/gif"
+                className="hidden"
+                onChange={handleFileUpload}
+              />
             </div>
-            <div>
-              <h2 className="text-sm font-semibold text-[var(--text-primary)]">Personal Details</h2>
-              <p className="text-xs text-[var(--text-secondary)]">Your public profile name and username slug for sharing booking links.</p>
+
+            <div className="space-y-1.5 flex-1">
+              <h2 className="text-sm font-semibold text-[var(--text-primary)]">Profile Photo</h2>
+              <div className="flex flex-wrap items-center gap-2">
+                <label
+                  htmlFor="avatar-file-upload"
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-canvas)] text-xs font-semibold text-neutral-800 hover:bg-neutral-100 hover:text-black transition-colors cursor-pointer"
+                >
+                  <Upload className="h-3.5 w-3.5" />
+                  <span>Upload Image</span>
+                </label>
+                {avatarUrl && (
+                  <button
+                    type="button"
+                    onClick={() => setAvatarUrl("")}
+                    className="px-3 py-1.5 rounded-lg text-xs font-semibold text-rose-600 hover:bg-rose-50 transition-colors cursor-pointer"
+                  >
+                    Remove
+                  </button>
+                )}
+              </div>
+              <p className="text-[11px] text-[var(--text-muted)]">Upload a PNG, JPG, or WebP photo, or paste a link below.</p>
             </div>
           </div>
 
@@ -378,15 +471,15 @@ export default function SettingsPage() {
 
           <div className="space-y-1.5">
             <label htmlFor="avatarUrl" className="text-xs font-semibold text-[var(--text-primary)]">
-              Avatar Image URL (Optional)
+              Or Avatar Image URL (Optional)
             </label>
             <input
               id="avatarUrl"
-              type="url"
+              type="text"
               value={avatarUrl}
               onChange={(e) => setAvatarUrl(e.target.value)}
-              className="w-full rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-canvas)] px-3 py-2 text-xs text-[var(--text-primary)] focus:border-neutral-900 focus:outline-none"
-              placeholder="https://images.unsplash.com/... or profile image link"
+              className="w-full rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-canvas)] px-3 py-2 text-xs text-[var(--text-primary)] focus:border-neutral-900 focus:outline-none font-mono"
+              placeholder="https://... or uploaded image"
             />
           </div>
 

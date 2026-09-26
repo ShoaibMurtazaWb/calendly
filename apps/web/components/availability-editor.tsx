@@ -9,7 +9,6 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -244,37 +243,26 @@ export function AvailabilityEditor() {
         </div>
 
         {/* General Schedule Settings */}
-        <Card className="p-6 bg-[var(--bg-surface)] border-[var(--border-subtle)] shadow-xs space-y-5">
+        <Card className="p-6 bg-[var(--bg-surface)] border-[var(--border-subtle)] shadow-xs space-y-4">
           <div className="flex items-center gap-2 text-sm font-semibold text-[var(--text-primary)]">
             <Globe className="h-4 w-4 text-[var(--text-secondary)]" />
-            <span>Timezone & Schedule Settings</span>
+            <span>Timezone Settings</span>
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div className="space-y-1.5">
-              <Label htmlFor="schedule-name">Schedule Name</Label>
-              <Input
-                id="schedule-name"
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-              />
-            </div>
-
-            <div className="space-y-1.5">
-              <Label htmlFor="schedule-timezone">Host Timezone</Label>
-              <Select
-                id="schedule-timezone"
-                value={timeZone}
-                onChange={(e) => setTimeZone(e.target.value)}
-                className="font-mono text-xs"
-              >
-                {availableTimezones.map((tz) => (
-                  <option key={tz} value={tz}>
-                    {tz}
-                  </option>
-                ))}
-              </Select>
-            </div>
+          <div className="space-y-1.5 max-w-md">
+            <Label htmlFor="schedule-timezone">Host Timezone</Label>
+            <Select
+              id="schedule-timezone"
+              value={timeZone}
+              onChange={(e) => setTimeZone(e.target.value)}
+              className="font-mono text-xs"
+            >
+              {availableTimezones.map((tz) => (
+                <option key={tz} value={tz}>
+                  {tz}
+                </option>
+              ))}
+            </Select>
           </div>
         </Card>
 

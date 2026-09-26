@@ -117,6 +117,19 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
     void checkAuth();
   }, []);
 
+  // Listen for real-time profile updates from settings
+  useEffect(() => {
+    function handleUserUpdated(event: CustomEvent<Partial<CurrentUser>>) {
+      if (event.detail) {
+        setUser((prev) => (prev ? { ...prev, ...event.detail } : prev));
+      }
+    }
+    window.addEventListener("sched_user_updated" as string, handleUserUpdated as EventListener);
+    return () => {
+      window.removeEventListener("sched_user_updated" as string, handleUserUpdated as EventListener);
+    };
+  }, []);
+
   // Minute-level clock updates
   useEffect(() => {
     if (!user?.timezone) return;
@@ -266,8 +279,12 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
                 <span>Create</span>
               </Link>
             </Button>
-            <div className="flex h-8 w-8 items-center justify-center rounded-full bg-blue-600 text-white text-xs font-bold shadow-2xs">
-              {user.name.charAt(0).toUpperCase()}
+            <div className="flex h-8 w-8 items-center justify-center rounded-full bg-blue-600 text-white text-xs font-bold shadow-2xs overflow-hidden">
+              {user.avatarUrl ? (
+                <img src={user.avatarUrl} alt={user.name} className="h-full w-full object-cover" />
+              ) : (
+                user.name.charAt(0).toUpperCase()
+              )}
             </div>
           </div>
         </header>
@@ -472,8 +489,12 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
                 aria-label="User account menu"
               >
                 <div className="relative">
-                  <div className="flex h-8 w-8 items-center justify-center rounded-full bg-blue-600 text-white text-xs font-bold select-none shadow-2xs">
-                    {user.name.charAt(0).toUpperCase()}
+                  <div className="flex h-8 w-8 items-center justify-center rounded-full bg-blue-600 text-white text-xs font-bold select-none shadow-2xs overflow-hidden">
+                    {user.avatarUrl ? (
+                      <img src={user.avatarUrl} alt={user.name} className="h-full w-full object-cover" />
+                    ) : (
+                      user.name.charAt(0).toUpperCase()
+                    )}
                   </div>
                   <span className="absolute bottom-0 right-0 h-2.5 w-2.5 rounded-full bg-emerald-500 ring-2 ring-white" />
                 </div>
@@ -487,10 +508,19 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
               {/* User Dropdown Menu Card */}
               {isDropdownOpen && (
                 <div className="absolute right-0 mt-2 w-72 rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-surface)] p-2 shadow-xl z-50 animate-in fade-in-0 zoom-in-95 duration-150">
-                  <div className="p-2.5 rounded-lg bg-[var(--bg-subtle)] border border-[var(--border-subtle)] mb-1">
-                    <p className="text-xs font-semibold text-black truncate">{user.name}</p>
-                    <p className="text-[11px] font-mono text-neutral-600 truncate">@{user.username}</p>
-                    <p className="text-[10px] text-neutral-500 truncate">{user.email}</p>
+                  <div className="flex items-center gap-3 p-2.5 rounded-lg bg-[var(--bg-subtle)] border border-[var(--border-subtle)] mb-1">
+                    <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-blue-600 text-white font-bold text-xs select-none shadow-2xs overflow-hidden">
+                      {user.avatarUrl ? (
+                        <img src={user.avatarUrl} alt={user.name} className="h-full w-full object-cover" />
+                      ) : (
+                        user.name.charAt(0).toUpperCase()
+                      )}
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <p className="text-xs font-semibold text-black truncate">{user.name}</p>
+                      <p className="text-[11px] font-mono text-neutral-600 truncate">@{user.username}</p>
+                      <p className="text-[10px] text-neutral-500 truncate">{user.email}</p>
+                    </div>
                   </div>
 
                   {user.timezone && (

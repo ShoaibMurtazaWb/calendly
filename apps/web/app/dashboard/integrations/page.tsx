@@ -10,7 +10,6 @@ import {
   ExternalLink,
   Trash2,
   Check,
-  ShieldCheck,
   Clock,
   Mail,
   Calendar as CalendarIcon,
@@ -319,7 +318,7 @@ function IntegrationsContent() {
           {/* Main Google Calendar Card */}
           <div className="rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-surface)] p-6 shadow-xs">
             {/* Header / Identity Row */}
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-6 border-b border-[var(--border-subtle)]">
+            <div className={`flex flex-col sm:flex-row sm:items-center justify-between gap-4 ${isConnected ? "pb-6 border-b border-[var(--border-subtle)]" : ""}`}>
               <div className="flex items-start gap-4">
                 <div className="flex h-12 w-12 items-center justify-center rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-canvas)] shadow-2xs">
                   <GoogleCalendarLogo className="h-7 w-7" />
@@ -525,55 +524,6 @@ function IntegrationsContent() {
                 </form>
               </div>
             )}
-          </div>
-
-          {/* Operational Status & Capabilities Panel */}
-          <div className="rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-surface)] p-6 shadow-2xs">
-            <h3 className="text-sm font-semibold text-[var(--text-primary)] flex items-center gap-2">
-              <ShieldCheck className="h-4 w-4 text-[var(--text-primary)]" />
-              Integration Status
-            </h3>
-            <div className="mt-4 grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs text-[var(--text-secondary)]">
-              <div className="flex items-start gap-2.5 rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-canvas)]/50 p-3">
-                <CheckCircle2 className="h-4 w-4 text-emerald-600 shrink-0 mt-0.5" />
-                <div>
-                  <div className="font-semibold text-[var(--text-primary)]">Calendar Connected</div>
-                  <div className="text-[11px] text-[var(--text-muted)] mt-0.5">
-                    Authenticated via Google OAuth 2.0 (PKCE)
-                  </div>
-                </div>
-              </div>
-
-              <div className="flex items-start gap-2.5 rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-canvas)]/50 p-3">
-                <CheckCircle2 className="h-4 w-4 text-emerald-600 shrink-0 mt-0.5" />
-                <div>
-                  <div className="font-semibold text-[var(--text-primary)]">Busy-Time Checking</div>
-                  <div className="text-[11px] text-[var(--text-muted)] mt-0.5">
-                    Real-time FreeBusy querying with timeout fallback
-                  </div>
-                </div>
-              </div>
-
-              <div className="flex items-start gap-2.5 rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-canvas)]/50 p-3">
-                <CheckCircle2 className="h-4 w-4 text-emerald-600 shrink-0 mt-0.5" />
-                <div>
-                  <div className="font-semibold text-[var(--text-primary)]">Booking Synchronization</div>
-                  <div className="text-[11px] text-[var(--text-muted)] mt-0.5">
-                    Asynchronous outbox with idempotent sequence reconciliation
-                  </div>
-                </div>
-              </div>
-
-              <div className="flex items-start gap-2.5 rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-canvas)]/50 p-3">
-                <CheckCircle2 className="h-4 w-4 text-emerald-600 shrink-0 mt-0.5" />
-                <div>
-                  <div className="font-semibold text-[var(--text-primary)]">Credentials Encrypted</div>
-                  <div className="text-[11px] text-[var(--text-muted)] mt-0.5">
-                    Tokens secured with AES-256-GCM authenticated vault
-                  </div>
-                </div>
-              </div>
-            </div>
           </div>
         </div>
       )}

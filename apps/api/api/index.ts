@@ -40,13 +40,24 @@ async function bootstrapServerless(expressInstance: express.Express) {
 }
 
 export default async function handler(req: Request, res: Response) {
-  if (!isReady) {
-    if (!initPromise) {
-      initPromise = bootstrapServerless(server).then(() => {
-        isReady = true;
-      });
+  try {
+    if (!isReady) {
+      if (!initPromise) {
+        initPromise = bootstrapServerless(server).then(() => {
+          isReady = true;
+        });
+      }
+      await initPromise;
     }
-    await initPromise;
+    return server(req, res);
+  } catch (err: unknown) {
+    const errorMsg = err instanceof Error ? err.message : String(err);
+    const errorStack = err instanceof Error ? err.stack : undefined;
+    console.error("[SERVERLESS_INIT_ERROR]", err);
+    return res.status(500).json({
+      error: "FUNCTION_INVOCATION_ERROR",
+      message: errorMsg,
+      stack: process.env.NODE_ENV !== "production" ? errorStack : undefined,
+    });
   }
-  server(req, res);
 }

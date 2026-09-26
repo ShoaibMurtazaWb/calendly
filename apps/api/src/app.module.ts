@@ -13,8 +13,10 @@ import { SchedulesModule } from "./schedules/schedules.module";
 import { SettingsModule } from "./settings/settings.module";
 import { SharedModule } from "./shared/shared.module";
 import { RequestContextMiddleware } from "./shared/middleware/request-context.middleware";
+import { AppController } from "./app.controller";
 
 @Module({
+  controllers: [AppController],
   imports: [
     ConfigModule.forRoot({ isGlobal: true, envFilePath: [".env"] }),
     ThrottlerModule.forRoot({
